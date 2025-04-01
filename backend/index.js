@@ -6,6 +6,7 @@ const createDriversTable = require('./models/driverModel');
 const createBookingsTable = require('./models/bookingModel');
 const createPrevBookingsTable = require('./models/prevbookingModel');
 const createPaymentsTable = require('./models/paymentModel');
+const createVendorBankTable=require('./models/vendorbankModel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ const createTables = async () => {
     await createPrevBookingsTable();
     await createPaymentsTable();
     await createTrigger();
+    await createVendorBankTable();
 };
 
 createTables();
