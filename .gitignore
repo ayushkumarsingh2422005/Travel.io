@@ -1,0 +1,25 @@
+.qodo
+# Node modules  
+node_modules/  
+
+# Log files  
+logs  
+*.log  
+
+# Dependency directories  
+jspm_packages/  
+
+# Build output  
+dist/  
+build/  
+
+# Environment variables file  
+.env  
+
+# IDE specific files  
+.idea/  
+.vscode/  
+
+# OS specific files  
+.DS_Store  
+Thumbs.db  
