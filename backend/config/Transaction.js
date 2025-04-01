@@ -39,4 +39,31 @@ const assignDriverToBooking = async (driverId, bookingId) => {
 };  
 
 
-module.exports={assignDriverToBooking}
+
+async function moveCompletedBooking(bookingId) {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction(); 
+
+        
+        const updateQuery = `UPDATE bookings SET status = 'completed' WHERE id = ?`;
+        await connection.query(updateQuery, [bookingId]);
+
+      
+        const deleteQuery = `DELETE FROM bookings WHERE id = ?`;
+        await connection.query(deleteQuery, [bookingId]);
+
+        await connection.commit(); 
+        console.log(`Booking ID ${bookingId} moved successfully.`);
+    } catch (error) {
+        await connection.rollback(); 
+        console.error("Transaction failed:", error);
+    } finally {
+        connection.release(); 
+    }
+}
+
+
+
+
+module.exports={assignDriverToBooking,moveCompletedBooking}

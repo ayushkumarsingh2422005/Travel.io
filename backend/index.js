@@ -16,6 +16,7 @@ const cors = require('cors');
 require('dotenv').config();
 const db = require('./config/db');
 const { createTrigger } = require("./config/Trigger");
+const { moveCompletedBooking } = require("./config/Transaction");
 
 
 
@@ -34,8 +35,7 @@ createTables();
 
 
 // for transactions do this 
-
-
+moveCompletedBooking(7);
 
 
 
