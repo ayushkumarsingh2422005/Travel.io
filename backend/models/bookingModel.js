@@ -1,25 +1,40 @@
 const db = require('../config/db');
 
+
+// Create bookings table if it doesn't exist.
 const createBookingsTable = async () => {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS bookings (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            customer_id INT NOT NULL,
-            vehicle_id INT NOT NULL,
-            driver_id INT ,
+            id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
+            customer_id CHAR(64) ,
+            vehicle_id CHAR(64) ,
+            driver_id CHAR(64),
+            vendor_id CHAR(64),
+            partner_id CHAR(64),
             pickup_location VARCHAR(255) NOT NULL,
             dropoff_location VARCHAR(255) NOT NULL,
             pickup_date DATETIME NOT NULL,
             drop_date DATETIME NOT NULL,
+            price BIGINT NOT NULL, 
             path TEXT NOT NULL,
-            distance DECIMAL(10,2) NOT NULL,
-            status ENUM('waiting','approved','ongoing', 'completed', 'cancelled') DEFAULT 'ongoing',
-            FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
-            FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL
+            distance BIGINT NOT NULL, 
+            status ENUM('waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled') DEFAULT 'waiting',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
+
+            FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+            FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL,
+            FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE SET NULL,
+
+            INDEX (customer_id), 
+            INDEX (vehicle_id),
+            INDEX (driver_id),
+            INDEX (vendor_id),
+            INDEX (partner_id)
         )
     `);
-    console.log('✅ Bookings Table Created');
+    console.log('✅ Scalable Bookings Table Created!');
 };
 
 module.exports = createBookingsTable;

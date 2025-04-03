@@ -1,8 +1,10 @@
-const db=require('./db')
+const db=require('../config/db')
 
-async function createTrigger() {
+// trigger for moving from booking to prevbooking
+// no pre payment on booking is allowed
+async function createBookingTrigger() {
     try {
-        const [rows] = await db.query("SHOW TRIGGERS LIKE 'move_completed_booking'");
+        const [rows] = await db.query("DROP TRIGGER IF EXISTS move_completed_booking;");
         if (rows.length === 0) {
             console.log("Creating trigger: move_completed_booking");
 
@@ -11,10 +13,10 @@ CREATE TRIGGER move_completed_booking
 AFTER UPDATE ON bookings  
 FOR EACH ROW  
 BEGIN  
-    IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status != 'completed') THEN  
+    IF NEW.status IN ('completed', 'cancelled') AND (OLD.status IS NULL OR OLD.status != 'completed') THEN  
         INSERT INTO prevbookings (  
             booking_id, customer_id, driver_id, vehicle_id,   
-            pickup_location, dropoff_location,  
+            pickup_location, dropoff_location,
             pickup_date, drop_date, path, distance, status  
         )  
         VALUES (  
@@ -37,4 +39,4 @@ END
     }
 }
 
-module.exports={createTrigger}
+module.exports=createBookingTrigger;
