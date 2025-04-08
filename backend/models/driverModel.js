@@ -3,17 +3,22 @@ const db = require('../config/db');
 const createDriversTable = async () => {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS drivers (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            vendor_id INT NOT NULL,
+            id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
+            vendor_id CHAR(64) NOT NULL,
             name VARCHAR(100) NOT NULL,
             phone VARCHAR(15) UNIQUE NOT NULL,
             address TEXT NOT NULL,
             license VARCHAR(50) UNIQUE NOT NULL,
-            is_active BOOLEAN DEFAULT 0,
-            FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
+            is_active TINYINT(1) DEFAULT 0, 
+            vehicle_id CHAR(64),
+            FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+
+            INDEX (phone), 
+            INDEX (license)
         )
     `);
-    console.log('✅ Drivers Table Created');
+    console.log('✅ Scalable Drivers Table Created!');
 };
 
 module.exports = createDriversTable;

@@ -1,19 +1,30 @@
-const db = require('../config/db');
+const db = require("../config/db");
 
+// Vendor or partner creates a payment request from the admin and admin approves it
 const createPaymentsTable = async () => {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS payments (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            customer_id INT NOT NULL,
-            vendor_id INT NOT NULL,
-            amount DECIMAL(10,2) NOT NULL,
-            payment_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
-            bank_details TEXT NOT NULL,
-            FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
-        )
-    `);
-    console.log('✅ Payments Table Created');
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS payments (
+                id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
+                vendor_id CHAR(64) ,
+                partner_id CHAR(64) ,
+                amount BIGINT NOT NULL,  
+                status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+                type ENUM('withdrawal', 'penalty') NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL,
+                FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE SET NULL,
+              
+
+                INDEX (vendor_id), 
+                INDEX (status) 
+            )
+        `);
+        console.log("✅ Scalable Payments Table Created");
+    } catch (error) {
+        console.error("❌ Error creating Payments table:", error.message);
+    }
 };
 
 module.exports = createPaymentsTable;
