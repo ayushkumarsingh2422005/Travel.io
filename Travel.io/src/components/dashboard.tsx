@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
 
 // Initial JSON data that would normally come from API
 const initialData = {
@@ -109,6 +110,16 @@ const initialData = {
   cabOptions: ["Outstation", "Local", "Airport"]
 };
 
+interface AutocompleteService {
+  getPlacePredictions: (request: {
+    input: string;
+    types?: string[];
+    componentRestrictions?: { country: string };
+  }) => Promise<{
+    predictions: Array<{ description: string }>;
+  }>;
+}
+
 export default function MarcoCabService() {
   // State to hold data that would come from API
   const [data, setData] = useState(initialData);
@@ -136,6 +147,22 @@ export default function MarcoCabService() {
     message: ""
   });
 
+  // Add new states for location suggestions
+  const [pickupSuggestions, setPickupSuggestions] = useState<string[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<string[]>([]);
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
+
+  // Add state for additional stops and their suggestions
+  const [additionalStops, setAdditionalStops] = useState<Array<{ 
+    id: number; 
+    location: string;
+    suggestions: string[];
+    showSuggestions: boolean;
+  }>>([]);
+  const [nextStopId, setNextStopId] = useState(1);
+
   // Effect to simulate API data fetch
   useEffect(() => {
     // This is where you would fetch data from your API
@@ -155,16 +182,28 @@ export default function MarcoCabService() {
     setData(initialData);
   }, []);
   
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    const loader = new Loader({
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+      version: "weekly",
+      libraries: ["places"]
+    });
 
-type FormState = Record<string, string>;
+    loader.load().then((google) => {
+      setAutocompleteService(new google.maps.places.AutocompleteService());
+    });
+  }, []);
 
-const handleInputChange = <T extends FormState>(
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-  formSetter: React.Dispatch<React.SetStateAction<T>>
-) => {
-  const { name, value } = e.target;
-  formSetter(prev => ({ ...prev, [name]: value }));
-};
+  type FormState = Record<string, string>;
+
+  const handleInputChange = <T extends FormState>(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    formSetter: React.Dispatch<React.SetStateAction<T>>
+  ) => {
+    const { name, value } = e.target;
+    formSetter(prev => ({ ...prev, [name]: value }));
+  };
 
   // Booking form handler
   const handleBookingChange = (
@@ -233,7 +272,129 @@ const handleInputChange = <T extends FormState>(
   
     // Submit to API...
   };
-  
+
+  // Function to get location suggestions
+  const getLocationSuggestions = async (input: string, setSuggestions: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (!autocompleteService || !input) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await autocompleteService.getPlacePredictions({
+        input: input,
+        types: ['(cities)'],
+        componentRestrictions: { country: 'in' }
+      });
+
+      if (response && response.predictions) {
+        setSuggestions(response.predictions.map((prediction: { description: string }) => prediction.description));
+      }
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+    }
+  };
+
+  // Handle pickup location input change
+  const handlePickupLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBookingForm(prev => ({ ...prev, pickupLocation: value }));
+    setShowPickupSuggestions(true);
+    await getLocationSuggestions(value, setPickupSuggestions);
+  };
+
+  // Handle destination input change
+  const handleDestinationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBookingForm(prev => ({ ...prev, destination: value }));
+    setShowDestinationSuggestions(true);
+    await getLocationSuggestions(value, setDestinationSuggestions);
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (location: string, type: 'pickup' | 'destination') => {
+    if (type === 'pickup') {
+      setBookingForm(prev => ({ ...prev, pickupLocation: location }));
+      setShowPickupSuggestions(false);
+    } else {
+      setBookingForm(prev => ({ ...prev, destination: location }));
+      setShowDestinationSuggestions(false);
+    }
+  };
+
+  // Handle adding a new stop
+  const handleAddStop = () => {
+    setAdditionalStops(prev => [...prev, { 
+      id: nextStopId, 
+      location: '',
+      suggestions: [],
+      showSuggestions: false
+    }]);
+    setNextStopId(prev => prev + 1);
+  };
+
+  // Handle removing a stop
+  const handleRemoveStop = (id: number) => {
+    setAdditionalStops(prev => prev.filter(stop => stop.id !== id));
+  };
+
+  // Handle stop location change
+  const handleStopLocationChange = async (id: number, value: string) => {
+    setAdditionalStops(prev => 
+      prev.map(stop => {
+        if (stop.id === id) {
+          return { 
+            ...stop, 
+            location: value,
+            showSuggestions: true
+          };
+        }
+        return stop;
+      })
+    );
+
+    if (autocompleteService && value) {
+      try {
+        const response = await autocompleteService.getPlacePredictions({
+          input: value,
+          types: ['(cities)'],
+          componentRestrictions: { country: 'in' }
+        });
+
+        if (response && response.predictions) {
+          setAdditionalStops(prev => 
+            prev.map(stop => {
+              if (stop.id === id) {
+                return {
+                  ...stop,
+                  suggestions: response.predictions.map((prediction: { description: string }) => prediction.description)
+                };
+              }
+              return stop;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching location suggestions:', error);
+      }
+    }
+  };
+
+  // Handle stop suggestion selection
+  const handleStopSuggestionSelect = (id: number, location: string) => {
+    setAdditionalStops(prev => 
+      prev.map(stop => {
+        if (stop.id === id) {
+          return {
+            ...stop,
+            location: location,
+            showSuggestions: false
+          };
+        }
+        return stop;
+      })
+    );
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-green-500">
@@ -295,36 +456,91 @@ const handleInputChange = <T extends FormState>(
                   type="text" 
                   name="pickupLocation"
                   value={bookingForm.pickupLocation}
-                  onChange={handleBookingChange}
+                  onChange={handlePickupLocationChange}
                   placeholder="Enter pickup location" 
                   className="w-full p-2 rounded border border-gray-300" 
                 />
-                <span className="absolute right-2 top-2 text-gray-400">
-                  ⊙
-                </span>
+                {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg">
+                    {pickupSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Additional Stops */}
+              {additionalStops.map((stop) => (
+                <div key={stop.id} className="mb-3 relative flex items-center">
+                  <div className="flex-1 relative">
+                    <input 
+                      type="text" 
+                      value={stop.location}
+                      onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                      placeholder="Enter stop location" 
+                      className="w-full p-2 rounded border border-gray-300" 
+                    />
+                    {stop.showSuggestions && stop.suggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg">
+                        {stop.suggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => handleStopSuggestionSelect(stop.id, suggestion)}
+                          >
+                            {suggestion}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStop(stop.id)}
+                    className="ml-2 p-2 text-red-500 hover:text-red-700"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
               
               <div className="mb-3 relative">
                 <input 
                   type="text" 
                   name="destination"
                   value={bookingForm.destination}
-                  onChange={handleBookingChange}
+                  onChange={handleDestinationChange}
                   placeholder="Enter destination" 
                   className="w-full p-2 rounded border border-gray-300" 
                 />
-                <span className="absolute right-2 top-2 text-gray-400">
-                  ⊙
-                </span>
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg">
+                    {destinationSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <button 
                 type="button"
-                onClick={handleAddMoreCity}
+                onClick={handleAddStop}
                 className="w-full p-2 rounded bg-green-500 text-white mb-3 flex items-center justify-center"
               >
-                <span>Add more city</span>
-                <span className="ml-1">▼</span>
+                <span>Add stop</span>
+                <span className="ml-1">+</span>
               </button>
               
               <div className="mb-3 relative flex">
