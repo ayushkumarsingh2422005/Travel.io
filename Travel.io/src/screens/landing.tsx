@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { useNavigate } from 'react-router-dom';
 
 // Initial JSON data that would normally come from API
 const initialData = {
@@ -116,23 +117,8 @@ interface AutocompleteService {
   }>;
 }
 
-interface DistanceMatrixService {
-  getDistanceMatrix: (request: {
-    origins: string[];
-    destinations: string[];
-    travelMode: 'DRIVING';
-  }) => Promise<{
-    rows: Array<{
-      elements: Array<{
-        distance: { text: string; value: number };
-        duration: { text: string; value: number };
-        status: string;
-      }>;
-    }>;
-  }>;
-}
-
 export default function MarcoCabService() {
+  const navigate = useNavigate();
   // State to hold data that would come from API
   const [data, setData] = useState(initialData);
   
@@ -165,10 +151,6 @@ export default function MarcoCabService() {
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
-  const [distanceMatrixService, setDistanceMatrixService] = useState<DistanceMatrixService | null>(null);
-  const [calculatedDistance, setCalculatedDistance] = useState<number>(0);
-  const [calculatedDuration, setCalculatedDuration] = useState<string>('');
-  const [pathCheckpoints, setPathCheckpoints] = useState<string[]>([]);
 
   // Add state for additional stops and their suggestions
   const [additionalStops, setAdditionalStops] = useState<Array<{ 
@@ -208,7 +190,6 @@ export default function MarcoCabService() {
 
     loader.load().then((google) => {
       setAutocompleteService(new google.maps.places.AutocompleteService());
-      setDistanceMatrixService(new google.maps.DistanceMatrixService());
     });
   }, []);
 
@@ -281,18 +262,16 @@ export default function MarcoCabService() {
     e.preventDefault();
     console.log("Booking form submitted:", bookingForm);
   
-    // Show distance alert
-    if (calculatedDistance > 0) {
-      const distanceInKm = (calculatedDistance / 1000).toFixed(1);
-      const tripType = bookingForm.tripType === 'Round Trip' ? 'Round Trip' : 'One Way';
-      const totalDistance = bookingForm.tripType === 'Round Trip' 
-        ? (calculatedDistance * 2 / 1000).toFixed(1) 
-        : distanceInKm;
-      
-      alert(`Trip Details:\nDistance: ${totalDistance} km\nDuration: ${calculatedDuration}\nTrip Type: ${tripType}`);
-    } else {
-      alert('Please enter valid pickup and destination locations');
-    }
+    // Prepare basic route data for navigation
+    const routeData = {
+      pickup: bookingForm.pickupLocation,
+      destination: bookingForm.destination,
+      stops: additionalStops.map(stop => stop.location),
+      tripType: bookingForm.tripType
+    };
+
+    // Navigate to prices page with route data
+    navigate('/prices', { state: routeData });
   };
 
   // Function to get location suggestions
@@ -417,50 +396,6 @@ export default function MarcoCabService() {
       })
     );
   };
-
-  // Calculate path and distance
-  const calculatePath = async () => {
-    if (!distanceMatrixService || !bookingForm.pickupLocation || !bookingForm.destination) return;
-
-    try {
-      // Prepare waypoints including additional stops
-      const waypoints = [
-        bookingForm.pickupLocation,
-        ...additionalStops.map(stop => stop.location),
-        bookingForm.destination
-      ].filter(Boolean);
-
-      // Calculate distance for one-way trip
-      const oneWayResponse = await distanceMatrixService.getDistanceMatrix({
-        origins: [waypoints[0]],
-        destinations: [waypoints[waypoints.length - 1]],
-        travelMode: 'DRIVING'
-      });
-
-      if (oneWayResponse.rows[0].elements[0].status === 'OK') {
-        const oneWayDistance = oneWayResponse.rows[0].elements[0].distance.value;
-        const oneWayDuration = oneWayResponse.rows[0].elements[0].duration.text;
-
-        // For return trip, double the distance
-        const totalDistance = bookingForm.tripType === 'Round Trip' 
-          ? oneWayDistance * 2 
-          : oneWayDistance;
-
-        setCalculatedDistance(totalDistance);
-        setCalculatedDuration(oneWayDuration);
-        setPathCheckpoints(waypoints);
-      }
-    } catch (error) {
-      console.error('Error calculating path:', error);
-    }
-  };
-
-  // Update path calculation when relevant fields change
-  useEffect(() => {
-    if (bookingForm.pickupLocation && bookingForm.destination) {
-      calculatePath();
-    }
-  }, [bookingForm.pickupLocation, bookingForm.destination, bookingForm.tripType, additionalStops]);
 
   return (
     <div className="flex flex-col min-h-screen bg-green-500">
@@ -620,24 +555,6 @@ export default function MarcoCabService() {
                   className="flex-1 p-2 rounded-r border border-gray-300" 
                 />
               </div>
-              
-              {/* Display calculated path information */}
-              {calculatedDistance > 0 && (
-                <div className="mt-4 p-4 bg-gray-100 rounded">
-                  <h3 className="font-bold mb-2">Trip Details</h3>
-                  <p>Total Distance: {(calculatedDistance / 1000).toFixed(1)} km</p>
-                  <p>Estimated Duration: {calculatedDuration}</p>
-                  <p>Trip Type: {bookingForm.tripType}</p>
-                  <div className="mt-2">
-                    <p className="font-bold">Route:</p>
-                    <ol className="list-decimal pl-4">
-                      {pathCheckpoints.map((checkpoint, index) => (
-                        <li key={index}>{checkpoint}</li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              )}
               
               <button 
                 type="submit"
