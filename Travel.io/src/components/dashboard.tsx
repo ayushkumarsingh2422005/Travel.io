@@ -231,12 +231,6 @@ export default function MarcoCabService() {
     setBookingForm(prev => ({ ...prev, tripType: type }));
   };
   
-  // Click handler: Add more cities
-  const handleAddMoreCity = () => {
-    console.log("Add more city clicked");
-    // Implement functionality to add more cities
-  };
-  
   // Click handler: Book now
   const handleBookNow = () => {
     console.log("Book Now clicked");
