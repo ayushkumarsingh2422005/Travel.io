@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './screens/Landing'
-import VendorRegistration from './components/VendorRegistration'
+import VendorRegistration from './screens/VendorRegistration'
 import './App.css';
+import VendorProfile from './screens/VendorProfile';
+
 
 
 
@@ -9,8 +11,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/vendor" element={<VendorRegistration />} />
+        <Route path="/" element={<VendorProfile />} />
+        <Route path="/register" element={<VendorRegistration />} />
+        <Route path="/dashboard" element={<Landing />} />
       
        
       </Routes>
