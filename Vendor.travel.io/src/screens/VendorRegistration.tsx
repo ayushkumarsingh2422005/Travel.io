@@ -10,6 +10,14 @@ interface FormData {
   aadharOTP: string;
   panNumber: string;
   panOTP: string;
+  businessName: string;
+  businessType: string;
+  gstNumber: string;
+  businessAddress: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
 }
 
 const VendorRegistration: React.FC = () => {
@@ -22,7 +30,15 @@ const VendorRegistration: React.FC = () => {
     aadharNumber: '',
     aadharOTP: '',
     panNumber: '',
-    panOTP: ''
+    panOTP: '',
+    businessName: '',
+    businessType: '',
+    gstNumber: '',
+    businessAddress: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: ''
   });
   
   const [stepIndex, setStepIndex] = useState<number>(0);
@@ -33,6 +49,14 @@ const VendorRegistration: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [citiesLoading, setCitiesLoading] = useState<boolean>(true);
   const [cities, setCities] = useState<string[]>([]);
+
+  const businessTypes = [
+    'Individual Proprietorship',
+    'Partnership Firm',
+    'Private Limited Company',
+    'Public Limited Company',
+    'Limited Liability Partnership'
+  ];
 
   // Simulate loading cities data
   useEffect(() => {
@@ -60,7 +84,7 @@ const VendorRegistration: React.FC = () => {
     };
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -90,7 +114,7 @@ const VendorRegistration: React.FC = () => {
   };
   
   const nextStep = () => {
-    setStepIndex(prev => Math.min(prev + 1, 2));
+    setStepIndex(prev => Math.min(prev + 1, 3));
   };
   
   const prevStep = () => {
@@ -109,26 +133,28 @@ const VendorRegistration: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4 shadow-sm flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="text-green-600 font-bold text-2xl">MARCO</div>
-          <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Vendor Portal</span>
+      {/* Header - Updated to match VendorProfile style */}
+      <header className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 shadow-lg">
+        <div className="container mx-auto max-w-6xl flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl font-bold tracking-tight">MARCO</div>
+            <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium">Vendor Portal</span>
+          </div>
+          <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
-        <button className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full p-2 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
-        {/* Steps Indicator */}
+        {/* Steps Indicator - Updated for 4 steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between relative">
             <div className="w-full absolute top-1/2 h-0.5 bg-gray-200 -z-10"></div>
-            {[0, 1, 2].map((step) => (
+            {[0, 1, 2, 3].map((step) => (
               <div 
                 key={step} 
                 className={`flex flex-col items-center ${step <= stepIndex ? 'text-green-600' : 'text-gray-400'}`}
@@ -137,7 +163,7 @@ const VendorRegistration: React.FC = () => {
                   step < stepIndex 
                     ? 'bg-green-600 text-white' 
                     : step === stepIndex 
-                    ? 'bg-white border-2 border-green-600 text-green-600' 
+                    ? 'bg-white border-2 border-green-600 text-green-600 shadow-md' 
                     : 'bg-white border-2 border-gray-300 text-gray-400'
                 }`}>
                   {step < stepIndex ? (
@@ -149,30 +175,35 @@ const VendorRegistration: React.FC = () => {
                   )}
                 </div>
                 <span className="text-xs font-medium">
-                  {step === 0 ? 'Basic Info' : step === 1 ? 'Identity' : 'Verification'}
+                  {step === 0 ? 'Basic Info' : step === 1 ? 'Identity' : step === 2 ? 'Business' : 'Verify'}
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Hero Banner */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl p-6 mb-8 shadow-md">
-          <h1 className="text-2xl font-bold">
-            Zero Commission, Fair Compensation!
-          </h1>
-          <p className="mt-2 text-green-50">
-            Join our vendor network and enjoy benefits that help your business grow.
-          </p>
+        {/* Hero Banner - Updated style */}
+        <div className="bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white rounded-2xl p-8 mb-8 shadow-lg relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNGMwLTIuMjA5IDEuNzkxLTQgNC00czQgMS43OTEgNCA0LTEuNzkxIDQtNCA0LTQtMS43OTEtNC00eiIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIuMSIvPjwvZz48L3N2Zz4=')] opacity-10"></div>
+          <div className="relative">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Zero Commission, Fair Compensation!
+            </h1>
+            <p className="mt-3 text-lg text-green-50">
+              Join our vendor network and enjoy benefits that help your business grow.
+            </p>
+          </div>
         </div>
 
-        {/* Registration Form */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">
+        {/* Registration Form - Updated container style */}
+        <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
             {stepIndex === 0 
               ? 'Basic Information' 
               : stepIndex === 1 
               ? 'Identity Details' 
+              : stepIndex === 2
+              ? 'Business Details'
               : 'Verify Your Details'}
           </h2>
 
@@ -366,9 +397,127 @@ const VendorRegistration: React.FC = () => {
 
             {stepIndex === 2 && (
               <div className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-3">Review Your Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label htmlFor="businessName" className="block text-sm font-medium text-gray-700">Business Name</label>
+                    <input
+                      type="text"
+                      id="businessName"
+                      name="businessName"
+                      placeholder="Enter your business name"
+                      value={formData.businessName}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="businessType" className="block text-sm font-medium text-gray-700">Business Type</label>
+                    <select
+                      id="businessType"
+                      name="businessType"
+                      value={formData.businessType}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 appearance-none"
+                    >
+                      <option value="">Select business type</option>
+                      {businessTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="gstNumber" className="block text-sm font-medium text-gray-700">GST Number</label>
+                    <input
+                      type="text"
+                      id="gstNumber"
+                      name="gstNumber"
+                      placeholder="Enter GST number (if applicable)"
+                      value={formData.gstNumber}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label htmlFor="businessAddress" className="block text-sm font-medium text-gray-700">Business Address</label>
+                    <textarea
+                      id="businessAddress"
+                      name="businessAddress"
+                      placeholder="Enter your business address"
+                      value={formData.businessAddress}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 pt-6 mt-6">
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">Bank Account Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">Bank Name</label>
+                      <input
+                        type="text"
+                        id="bankName"
+                        name="bankName"
+                        placeholder="Enter bank name"
+                        value={formData.bankName}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">Account Number</label>
+                      <input
+                        type="text"
+                        id="accountNumber"
+                        name="accountNumber"
+                        placeholder="Enter account number"
+                        value={formData.accountNumber}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="ifscCode" className="block text-sm font-medium text-gray-700">IFSC Code</label>
+                      <input
+                        type="text"
+                        id="ifscCode"
+                        name="ifscCode"
+                        placeholder="Enter IFSC code"
+                        value={formData.ifscCode}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 font-mono uppercase"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="accountHolderName" className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                      <input
+                        type="text"
+                        id="accountHolderName"
+                        name="accountHolderName"
+                        placeholder="Enter account holder name"
+                        value={formData.accountHolderName}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {stepIndex === 3 && (
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-medium text-gray-800 mb-4">Review Your Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <p className="text-sm text-gray-500">City</p>
                       <p className="font-medium">{formData.city || '—'}</p>
@@ -397,43 +546,76 @@ const VendorRegistration: React.FC = () => {
                       <p className="text-sm text-gray-500">PAN Number</p>
                       <p className="font-medium">{formData.panNumber ? `XXXXX${formData.panNumber.slice(-5)}` : '—'}</p>
                     </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Business Name</p>
+                      <p className="font-medium">{formData.businessName || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Business Type</p>
+                      <p className="font-medium">{formData.businessType || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">GST Number</p>
+                      <p className="font-medium">{formData.gstNumber || '—'}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-500">Business Address</p>
+                      <p className="font-medium">{formData.businessAddress || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Bank Name</p>
+                      <p className="font-medium">{formData.bankName || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Account Number</p>
+                      <p className="font-medium">{formData.accountNumber ? `XXXX-XXXX-${formData.accountNumber.slice(-4)}` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">IFSC Code</p>
+                      <p className="font-medium">{formData.ifscCode || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Account Holder Name</p>
+                      <p className="font-medium">{formData.accountHolderName || '—'}</p>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <div className="flex gap-3">
+                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                  <div className="flex gap-4">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <h3 className="font-medium text-yellow-800 mb-1">Important Note</h3>
+                      <h3 className="font-medium text-yellow-800 mb-2">Important Note</h3>
                       <p className="text-sm text-yellow-700">
                         By submitting this form, you confirm that all provided information is accurate. 
-                        False information may lead to rejection of your application.
+                        False information may lead to rejection of your application. Your business details 
+                        will be verified by our team before approval.
                       </p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input 
                     type="checkbox" 
                     id="terms" 
-                    className="rounded text-green-600 focus:ring-green-500 h-4 w-4"
+                    className="rounded text-green-600 focus:ring-green-500 h-5 w-5"
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
-                    I agree to the <a href="#" className="text-green-600 hover:underline">Terms and Conditions</a>
+                    I agree to the <a href="#" className="text-green-600 hover:underline">Terms and Conditions</a> and confirm that all information provided is accurate
                   </label>
                 </div>
               </div>
             )}
 
-            <div className="flex justify-between pt-4 border-t border-gray-100">
+            <div className="flex justify-between pt-6 border-t border-gray-100">
               {stepIndex > 0 ? (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md"
                 >
                   Back
                 </button>
@@ -441,18 +623,18 @@ const VendorRegistration: React.FC = () => {
                 <div></div> 
               )}
               
-              {stepIndex < 2 ? (
+              {stepIndex < 3 ? (
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   Continue
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   Submit Application
                 </button>
@@ -466,9 +648,11 @@ const VendorRegistration: React.FC = () => {
         </div>
       </div>
       
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 p-4 text-center text-sm text-gray-500">
-        © 2023 Marco. All rights reserved.
+      {/* Footer - Updated style */}
+      <footer className="bg-white border-t border-gray-200 p-6 text-center text-sm text-gray-500">
+        <div className="container mx-auto max-w-6xl">
+          © 2024 Marco. All rights reserved.
+        </div>
       </footer>
     </div>
   );

@@ -261,7 +261,7 @@ export default function MarcoCabService() {
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Booking form submitted:", bookingForm);
-  
+
     // Prepare basic route data for navigation
     const routeData = {
       pickup: bookingForm.pickupLocation,
@@ -270,8 +270,8 @@ export default function MarcoCabService() {
       tripType: bookingForm.tripType
     };
 
-    // Navigate to prices page with route data
-    navigate('/prices', { state: routeData });
+    // Navigate to cabs page with route data
+    navigate('/cabs', { state: routeData });
   };
 
   // Function to get location suggestions
