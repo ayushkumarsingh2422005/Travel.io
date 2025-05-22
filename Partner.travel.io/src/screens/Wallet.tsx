@@ -97,6 +97,7 @@ const WalletComponent: React.FC = () => {
     <div className="w-full">
       {/* Wallet Balance and Top-up Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Current Balance Card */}
         <div className="bg-white rounded-xl shadow-md p-6 flex flex-col col-span-2">
           <span className="text-gray-500 text-sm font-medium mb-2">Current Balance</span>
           <div className="flex items-end justify-between">
@@ -104,7 +105,7 @@ const WalletComponent: React.FC = () => {
               <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
             ) : (
               <span className="text-3xl font-bold text-gray-800">
-                {walletStats.currentBalance.toLocaleString()}
+                ₹{walletStats.currentBalance.toLocaleString()}
               </span>
             )}
             <button 
@@ -119,19 +120,18 @@ const WalletComponent: React.FC = () => {
             </button>
           </div>
         </div>
-
+        {/* Lifetime Earnings Card */}
         <div className="bg-white rounded-xl shadow-md p-6 flex flex-col">
           <span className="text-gray-500 text-sm font-medium mb-2">Lifetime Earnings</span>
           {loading ? (
             <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
           ) : (
             <span className="text-3xl font-bold text-gray-800">
-              {walletStats.lifetimeEarnings.toLocaleString()}
+              ₹{walletStats.lifetimeEarnings.toLocaleString()}
             </span>
           )}
         </div>
       </div>
-
       {/* Filter Section */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -148,7 +148,6 @@ const WalletComponent: React.FC = () => {
           </select>
         </div>
       </div>
-
       {/* Transactions Table */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <div className="overflow-x-auto">
@@ -166,6 +165,7 @@ const WalletComponent: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
+                // Skeleton rows
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
                     {Array.from({ length: 7 }).map((_, colIdx) => (
@@ -225,10 +225,9 @@ const WalletComponent: React.FC = () => {
   );
 };
 
-// JSON formatted mock transaction data - ready for API replacement
+// Mock data for demonstration
 const mockTransactions = [
   {
-    id: 1,
     bookingId: 'BK-1001',
     tripType: 'Airport',
     tripItinerary: 'City Center → Airport',
@@ -237,7 +236,6 @@ const mockTransactions = [
     paymentStatus: 'Completed'
   },
   {
-    id: 2,
     bookingId: 'BK-1002',
     tripType: 'Outstation',
     tripItinerary: 'City → Hill Station',
@@ -247,7 +245,6 @@ const mockTransactions = [
     paymentStatus: 'Completed'
   },
   {
-    id: 3,
     bookingId: 'BK-1003',
     tripType: 'Local',
     tripItinerary: 'Home → Shopping Mall',
@@ -257,10 +254,9 @@ const mockTransactions = [
   }
 ];
 
-// Mock wallet stats data that can be replaced with API data
 const mockWalletStatsData = {
   currentBalance: 2000,
   lifetimeEarnings: 36000
 };
 
-export default WalletComponent;
+export default WalletComponent; 

@@ -67,49 +67,33 @@ const DriverRewards: React.FC = () => {
     <div className="w-full">
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Drivers</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{drivers.length}</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Rewards</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{totalRewardsEarned} INR</p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Average Reward</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
-                {drivers.length > 0 ? (totalRewardsEarned / drivers.length).toFixed(0) : 0} INR
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        {[0, 1, 2].map((idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">
+                  {idx === 0 ? 'Total Drivers' : idx === 1 ? 'Total Rewards' : 'Average Reward'}
+                </p>
+                {loading ? (
+                  <div className="h-7 w-16 bg-gray-200 rounded animate-pulse mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold text-gray-800 mt-1">
+                    {idx === 0
+                      ? drivers.length
+                      : idx === 1
+                      ? totalRewardsEarned + ' INR'
+                      : drivers.length > 0 ? (totalRewardsEarned / drivers.length).toFixed(0) + ' INR' : 0}
+                  </p>
+                )}
+              </div>
+              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-yellow-100' : 'bg-green-100'} rounded-lg`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-yellow-700' : 'text-green-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {/* ...icon paths... */}
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Search and Actions */}
@@ -129,7 +113,7 @@ const DriverRewards: React.FC = () => {
               className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500">
               <option value="">Sort By: Rewards (High to Low)</option>
               <option value="rewards_low">Sort By: Rewards (Low to High)</option>
@@ -164,16 +148,15 @@ const DriverRewards: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="p-4 text-center text-gray-500">
-                    <div className="flex justify-center items-center py-8">
-                      <svg className="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <tr key={idx}>
+                    {Array.from({ length: 8 }).map((_, colIdx) => (
+                      <td key={colIdx} className="p-4 border-b border-gray-100">
+                        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : filteredDrivers.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-4 text-center text-gray-500">

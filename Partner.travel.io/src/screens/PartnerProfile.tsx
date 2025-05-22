@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-interface VendorInfo {
+interface PartnerInfo {
   id: string;
-  name: string;
+  businessName: string;
+  ownerName: string;
   email: string;
   phone: string;
-  address: string;
+  businessAddress: string;
   city: string;
   joinDate: string;
-  totalCars: number;
-  activeCars: number;
-  totalDrivers: number;
-  totalEarnings: number;
+  partnershipType: 'Premium' | 'Standard' | 'Basic';
+  partnershipStatus: 'Active' | 'Pending' | 'Suspended';
+  businessMetrics: {
+    totalTrips: number;
+    activeTrips: number;
+    totalEarnings: number;
+    averageRating: number;
+    customerSatisfaction: number;
+  };
   kycStatus: 'Verified' | 'Pending' | 'Incomplete';
   accountDetails: {
     bankName: string;
@@ -26,62 +32,51 @@ interface VendorInfo {
     expiryDate: string;
     documentUrl: string;
   }[];
+  businessCategories: string[];
+  serviceAreas: string[];
 }
 
-const VendorProfile: React.FC = () => {
-  const [vendorInfo, setVendorInfo] = useState<VendorInfo | null>(null);
+const PartnerProfile: React.FC = () => {
+  const [partnerData, setPartnerData] = useState<PartnerInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('profile');
-  const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
+  const [editedData, setEditedData] = useState<Partial<PartnerInfo>>({});
 
   useEffect(() => {
-    // Simulate fetching vendor data
-    const fetchVendorData = async () => {
+    const fetchPartnerData = async () => {
       setLoading(true);
       try {
-        // In a real app, this would be replaced with an API call
-        // const response = await fetch('/api/vendor/profile');
-        // const data = await response.json();
-        
-        // Using mock data for demonstration
+        // Simulate API call with mock data
         setTimeout(() => {
-          setVendorInfo(mockVendorData);
-          setEditedInfo(mockVendorData);
+          setPartnerData(mockPartnerData);
+          setEditedData(mockPartnerData);
           setLoading(false);
         }, 800);
       } catch (error) {
-        console.error('Error fetching vendor data:', error);
+        console.error('Error fetching partner data:', error);
         setLoading(false);
       }
     };
 
-    fetchVendorData();
+    fetchPartnerData();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditedInfo(prev => ({
+    setEditedData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
   const handleSaveProfile = () => {
-    // In a real app, this would be replaced with an API call to update the profile
-    // const updateProfile = async () => {
-    //   const response = await fetch('/api/vendor/profile', {
-    //     method: 'PUT',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(editedInfo)
-    //   });
-    //   if (response.ok) {
-    //     const data = await response.json();
-    //     setVendorInfo(data);
-    //   }
-    // };
-    
-    setVendorInfo(prev => ({ ...prev, ...editedInfo } as VendorInfo));
+    if (partnerData) {
+      setPartnerData({
+        ...partnerData,
+        ...editedData
+      });
+    }
     setIsEditing(false);
   };
 
@@ -158,10 +153,10 @@ const VendorProfile: React.FC = () => {
     );
   }
 
-  if (!vendorInfo) {
+  if (!partnerData) {
     return (
       <div className="w-full p-6 bg-white rounded-xl shadow-md">
-        <p className="text-center text-gray-500">No vendor information found.</p>
+        <p className="text-center text-gray-500">No partner information found.</p>
       </div>
     );
   }
@@ -175,22 +170,22 @@ const VendorProfile: React.FC = () => {
           <div className="w-32 h-32 rounded-full bg-white p-2 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-xl">
             <div className="w-full h-full rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center overflow-hidden">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-bold tracking-tight">{vendorInfo.name}</h1>
-            <p className="text-green-100 mt-2 text-lg">{vendorInfo.email}</p>
-            <p className="text-green-100 text-lg">{vendorInfo.phone}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{partnerData.businessName}</h1>
+            <p className="text-green-100 mt-2 text-lg">{partnerData.email}</p>
+            <p className="text-green-100 text-lg">{partnerData.phone}</p>
             
             <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getKycStatusClass(vendorInfo.kycStatus)}`}>
-                KYC: {vendorInfo.kycStatus}
+              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getKycStatusClass(partnerData.kycStatus)}`}>
+                KYC: {partnerData.kycStatus}
               </span>
               <span className="px-4 py-1.5 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm font-semibold shadow-sm">
-                Member since {new Date(vendorInfo.joinDate).toLocaleDateString()}
+                Member since {new Date(partnerData.joinDate).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -226,14 +221,13 @@ const VendorProfile: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 p-6 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm font-medium">Total Cars</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{vendorInfo.totalCars}</p>
-              <p className="text-green-600 text-sm mt-1">+2 this month</p>
+              <p className="text-gray-500 text-sm font-medium">Total Trips</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{partnerData.businessMetrics.totalTrips}</p>
+              <p className="text-green-600 text-sm mt-1">+12 this month</p>
             </div>
             <div className="p-4 bg-blue-50 rounded-xl">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
@@ -242,9 +236,9 @@ const VendorProfile: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 p-6 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm font-medium">Active Cars</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{vendorInfo.activeCars}</p>
-              <p className="text-green-600 text-sm mt-1">80% utilization</p>
+              <p className="text-gray-500 text-sm font-medium">Active Trips</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{partnerData.businessMetrics.activeTrips}</p>
+              <p className="text-green-600 text-sm mt-1">85% utilization</p>
             </div>
             <div className="p-4 bg-green-50 rounded-xl">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,13 +251,13 @@ const VendorProfile: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 p-6 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm font-medium">Total Drivers</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{vendorInfo.totalDrivers}</p>
-              <p className="text-blue-600 text-sm mt-1">+1 this week</p>
+              <p className="text-gray-500 text-sm font-medium">Average Rating</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{partnerData.businessMetrics.averageRating}/5</p>
+              <p className="text-blue-600 text-sm mt-1">+0.2 this week</p>
             </div>
             <div className="p-4 bg-purple-50 rounded-xl">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
               </svg>
             </div>
           </div>
@@ -273,8 +267,8 @@ const VendorProfile: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm font-medium">Total Earnings</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">₹{vendorInfo.totalEarnings.toLocaleString()}</p>
-              <p className="text-green-600 text-sm mt-1">+15% vs last month</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">₹{partnerData.businessMetrics.totalEarnings.toLocaleString()}</p>
+              <p className="text-green-600 text-sm mt-1">+18% vs last month</p>
             </div>
             <div className="p-4 bg-amber-50 rounded-xl">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -330,11 +324,22 @@ const VendorProfile: React.FC = () => {
             {isEditing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
                   <input
                     type="text"
-                    name="name"
-                    value={editedInfo.name || ''}
+                    name="businessName"
+                    value={editedData.businessName || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Owner Name</label>
+                  <input
+                    type="text"
+                    name="ownerName"
+                    value={editedData.ownerName || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
                   />
@@ -345,7 +350,7 @@ const VendorProfile: React.FC = () => {
                   <input
                     type="email"
                     name="email"
-                    value={editedInfo.email || ''}
+                    value={editedData.email || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
                   />
@@ -354,9 +359,9 @@ const VendorProfile: React.FC = () => {
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                   <input
-                    type="text"
+                    type="tel"
                     name="phone"
-                    value={editedInfo.phone || ''}
+                    value={editedData.phone || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
                   />
@@ -367,18 +372,18 @@ const VendorProfile: React.FC = () => {
                   <input
                     type="text"
                     name="city"
-                    value={editedInfo.city || ''}
+                    value={editedData.city || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
                   />
                 </div>
                 
                 <div className="md:col-span-2 space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <label className="block text-sm font-medium text-gray-700">Business Address</label>
                   <input
                     type="text"
-                    name="address"
-                    value={editedInfo.address || ''}
+                    name="businessAddress"
+                    value={editedData.businessAddress || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
                   />
@@ -402,28 +407,55 @@ const VendorProfile: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="bg-gray-50 p-4 md:p-6 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500">Full Name</p>
-                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{vendorInfo.name}</p>
+                  <p className="text-sm font-medium text-gray-500">Business Name</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.businessName}</p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 md:p-6 rounded-xl">
+                  <p className="text-sm font-medium text-gray-500">Owner Name</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.ownerName}</p>
                 </div>
                 
                 <div className="bg-gray-50 p-4 md:p-6 rounded-xl">
                   <p className="text-sm font-medium text-gray-500">Email Address</p>
-                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{vendorInfo.email}</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.email}</p>
                 </div>
                 
                 <div className="bg-gray-50 p-4 md:p-6 rounded-xl">
                   <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{vendorInfo.phone}</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.phone}</p>
                 </div>
                 
                 <div className="bg-gray-50 p-4 md:p-6 rounded-xl">
                   <p className="text-sm font-medium text-gray-500">City</p>
-                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{vendorInfo.city}</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.city}</p>
                 </div>
                 
                 <div className="md:col-span-2 bg-gray-50 p-4 md:p-6 rounded-xl">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{vendorInfo.address}</p>
+                  <p className="text-sm font-medium text-gray-500">Business Address</p>
+                  <p className="text-base md:text-lg text-gray-800 mt-1 md:mt-2">{partnerData.businessAddress}</p>
+                </div>
+
+                <div className="md:col-span-2 bg-gray-50 p-4 md:p-6 rounded-xl">
+                  <p className="text-sm font-medium text-gray-500 mb-3 md:mb-4">Business Categories</p>
+                  <div className="flex flex-wrap gap-1 md:gap-2">
+                    {partnerData.businessCategories.map((category, index) => (
+                      <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 bg-gray-50 p-4 md:p-6 rounded-xl">
+                  <p className="text-sm font-medium text-gray-500 mb-3 md:mb-4">Service Areas</p>
+                  <div className="flex flex-wrap gap-1 md:gap-2">
+                    {partnerData.serviceAreas.map((area, index) => (
+                      <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -453,7 +485,7 @@ const VendorProfile: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {vendorInfo.documents.length === 0 ? (
+                  {partnerData.documents.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="p-6 sm:p-8 text-center text-gray-500">
                         <div className="flex flex-col items-center gap-2 sm:gap-3">
@@ -465,7 +497,7 @@ const VendorProfile: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    vendorInfo.documents.map((doc, index) => (
+                    partnerData.documents.map((doc, index) => (
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
                         <td className="p-3 sm:p-4">
                           <div className="flex items-center gap-2 sm:gap-3">
@@ -514,24 +546,24 @@ const VendorProfile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-gray-50 p-6 rounded-xl">
                 <p className="text-sm font-medium text-gray-500">Bank Name</p>
-                <p className="text-lg text-gray-800 mt-2">{vendorInfo.accountDetails.bankName}</p>
+                <p className="text-lg text-gray-800 mt-2">{partnerData.accountDetails.bankName}</p>
               </div>
               
               <div className="bg-gray-50 p-6 rounded-xl">
                 <p className="text-sm font-medium text-gray-500">Account Number</p>
                 <p className="text-lg text-gray-800 mt-2 font-mono">
-                  {vendorInfo.accountDetails.accountNumber.replace(/\d(?=\d{4})/g, "•")}
+                  {partnerData.accountDetails.accountNumber.replace(/\d(?=\d{4})/g, "•")}
                 </p>
               </div>
               
               <div className="bg-gray-50 p-6 rounded-xl">
                 <p className="text-sm font-medium text-gray-500">IFSC Code</p>
-                <p className="text-lg text-gray-800 mt-2 font-mono">{vendorInfo.accountDetails.ifscCode}</p>
+                <p className="text-lg text-gray-800 mt-2 font-mono">{partnerData.accountDetails.ifscCode}</p>
               </div>
               
               <div className="bg-gray-50 p-6 rounded-xl">
                 <p className="text-sm font-medium text-gray-500">Account Holder Name</p>
-                <p className="text-lg text-gray-800 mt-2">{vendorInfo.accountDetails.accountHolderName}</p>
+                <p className="text-lg text-gray-800 mt-2">{partnerData.accountDetails.accountHolderName}</p>
               </div>
             </div>
             
@@ -550,52 +582,64 @@ const VendorProfile: React.FC = () => {
   );
 };
 
-// Mock data for the vendor profile
-const mockVendorData: VendorInfo = {
-  "id": "VEN123456",
-  "name": "Priya Transport Services",
-  "email": "priya.transport@example.com",
-  "phone": "+91 98765 43210",
-  "address": "123, Main Street, Commercial Area",
-  "city": "Mumbai",
-  "joinDate": "2022-08-15",
-  "totalCars": 5,
-  "activeCars": 4,
-  "totalDrivers": 6,
-  "totalEarnings": 356000,
-  "kycStatus": "Verified",
-  "accountDetails": {
-    "bankName": "HDFC Bank",
-    "accountNumber": "1234567890123456",
-    "ifscCode": "HDFC0001234",
-    "accountHolderName": "Priya Transport Services"
+// Mock data for demonstration
+const mockPartnerData: PartnerInfo = {
+  id: "P001",
+  businessName: "Travel Solutions Pro",
+  ownerName: "Rajesh Kumar",
+  email: "rajesh@travelsolutionspro.com",
+  phone: "+91 98765 43210",
+  businessAddress: "123 Business Park, Sector 15",
+  city: "Delhi",
+  joinDate: "2023-01-15",
+  partnershipType: "Premium",
+  partnershipStatus: "Active",
+  businessMetrics: {
+    totalTrips: 156,
+    activeTrips: 8,
+    totalEarnings: 1250000,
+    averageRating: 4.8,
+    customerSatisfaction: 95
   },
-  "documents": [
+  kycStatus: "Verified",
+  accountDetails: {
+    bankName: "HDFC Bank",
+    accountNumber: "1234567890123456",
+    ifscCode: "HDFC0001234",
+    accountHolderName: "Travel Solutions Pro"
+  },
+  documents: [
     {
-      "type": "Business Registration",
-      "status": "Valid",
-      "expiryDate": "2025-05-15",
-      "documentUrl": "/documents/business-registration.pdf"
+      type: "Business License",
+      status: "Valid",
+      expiryDate: "2025-12-31",
+      documentUrl: "/documents/license.pdf"
     },
     {
-      "type": "GST Certificate",
-      "status": "Valid",
-      "expiryDate": "2024-12-31",
-      "documentUrl": "/documents/gst-certificate.pdf"
+      type: "GST Certificate",
+      status: "Valid",
+      expiryDate: "2024-03-31",
+      documentUrl: "/documents/gst.pdf"
     },
     {
-      "type": "Insurance Policy",
-      "status": "Expired",
-      "expiryDate": "2023-11-30",
-      "documentUrl": "/documents/insurance-policy.pdf"
-    },
-    {
-      "type": "Trade License",
-      "status": "Awaited",
-      "expiryDate": "2024-03-15",
-      "documentUrl": "/documents/trade-license.pdf"
+      type: "Insurance Policy",
+      status: "Awaited",
+      expiryDate: "N/A",
+      documentUrl: "/documents/insurance.pdf"
     }
+  ],
+  businessCategories: [
+    "Corporate Travel",
+    "Airport Transfers",
+    "Tour Packages",
+    "Wedding Services"
+  ],
+  serviceAreas: [
+    "Delhi NCR",
+    "Gurgaon",
+    "Noida",
+    "Faridabad"
   ]
 };
 
-export default VendorProfile; 
+export default PartnerProfile; 

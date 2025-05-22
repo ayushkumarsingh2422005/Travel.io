@@ -157,15 +157,14 @@ export default function MarcoCabService() {
             <div className="hidden md:flex ml-10 space-x-6">
               <a href="#services" className="text-white hover:text-green-100 transition-colors">Services</a>
               <a href="#reviews" className="text-white hover:text-green-100 transition-colors">Reviews</a>
-              <a href="#contact" className="text-white hover:text-green-100 transition-colors">Contact</a>
-              <a href="#partner" className="text-white hover:text-green-100 transition-colors">Partner with us</a>
+
             </div>
           </div>
-          <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
+          {/* <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
-          </button>
+          </button> */}
           <div className="hidden md:block">
             <a href="tel:+918800990099" className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
               Call Us
@@ -300,7 +299,7 @@ export default function MarcoCabService() {
                           value={bookingForm.phone}
                           onChange={handleBookingChange}
                           placeholder="Enter your phone number" 
-                          className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                          className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none"
                           pattern="[0-9]{10}"
                           title="Please enter a valid 10-digit phone number"
                           required
@@ -312,6 +311,7 @@ export default function MarcoCabService() {
                   
                   <button 
                     type="submit"
+                  
                     className="w-full mt-6 p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
                   >
                     Register Now

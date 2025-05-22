@@ -1,66 +1,51 @@
-// src/components/Sidebar.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 interface SidebarProps {
   onMenuClick: (menuItem: string) => void;
+  activeItem: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onMenuClick }) => {
-  const [activeItem, setActiveItem] = useState<string>("booking");
-  
+const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, activeItem }) => {
   const menuItems = [
-    { id: "booking", label: "Bookings", icon: "📅" },
     { id: "Wallet", label: "Wallet", icon: "💼" },
-    { id: "Trips", label: "Trips", icon: "🚗" },
-    { id: "Add Drivers", label: "Add Drivers", icon: "👤" },
-    { id: "Add Cabs", label: "Add Cabs", icon: "🚕" },
-    { id: "Restricted Inventory", label: "Restricted Inventory", icon: "🔒" },
-    { id: "Driver Rewards", label: "Driver Rewards", icon: "🎁" },
-    { id: "Penalty", label: "Penalty", icon: "⚠️" },
-   
+    { id: "Trips", label: "Trips", icon: "🚗" }
   ];
 
   const handleMenuClick = (itemId: string) => {
-    setActiveItem(itemId);
     onMenuClick(itemId);
   };
 
   return (
-    <div className="w-64 overflow-hidden bg-gradient-to-b from-gray-800 to-gray-900 h-screen flex flex-col shadow-xl">
+    <div className="w-64 bg-gradient-to-b from-gray-800 to-gray-900 h-screen flex flex-col shadow-xl">
       {/* Company Logo */}
       <div className="px-6 py-5 border-b border-gray-700">
-        <h1 className="text-white text-xl font-bold">Travel Vendor</h1>
-        <p className="text-green-400 text-xs mt-1">Vendor Dashboard</p>
+        <h1 className="text-white text-xl font-bold">MARCO</h1>
+        <p className="text-green-400 text-xs mt-1">Partner Dashboard</p>
       </div>
       
       {/* User Profile */}
-      <div className="p-4 border-b border-gray-700 flex items-center gap-3">
-        <Link to="/" className="bg-gradient-to-r from-green-400 to-green-500 p-1 rounded-full">
+      <Link to="/" className="p-4 border-b border-gray-700 flex items-center gap-3 hover:bg-gray-800 transition-colors group">
+        <div className="bg-gradient-to-r from-green-400 to-green-500 p-1 rounded-full">
           <img 
             src="/api/placeholder/40/40" 
             alt="User" 
             className="h-10 w-10 rounded-full border-2 border-white" 
           />
-        </Link>
-        <div className="flex-1">
-          <Link to="/" className="text-white font-medium text-sm hover:text-green-300 transition-colors">Ashok Kumar</Link>
-          <p className="text-gray-400 text-xs">Premium Vendor</p>
         </div>
-        <Link 
-          to="/" 
-          className="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-700"
-          title="Edit Profile"
-        >
+        <div className="flex-1">
+          <span className="text-white font-medium text-sm group-hover:underline">Partner User</span>
+          <p className="text-gray-400 text-xs">Partner</p>
+        </div>
+        <span className="text-gray-400 p-1 rounded-full hover:bg-gray-700 cursor-pointer" title="Edit Profile">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
           </svg>
-        </Link>
-      </div>
+        </span>
+      </Link>
 
       {/* Menu Items */}
-      <div className="flex-1 overflow-y-hidden py-4">
-      
+      <div className="flex-1 overflow-y-auto py-4">
         {menuItems.map((item) => (
           <button 
             key={item.id} 
@@ -95,4 +80,4 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick }) => {
   );
 };
 
-export default Sidebar;
+export default Sidebar; 

@@ -411,11 +411,11 @@ export default function MarcoCabService() {
               <a href="#partner" className="text-white hover:text-green-100 transition-colors">Partner with us</a>
             </div>
           </div>
-          <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
+          {/* <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
-          </button>
+          </button> */}
           <div className="hidden md:block">
             <a href="tel:+918800990099" className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
               Call Us
@@ -615,9 +615,9 @@ export default function MarcoCabService() {
                     
                     <div className="mb-4 relative">
                       <div className="absolute left-3 top-3 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
+                        </svg> */}
                       </div>
                       <div className="flex">
                         <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
@@ -627,7 +627,7 @@ export default function MarcoCabService() {
                           value={bookingForm.mobileNumber}
                           onChange={handleBookingChange}
                           placeholder="Mobile number" 
-                          className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+                          className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none" 
                         />
                       </div>
                     </div>
@@ -792,7 +792,7 @@ export default function MarcoCabService() {
                         value={contactForm.mobile}
                         onChange={handleContactChange}
                         placeholder="Your mobile number" 
-                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>
@@ -882,7 +882,7 @@ export default function MarcoCabService() {
                         value={partnerForm.mobile}
                         onChange={handlePartnerChange}
                         placeholder="Your mobile number" 
-                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>

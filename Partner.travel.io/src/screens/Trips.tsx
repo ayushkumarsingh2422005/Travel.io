@@ -41,12 +41,11 @@ const paymentStatusClasses = [
   { status: "default", class: "bg-blue-100 text-blue-800" }
 ];
 
-export const TripsComponent: React.FC = () => {
+const TripsComponent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Use mock data instead of API for demo with simulated delay
   useEffect(() => {
     // Clear previous data and show loading spinner
     setLoading(true);
@@ -106,33 +105,65 @@ export const TripsComponent: React.FC = () => {
 
       {/* Trip Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {[0, 1, 2].map((idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">
-                  {idx === 0 ? 'Total Trips' : idx === 1 ? (activeTab === 'upcoming' ? 'Next Trip' : 'Recent Trip') : (activeTab === 'upcoming' ? 'Expected Earnings' : 'Total Earnings')}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Trips</p>
+              {loading ? (
+                <div className="h-7 w-16 bg-gray-200 rounded animate-pulse mt-1" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-800 mt-1">
+                  {activeTab === 'upcoming' ? tripSummaryData.upcoming.totalTrips : tripSummaryData.completed.totalTrips}
                 </p>
-                {loading ? (
-                  <div className={`h-7 ${idx === 0 ? 'w-16' : idx === 1 ? 'w-20' : 'w-24'} bg-gray-200 rounded animate-pulse mt-1`} />
-                ) : (
-                  <p className="text-2xl font-bold text-gray-800 mt-1">
-                    {idx === 0
-                      ? (activeTab === 'upcoming' ? tripSummaryData.upcoming.totalTrips : tripSummaryData.completed.totalTrips)
-                      : idx === 1
-                      ? (activeTab === 'upcoming' ? tripSummaryData.upcoming.nextTrip : tripSummaryData.completed.recentTrip)
-                      : `₹${activeTab === 'upcoming' ? tripSummaryData.upcoming.expectedEarnings : tripSummaryData.completed.totalEarnings}`}
-                  </p>
-                )}
-              </div>
-              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-green-100' : 'bg-purple-100'} rounded-lg`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-green-700' : 'text-purple-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {/* ...icon paths... */}
-                </svg>
-              </div>
+              )}
+            </div>
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
           </div>
-        ))}
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">{activeTab === 'upcoming' ? 'Next Trip' : 'Recent Trip'}</p>
+              {loading ? (
+                <div className="h-7 w-20 bg-gray-200 rounded animate-pulse mt-1" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-800 mt-1">
+                  {activeTab === 'upcoming' ? tripSummaryData.upcoming.nextTrip : tripSummaryData.completed.recentTrip}
+                </p>
+              )}
+            </div>
+            <div className="p-3 bg-green-100 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">{activeTab === 'upcoming' ? 'Expected Earnings' : 'Total Earnings'}</p>
+              {loading ? (
+                <div className="h-7 w-24 bg-gray-200 rounded animate-pulse mt-1" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-800 mt-1">
+                  ₹{activeTab === 'upcoming' ? tripSummaryData.upcoming.expectedEarnings : tripSummaryData.completed.totalEarnings}
+                </p>
+              )}
+            </div>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Trips Table */}
@@ -158,6 +189,7 @@ export const TripsComponent: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
+                // Skeleton rows
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
                     {Array.from({ length: activeTab === 'upcoming' ? 6 : 7 }).map((_, colIdx) => (
@@ -215,10 +247,9 @@ export const TripsComponent: React.FC = () => {
   );
 };
 
-// JSON formatted data for upcoming trips - ready for API replacement
+// Mock data for demonstration
 const mockUpcomingTrips = [
   {
-    id: 1,
     bookingId: "BK-1001",
     tripType: "Airport",
     carType: "Sedan",
@@ -227,7 +258,6 @@ const mockUpcomingTrips = [
     paymentStatus: "Pending"
   },
   {
-    id: 2,
     bookingId: "BK-1002",
     tripType: "Outstation",
     carType: "SUV",
@@ -237,10 +267,8 @@ const mockUpcomingTrips = [
   }
 ];
 
-// JSON formatted data for completed trips - ready for API replacement  
 const mockCompletedTrips = [
   {
-    id: 1,
     bookingId: "BK-0998",
     tripType: "Local",
     carType: "Hatchback",
@@ -250,7 +278,6 @@ const mockCompletedTrips = [
     paymentStatus: "Paid"
   },
   {
-    id: 2,
     bookingId: "BK-0999",
     tripType: "Airport",
     carType: "Sedan",
@@ -262,4 +289,4 @@ const mockCompletedTrips = [
   }
 ];
 
-export default TripsComponent;
+export default TripsComponent; 
