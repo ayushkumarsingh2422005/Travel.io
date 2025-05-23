@@ -88,7 +88,7 @@ const API_ENDPOINTS = {
 
 const AddCarForm: React.FC = () => {
   const [showAddCarForm, setShowAddCarForm] = useState(false);
-  const [showAutoFetchForm, setShowAutoFetchForm] = useState(false);
+  const [formStep, setFormStep] = useState<'auto-fetch' | 'add-car'>('auto-fetch');
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +172,15 @@ const AddCarForm: React.FC = () => {
     car.brand.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleCloseForm = () => {
+    setShowAddCarForm(false);
+    setFormStep('auto-fetch'); // Reset to first step when closing
+  };
+
+  const handleNextToAddCar = () => {
+    setFormStep('add-car');
+  };
+
   return (
     <div className="w-full">
       {/* Dashboard Summary Cards */}
@@ -195,8 +204,8 @@ const AddCarForm: React.FC = () => {
                   </p>
                 )}
               </div>
-              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className={`p-3 ${idx === 0 ? 'bg-green-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-green-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {/* ...icon paths... */}
                 </svg>
               </div>
@@ -225,18 +234,11 @@ const AddCarForm: React.FC = () => {
           </div>
           <div className="flex gap-3 w-full md:w-auto">
             <button 
-              className={`px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => setShowAutoFetchForm(true)}
-              disabled={loading}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Auto Fetch
-            </button>
-            <button 
               className={`px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => setShowAddCarForm(true)}
+              onClick={() => {
+                setShowAddCarForm(true);
+                setFormStep('auto-fetch');
+              }}
               disabled={loading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -334,7 +336,7 @@ const AddCarForm: React.FC = () => {
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors">
+                        <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
                           View
                         </button>
                         <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
@@ -357,9 +359,11 @@ const AddCarForm: React.FC = () => {
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-white text-xl font-semibold">Add New Car</h2>
+                <h2 className="text-white text-xl font-semibold">
+                  {formStep === 'auto-fetch' ? 'Auto Fetch Car Details' : 'Add New Car'}
+                </h2>
                 <button 
-                  onClick={() => setShowAddCarForm(false)}
+                  onClick={handleCloseForm}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,442 +372,423 @@ const AddCarForm: React.FC = () => {
                 </button>
               </div>
               <p className="text-green-50 mt-2">
-                Make sure all the cars are in good condition and well maintained
+                {formStep === 'auto-fetch' 
+                  ? 'Enter RC details to automatically fetch your car information'
+                  : 'Make sure all the cars are in good condition and well maintained'}
               </p>
             </div>
             
             {/* Modal Body */}
-            <div className="p-6">
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-                  <div className="flex gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <h3 className="font-medium text-blue-800 mb-1">Required Documents</h3>
-                      <p className="text-sm text-blue-700">
-                        Please have your RC, insurance, permit, and vehicle images ready to upload.
-                      </p>
+            {formStep === 'auto-fetch' ? (
+              // Auto Fetch Form Content
+              <div className="p-6">
+                <div className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+                    <div className="flex gap-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h3 className="font-medium text-green-800 mb-1">Enter RC Details</h3>
+                        <p className="text-sm text-green-700">
+                          Input your Registration Certificate details to fetch car information
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* RC Details Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">RC Number</label>
+                    <div className="grid grid-cols-4 gap-3">
+                      <input 
+                        type="text" 
+                        placeholder="State" 
+                        className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        maxLength={2}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="RTO Code" 
+                        className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        maxLength={2}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Issue Year" 
+                        className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        maxLength={2}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="4 Digits" 
+                        className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        maxLength={4}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Fetch Car Details
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Auto Fetched Details */}
+                  <div className="space-y-4 mt-8">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Auto Fetched Details</h3>
+                  
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch name"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch name"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Maker Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch name"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Class</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Engine Number</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                {/* Car Details Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Car Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">RC Image</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Car Image</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-                      <select 
-                        id="brand" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select brand name</option>
-                        <option value="Maruti">Maruti</option>
-                        <option value="Hyundai">Hyundai</option>
-                        <option value="Tata">Tata</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
-                      <select 
-                        id="fuelType" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select fuel type</option>
-                        <option value="Petrol">Petrol</option>
-                        <option value="Diesel">Diesel</option>
-                        <option value="CNG + Petrol">CNG + Petrol</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="makeYear" className="block text-sm font-medium text-gray-700 mb-1">Car Make Year</label>
-                      <input
-                        type="number"
-                        id="makeYear"
-                        placeholder="Enter car make year"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Insurance Details Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Insurance Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Document</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="insurerName" className="block text-sm font-medium text-gray-700 mb-1">Insurer's Name</label>
-                      <select 
-                        id="insurerName" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select insurer</option>
-                        <option value="HDFC ERGO">HDFC ERGO</option>
-                        <option value="ICICI Lombard">ICICI Lombard</option>
-                        <option value="Bajaj Allianz">Bajaj Allianz</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="policyNumber" className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy Number</label>
-                      <input
-                        type="text"
-                        id="policyNumber"
-                        placeholder="Enter policy number"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="insuranceExpiry" className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
-                      <input
-                        type="date"
-                        id="insuranceExpiry"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Fitness and Permit Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Fitness & Permit Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Document</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="fitnessExpiry" className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
-                      <input
-                        type="date"
-                        id="fitnessExpiry"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Permit Document</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="permitExpiry" className="block text-sm font-medium text-gray-700 mb-1">Permit Expiry Date</label>
-                      <input
-                        type="date"
-                        id="permitExpiry"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="permitType" className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
-                      <select 
-                        id="permitType" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select permit type</option>
-                        <option value="All India">All India</option>
-                        <option value="State">State</option>
-                        <option value="Local">Local</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="luggageCarrier" className="block text-sm font-medium text-gray-700 mb-1">Luggage Carrier</label>
-                      <select 
-                        id="luggageCarrier" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select availability</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="sourcing" className="block text-sm font-medium text-gray-700 mb-1">Sourcing</label>
-                      <select 
-                        id="sourcing" 
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                      >
-                        <option value="">Select ownership type</option>
-                        <option value="Own">Own</option>
-                        <option value="Leased">Leased</option>
-                        <option value="Partner">Partner</option>
-                      </select>
-                    </div>
-                  </div>
+                {/* Modal Footer */}
+                <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
+                  <button 
+                    className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={handleCloseForm}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    onClick={handleNextToAddCar}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
-              <button 
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
-                onClick={() => setShowAddCarForm(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Add Car
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Auto Fetch Modal */}
-      {showAutoFetchForm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-xl">
-              <div className="flex justify-between items-center">
-                <h2 className="text-white text-xl font-semibold">Auto Fetch Car Details</h2>
-                <button 
-                  onClick={() => setShowAutoFetchForm(false)}
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <p className="text-blue-50 mt-2">
-                Enter RC details to automatically fetch your car information
-              </p>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6">
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-                  <div className="flex gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <h3 className="font-medium text-blue-800 mb-1">Enter RC Details</h3>
-                      <p className="text-sm text-blue-700">
-                        Input your Registration Certificate details to fetch car information
-                      </p>
+            ) : (
+              // Add Car Form Content
+              <div className="p-6">
+                <div className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+                    <div className="flex gap-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h3 className="font-medium text-green-800 mb-1">Required Documents</h3>
+                        <p className="text-sm text-green-700">
+                          Please have your RC, insurance, permit, and vehicle images ready to upload.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Car Details Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Car Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">RC Image</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Car Image</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
+                        <select 
+                          id="brand" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select brand name</option>
+                          <option value="Maruti">Maruti</option>
+                          <option value="Hyundai">Hyundai</option>
+                          <option value="Tata">Tata</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
+                        <select 
+                          id="fuelType" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select fuel type</option>
+                          <option value="Petrol">Petrol</option>
+                          <option value="Diesel">Diesel</option>
+                          <option value="CNG + Petrol">CNG + Petrol</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="makeYear" className="block text-sm font-medium text-gray-700 mb-1">Car Make Year</label>
+                        <input
+                          type="number"
+                          id="makeYear"
+                          placeholder="Enter car make year"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Insurance Details Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Insurance Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Document</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="insurerName" className="block text-sm font-medium text-gray-700 mb-1">Insurer's Name</label>
+                        <select 
+                          id="insurerName" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select insurer</option>
+                          <option value="HDFC ERGO">HDFC ERGO</option>
+                          <option value="ICICI Lombard">ICICI Lombard</option>
+                          <option value="Bajaj Allianz">Bajaj Allianz</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="policyNumber" className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy Number</label>
+                        <input
+                          type="text"
+                          id="policyNumber"
+                          placeholder="Enter policy number"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="insuranceExpiry" className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
+                        <input
+                          type="date"
+                          id="insuranceExpiry"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Fitness and Permit Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Fitness & Permit Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Document</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="fitnessExpiry" className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
+                        <input
+                          type="date"
+                          id="fitnessExpiry"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Permit Document</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="permitExpiry" className="block text-sm font-medium text-gray-700 mb-1">Permit Expiry Date</label>
+                        <input
+                          type="date"
+                          id="permitExpiry"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="permitType" className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
+                        <select 
+                          id="permitType" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select permit type</option>
+                          <option value="All India">All India</option>
+                          <option value="State">State</option>
+                          <option value="Local">Local</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="luggageCarrier" className="block text-sm font-medium text-gray-700 mb-1">Luggage Carrier</label>
+                        <select 
+                          id="luggageCarrier" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select availability</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="sourcing" className="block text-sm font-medium text-gray-700 mb-1">Sourcing</label>
+                        <select 
+                          id="sourcing" 
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        >
+                          <option value="">Select ownership type</option>
+                          <option value="Own">Own</option>
+                          <option value="Leased">Leased</option>
+                          <option value="Partner">Partner</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                {/* RC Details Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">RC Number</label>
-                  <div className="grid grid-cols-4 gap-3">
-                    <input 
-                      type="text" 
-                      placeholder="State" 
-                      className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                      maxLength={2}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="RTO Code" 
-                      className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                      maxLength={2}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Issue Year" 
-                      className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                      maxLength={2}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="4 Digits" 
-                      className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all"
-                      maxLength={4}
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      Fetch Car Details
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Auto Fetched Details */}
-                <div className="space-y-4 mt-8">
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Auto Fetched Details</h3>
-              
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch name"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch name"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Maker Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch name"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Class</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Engine Number</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
-                      <input 
-                        type="text" 
-                        placeholder="Auto fetch"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-                  </div>
+                {/* Modal Footer */}
+                <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
+                  <button 
+                    className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={() => setFormStep('auto-fetch')}
+                  >
+                    Back
+                  </button>
+                  <button 
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Add Car
+                  </button>
                 </div>
               </div>
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
-              <button 
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
-                onClick={() => setShowAutoFetchForm(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Add This Car
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
