@@ -17,6 +17,8 @@ const createUsersTable = async () => {
             age INT NOT NULL,
             current_address TEXT NOT NULL,
             amount_spent BIGINT DEFAULT 0, 
+            google_id VARCHAR(64) UNIQUE, -- Google account ID
+            auth_provider ENUM('local', 'google') DEFAULT 'local', -- Auth method
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX (email),  -- Indexing for faster lookups
             INDEX (phone)

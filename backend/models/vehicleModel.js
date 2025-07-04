@@ -21,3 +21,6 @@ const createVehiclesTable = async () => {
 };
 
 module.exports = createVehiclesTable;
+
+
+// 

@@ -3,6 +3,7 @@ const db = require("../config/db");
 const createPaymentTriggers = async () => {
     try {
         // First, drop existing triggers one by one
+        await db.query("use cabbook;");
         await db.query("DROP TRIGGER IF EXISTS after_withdrawal_update;");
         await db.query("DROP TRIGGER IF EXISTS after_penalty_insert;");
 

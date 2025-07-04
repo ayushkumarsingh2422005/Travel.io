@@ -25,10 +25,17 @@ const PORT = process.env.PORT || 3000;
 const cors = require('cors');
 require('dotenv').config();
 const db = require('./config/db');
+// db();
 
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 
+// Add body parser middleware
+app.use(express.json());
+app.use(cors());
 
+// Mount auth routes
+const authRoutes = require('./routes/auth');
+app.use('/auth', authRoutes);
 
 const createTables = async () => {
     await createUsersTable();
@@ -44,8 +51,8 @@ const createTables = async () => {
     await createPromocodeTable();
     await ratingModel();
     await transactionModel();
-    await AdminTrigger();
     await transactiontrigger();
+    await AdminTrigger();
     await BookingTrigger();
     await makeid();
 };

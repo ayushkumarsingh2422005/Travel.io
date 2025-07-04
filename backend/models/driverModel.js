@@ -22,3 +22,16 @@ const createDriversTable = async () => {
 };
 
 module.exports = createDriversTable;
+
+
+
+// DL varification
+// DL No, DOB 
+// DL Expiry Date ( baad me dalenge )
+// DL Issue Date ( baad me dalenge )
+// approved_by ( baad me dalenge ) -> default false
+
+// autofill - name, address, expirey date, 
+
+// ui me 1 phone ka field dena hai
+// dl image hatana h form se

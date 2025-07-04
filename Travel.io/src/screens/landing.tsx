@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Initial JSON data that would normally come from API
 const initialData = {
@@ -417,9 +417,9 @@ export default function MarcoCabService() {
             </svg>
           </button> */}
           <div className="hidden md:block">
-            <a href="tel:+918800990099" className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
+            <Link to={"/login"} className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
               Call Us
-            </a>
+            </Link>
           </div>
         </div>
       </header>
