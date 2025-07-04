@@ -16,26 +16,23 @@ const BookingTrigger=require('./utils/BookingTrigger');
 const transactiontrigger=require('./utils/transactionTrigger');
 const createvendorbanktale=require('./models/vendorbankModel')
 const makeid=require('./utils/createidtrigger')
+const { moveCompletedBooking } = require("./utils/BookingTransaction");
+const authRoutes = require('./routes/auth');
+const cors = require("cors")
+require('dotenv').config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-
-
-const cors = require('cors');
-require('dotenv').config();
 const db = require('./config/db');
 // db();
 
-const { moveCompletedBooking } = require("./utils/BookingTransaction");
 
 // Add body parser middleware
 app.use(express.json());
 app.use(cors());
 
 // Mount auth routes
-const authRoutes = require('./routes/auth');
-app.use('/auth', authRoutes);
 
 const createTables = async () => {
     await createUsersTable();
@@ -56,26 +53,15 @@ const createTables = async () => {
     await BookingTrigger();
     await makeid();
 };
-
 createTables();
 
-
-// for transactions do this 
-// moveCompletedBooking(7);
-
-
-
-app.listen(5000, () => {
-    console.log('🚀 Server running on port 5000');
-});
-
-
-
+app.use('/auth', authRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, Express!");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(5000, () => {
+    console.log('🚀 Server running on port 5000');
 });
+

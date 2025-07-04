@@ -63,7 +63,9 @@ router.post('/google', async (req, res) => {
     const ticket = await googleClient.verifyIdToken({ idToken: id_token, audience: GOOGLE_CLIENT_ID });
     const payload = ticket.getPayload();
     const { sub: google_id, email, name, picture } = payload;
+    console.log(google_id, email, name, picture);
     let [users] = await db.execute('SELECT * FROM users WHERE google_id = ? OR email = ?', [google_id, email]);
+    // console.log(users)
     let user;
     if (users.length > 0) {
       user = users[0];
@@ -72,13 +74,20 @@ router.post('/google', async (req, res) => {
         await db.execute('UPDATE users SET google_id = ?, auth_provider = "google" WHERE id = ?', [google_id, user.id]);
       }
     } else {
-      // Create new user
-      const id = require('crypto').randomBytes(32).toString('hex');
-      await db.execute(
-        `INSERT INTO users (id, name, email, profile_pic, google_id, auth_provider, gender, age, current_address) VALUES (?, ?, ?, ?, ?, 'google', '', 0, '')`,
-        [id, name, email, picture, google_id]
-      );
-      user = { id, email };
+      try {
+        // Create new user
+        const id = require('crypto').randomBytes(32).toString('hex');
+        console.log('Creating new Google user:', { id, name, email, picture, google_id });
+        const [insertResult] = await db.execute(
+          `INSERT INTO users (id, name, email, profile_pic, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, 'google')`,
+          [id, name, email, picture, google_id]
+        );
+        console.log('Insert result:', insertResult);
+        user = { id, email, name, google_id, picture };
+      } catch (err) {
+        console.error('Error creating Google user:', err);
+        return res.status(500).json({ message: 'Failed to create Google user', error: err.message });
+      }
     }
     const token = generateToken(user);
     res.json({ token });

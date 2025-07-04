@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import { GoogleLogin } from '@react-oauth/google';
 
 type Props = {};
@@ -16,7 +16,7 @@ export default function Login({}: Props) {
     e.preventDefault();
     setMessage('');
     try {
-      const res = await axios.post('/auth/login', form);
+      const res = await axios.post('http://localhost:5000/auth/login', form);
       setMessage('Login successful!');
     } catch (err: any) {
       setMessage(err.response?.data?.message || 'Login failed');
