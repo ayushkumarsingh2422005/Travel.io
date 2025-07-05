@@ -34,15 +34,15 @@ export default function Signup() {
     setMessage('');
     try {
       const res = await axios.post('/auth/signup', form);
-      if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
-      }
-      else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
-      }
-      else{
-         navigate(location.pathname); // Redirect to the original page if logged in from another page
-      }
+         localStorage.setItem('marcocabs_customer_token', res.data.token);
+           // Extract redirect info
+    const from = location.state?.from || '/';
+    const pageState = location.state?.pageState;
+
+    console.log('Redirecting to:', from, 'with state:', pageState);
+
+    // Redirect to original page (with state if any)
+    navigate(from, { state: pageState });
       setMessage(`Signup successful! ${location}`);
     } catch (err: any) {
       setMessage(err.response?.data?.message || 'Signup failed');
@@ -53,15 +53,16 @@ export default function Signup() {
     setMessage('');
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
-      if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
-      }
-      else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
-      }
-      else{
-         navigate(location.pathname); // Redirect to the original page if logged in from another page
-      }
+        localStorage.setItem('marcocabs_customer_token', res.data.token);
+
+          // Extract redirect info
+    const from = location.state?.from || '/';
+    const pageState = location.state?.pageState;
+
+    console.log('Redirecting to:', from, 'with state:', pageState);
+
+    // Redirect to original page (with state if any)
+    navigate(from, { state: pageState });
       setMessage('Google signup successful!');
     } catch (err: any) {
       setMessage(err.response?.data?.message || 'Google signup failed');

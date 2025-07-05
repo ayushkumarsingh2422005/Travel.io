@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { checkAuth } from '../utils/verifytoken';
 
 const cabData = [
   {
@@ -127,6 +128,7 @@ export default function Cabs() {
   const navigate = useNavigate();
   const location = useLocation();
   const routeData = location.state || {};
+  console.log('Route Data:', routeData);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const handleBook = (cab: typeof cabData[0]) => {
@@ -136,6 +138,28 @@ export default function Cabs() {
   const handleFaqClick = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
+
+useEffect(() => {
+  const check = async () => {
+    const token = localStorage.getItem('marcocabs_customer_token');
+    const type = 'customer';
+
+    if (!token) {
+     
+      navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+      return;
+    }
+
+    const result = await checkAuth(type, token);
+    if (!result) {
+      navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+    }
+  };
+
+  check();
+}, [navigate, location]);
+
+    
 
   return (
     <div className="min-h-screen bg-gray-50">

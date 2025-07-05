@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
+import { checkAuth } from '../utils/verifytoken';
 
 declare global {
   interface Window {
@@ -32,6 +33,34 @@ export default function Prices() {
     price: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+
+   useEffect(() => {
+        const check = async () => {
+          const token = localStorage.getItem('marcocabs_customer_token');
+          const type = 'customer';
+          
+          if (!token) {
+            console.log('No token found, redirecting to login');
+            navigate('/login', {
+  state: {
+    from: location.pathname,
+  },
+});
+          }
+          
+          const result = await checkAuth(type, token);
+  
+          if (!result) {
+           navigate('/login', {
+  state: {
+    from: location.pathname,
+  },
+});
+          }
+        };
+    
+        check();
+      }, [navigate]);
 
   useEffect(() => {
     const initMap = async () => {
