@@ -9,7 +9,7 @@ const carouselImages = [
   '/dummy/customer-3.jpg',
 ];
 
-export default function Login() {
+export default function VendorLogin() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [message, setMessage] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
@@ -35,10 +35,10 @@ export default function Login() {
       const res = await axios.post('/auth/login', form);
       setMessage('Login successful!');
       if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
+        navigate('/dashboard'); // Redirect to dashboard if logged in from login page
       }
       else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
+        navigate('/dashboard'); // Redirect to dashboard if logged in from signup page
       }
       else{
          navigate(location.pathname); // Redirect to the original page if logged in from another page
@@ -54,10 +54,10 @@ export default function Login() {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
       setMessage(`Google login successful! ${location}`);
       if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
+        navigate('/dashboard'); // Redirect to dashboard if logged in from login page
       }
       else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
+        navigate('/dashboard'); // Redirect to dashboard if logged in from signup page
       }
       else{
          navigate(location.pathname); // Redirect to the original page if logged in from another page
@@ -72,28 +72,28 @@ export default function Login() {
     <div className="min-h-screen bg-[url('/bg/carbg.jpg')] bg-cover bg-center bg-gray-500 bg-blend-multiply flex items-center justify-center">
       <div className="flex flex-col h-140 md:flex-row rounded-2xl shadow-2xl overflow-hidden bg-white/90">
         {/* Carousel Section */}
-        <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-green-600 to-green-700 p-8 w-96 relative">
+        <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-blue-700 p-8 w-96 relative">
           <img
             src={carouselImages[carouselIdx]}
-            alt="Customer"
+            alt="Vendor"
             className="w-64 h-80 object-cover rounded-xl shadow-lg border-4 border-white"
           />
           <div className="absolute w-2/3 bottom-10 left-1/2 -translate-x-1/2 bg-white/80 rounded-lg px-6 py-3 shadow text-center">
-            <h2 className="text-xl font-bold text-green-700 mb-1">Welcome Back!</h2>
-            <p className="text-green-700 text-sm">Trusted by 500+ happy customers</p>
+            <h2 className="text-xl font-bold text-blue-700 mb-1">Welcome Back!</h2>
+            <p className="text-blue-700 text-sm">Trusted by 500+ happy vendors</p>
           </div>
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {carouselImages.map((_, idx) => (
               <span
                 key={idx}
-                className={`block w-2 h-2 rounded-full ${carouselIdx === idx ? 'bg-white' : 'bg-green-300'}`}
+                className={`block w-2 h-2 rounded-full ${carouselIdx === idx ? 'bg-white' : 'bg-blue-300'}`}
               />
             ))}
           </div>
         </div>
         {/* Login Form Section */}
         <div className="bg-white text-black p-8 w-full md:w-96 flex flex-col justify-center">
-          <h1 className="text-3xl font-bold text-center mb-6 text-green-700">Log In</h1>
+          <h1 className="text-3xl font-bold text-center mb-6 text-blue-700">Vendor Log In</h1>
           <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
             <input
               name="email"
@@ -102,7 +102,7 @@ export default function Login() {
               value={form.email}
               onChange={handleChange}
               required
-              className="p-3 border rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+              className="p-3 border rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
             />
             <input
               name="password"
@@ -111,11 +111,11 @@ export default function Login() {
               value={form.password}
               onChange={handleChange}
               required
-              className="p-3 border rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+              className="p-3 border rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
             />
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium rounded-lg transition-colors shadow-md"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-colors shadow-md"
             >
               Login
             </button>
@@ -130,10 +130,10 @@ export default function Login() {
           {message && <div className="text-red-500 text-center mt-2">{message}</div>}
           <div className="text-center text-gray-500 mt-4">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-green-700 font-medium hover:underline">Sign Up</Link>
+            <Link to="/signup" className="text-blue-700 font-medium hover:underline">Sign Up</Link>
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 

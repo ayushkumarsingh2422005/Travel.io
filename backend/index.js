@@ -17,7 +17,8 @@ const transactiontrigger=require('./utils/transactionTrigger');
 const createvendorbanktale=require('./models/vendorbankModel')
 const makeid=require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
-const authRoutes = require('./routes/auth');
+const userAuthRoutes = require('./routes/Auth/userAuth');
+const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const cors = require("cors")
 require('dotenv').config();
 
@@ -55,7 +56,8 @@ const createTables = async () => {
 };
 createTables();
 
-app.use('/auth', authRoutes);
+app.use('/user/auth', userAuthRoutes);
+app.use('/vendor/auth', vendorAuthRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, Express!");
