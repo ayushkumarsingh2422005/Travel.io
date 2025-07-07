@@ -21,6 +21,7 @@ const login = async (req, res) => {
         const token = generateToken();
         res.json({ token });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: 'Admin login failed', error: err.message });
     }
 };

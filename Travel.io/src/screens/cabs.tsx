@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { checkAuth } from '../utils/verifytoken';
 
-const cabData = [
+const dummyCabData = [
   {
     id: 1,
     type: 'Hatchback',
@@ -128,38 +128,41 @@ export default function Cabs() {
   const navigate = useNavigate();
   const location = useLocation();
   const routeData = location.state || {};
-  console.log('Route Data:', routeData);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cabData, setCabData] = useState<any[]>([]);
 
-  const handleBook = (cab: typeof cabData[0]) => {
+  const handleBook = (cab: typeof dummyCabData[0]) => {
     navigate('/prices', { state: { ...routeData, cabType: cab.type } });
   };
+
+  console.log("present sir");
 
   const handleFaqClick = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
 
-useEffect(() => {
-  const check = async () => {
-    const token = localStorage.getItem('marcocabs_customer_token');
-    const type = 'customer';
-
-    if (!token) {
-     
-      navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-      return;
-    }
-
-    const result = await checkAuth(type, token);
-    if (!result) {
-      navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-    }
-  };
-
-  check();
-}, [navigate, location]);
-
-    
+  useEffect(() => {
+    const check = async () => {
+      const token = localStorage.getItem('marcocabs_customer_token');
+      const type = 'customer';
+      if (!token) {
+        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+        return;
+      }
+      const result = await checkAuth(type, token);
+      if (!result) {
+        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+      }
+    };
+    check();
+    // Simulate API request for cabs
+    setLoading(true);
+    setTimeout(() => {
+      setCabData(dummyCabData);
+      setLoading(false);
+    }, 1500);
+  }, [navigate, location]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,36 +174,50 @@ useEffect(() => {
             onClick={() => navigate('/')}
           >
             <div className='flex gap-1 '>
-
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Back</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Back</span>
             </div>
           </button>
         </div>
       </header>
       <div className="container mx-auto px-4 py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {cabData.map((cab) => (
-            <div key={cab.id} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
-              <img src={cab.image} alt={cab.type} className="w-44 h-20 object-contain mb-4" />
-              <div className="text-xl font-bold mb-1">{cab.type}</div>
-              <div className="text-gray-600 mb-2 text-center">{cab.models}</div>
-              <div className="text-2xl font-bold text-green-700 mb-2">₹{cab.price}</div>
-              <div className="text-sm text-gray-500 mb-2">Included KMs: <span className="font-semibold">{cab.includedKms}</span></div>
-              <div className="text-sm text-gray-500 mb-2">Extra fare per KM: <span className="font-semibold">{cab.extraFare}</span></div>
-              <div className="text-sm text-gray-500 mb-2">Driver Allowance: <span className="font-semibold">{cab.driverAllowance}</span></div>
-              <div className="text-sm text-gray-500 mb-2">Fuel Charges: <span className="font-semibold">{cab.fuelCharges}</span></div>
-              <div className="text-sm text-gray-500 mb-4">Toll/State Tax: <span className="font-semibold">{cab.tollTax}</span></div>
-              <button
-                className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors mt-auto"
-                onClick={() => handleBook(cab)}
-              >
-                Book
-              </button>
-            </div>
-          ))}
+          {loading
+            ? Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center animate-pulse">
+                  <div className="w-44 h-20 bg-gray-200 rounded mb-4" />
+                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
+                  <div className="w-full h-10 bg-gray-200 rounded" />
+                </div>
+              ))
+            : cabData.map((cab) => (
+                <div key={cab.id} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
+                  <img src={cab.image} alt={cab.type} className="w-44 h-20 object-contain mb-4" />
+                  <div className="text-xl font-bold mb-1">{cab.type}</div>
+                  <div className="text-gray-600 mb-2 text-center">{cab.models}</div>
+                  <div className="text-2xl font-bold text-green-700 mb-2">₹{cab.price}</div>
+                  <div className="text-sm text-gray-500 mb-2">Included KMs: <span className="font-semibold">{cab.includedKms}</span></div>
+                  <div className="text-sm text-gray-500 mb-2">Extra fare per KM: <span className="font-semibold">{cab.extraFare}</span></div>
+                  <div className="text-sm text-gray-500 mb-2">Driver Allowance: <span className="font-semibold">{cab.driverAllowance}</span></div>
+                  <div className="text-sm text-gray-500 mb-2">Fuel Charges: <span className="font-semibold">{cab.fuelCharges}</span></div>
+                  <div className="text-sm text-gray-500 mb-4">Toll/State Tax: <span className="font-semibold">{cab.tollTax}</span></div>
+                  <button
+                    className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors mt-auto"
+                    onClick={() => handleBook(cab)}
+                  >
+                    Book
+                  </button>
+                </div>
+              ))}
         </div>
       </div>
       {/* FAQ Section */}
