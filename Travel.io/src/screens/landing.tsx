@@ -127,7 +127,6 @@ export default function MarcoCabService() {
     tripType: "Round Trip",
     pickupLocation: "",
     destination: "",
-    mobileNumber: "",
     cabType: "Outstation"
   });
   
@@ -269,6 +268,7 @@ export default function MarcoCabService() {
       stops: additionalStops.map(stop => stop.location),
       tripType: bookingForm.tripType
     };
+    
 
     // Navigate to cabs page with route data
     navigate('/cabs', { state: routeData });
@@ -612,25 +612,7 @@ export default function MarcoCabService() {
                       </svg>
                       Add Stop
                     </button>
-                    
-                    <div className="mb-4 relative">
-                      <div className="absolute left-3 top-3 text-gray-400">
-                        {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg> */}
-                      </div>
-                      <div className="flex">
-                        <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
-                        <input 
-                          type="text" 
-                          name="mobileNumber"
-                          value={bookingForm.mobileNumber}
-                          onChange={handleBookingChange}
-                          placeholder="Mobile number" 
-                          className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none" 
-                        />
-                      </div>
-                    </div>
+                 
                     
                     <button 
                       type="submit"

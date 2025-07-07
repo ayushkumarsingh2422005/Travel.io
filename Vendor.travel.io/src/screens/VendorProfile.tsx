@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { checkAuth } from '../utils/verifytoken';
 
 interface VendorInfo {
   id: string;
@@ -35,6 +36,8 @@ const VendorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
 
+  const navigate=useNavigate();
+
   useEffect(() => {
     // Simulate fetching vendor data
     const fetchVendorData = async () => {
@@ -58,6 +61,27 @@ const VendorProfile: React.FC = () => {
 
     fetchVendorData();
   }, []);
+
+
+useEffect(() => {
+  const check = async () => {
+    const token = localStorage.getItem('marcocabs_customer_token');
+    const type = 'customer';
+
+    if (!token) {
+     
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
+    const result = await checkAuth(type, token);
+    if (!result) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  };
+
+  check();
+}, [navigate, location]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

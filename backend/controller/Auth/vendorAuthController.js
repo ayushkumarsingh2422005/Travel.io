@@ -2,6 +2,7 @@ const db = require('../../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
+const { verify } = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'your_google_client_id';
@@ -12,6 +13,26 @@ function generateToken(vendor) {
     return jwt.sign({ id: vendor.id, email: vendor.email }, JWT_SECRET, { expiresIn: '7d' });
 }
 
+const verifytoken=(req,res)=>{
+    try{
+      const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided.',success:false });
+        }
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ message: 'Invalid token.',success:false });
+            }
+            // Token is valid, you can access decoded data
+            res.status(200).json({ message: 'Token is valid',success:true, customer: decoded });
+        });
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({ message: 'Token verification failed',success:false, error: err.message });
+    }
+}
+
 const signup = async (req, res) => {
     try {
         const { name, email, phone, password, gender, age, current_address, description } = req.body;
@@ -20,6 +41,9 @@ const signup = async (req, res) => {
         }
         
         const [existing] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
+
+
+
         if (existing.length > 0) {
             return res.status(409).json({ message: 'Email already registered.' });
         }
@@ -40,6 +64,7 @@ const signup = async (req, res) => {
         const token = generateToken({ id, email });
         res.status(201).json({ token });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: 'Vendor signup failed', error: err.message });
     }
 }
@@ -111,4 +136,4 @@ const google = async (req, res) => {
     }
 }
 
-module.exports = { signup, login, google }
+module.exports = { signup, login, google,verifytoken };

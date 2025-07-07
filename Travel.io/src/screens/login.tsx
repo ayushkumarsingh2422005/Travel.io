@@ -33,16 +33,18 @@ export default function Login() {
     setMessage('');
     try {
       const res = await axios.post('/auth/login', form);
+      console.log(res.data);
+      localStorage.setItem('marcocabs_customer_token', res.data.token); // Store token in local storage
       setMessage('Login successful!');
-      if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
-      }
-      else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
-      }
-      else{
-         navigate(location.pathname); // Redirect to the original page if logged in from another page
-      }
+       // Extract redirect info
+    const from = location.state?.from || '/';
+    const pageState = location.state?.pageState;
+
+    console.log('Redirecting to:', from, 'with state:', pageState);
+
+    // Redirect to original page (with state if any)
+    navigate(from, { state: pageState });
+     
     } catch (err: any) {
       setMessage(err.response?.data?.message || 'Login failed');
     }
@@ -52,17 +54,16 @@ export default function Login() {
     setMessage('');
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
+      localStorage.setItem('marcocabs_customer_token', res.data.token);
       setMessage(`Google login successful! ${location}`);
-      if(location.pathname === '/login') {
-        navigate('/'); // Redirect to home if logged in from login page
-      }
-      else if(location.pathname === '/signup') {
-        navigate('/'); // Redirect to home if logged in from signup page
-      }
-      else{
-         navigate(location.pathname); // Redirect to the original page if logged in from another page
-      }
-      console.log(location.pathname);
+        // Extract redirect info
+    const from = location.state?.from || '/';
+    const pageState = location.state?.pageState;
+
+    console.log('Redirecting to:', from, 'with state:', pageState);
+
+    // Redirect to original page (with state if any)
+    navigate(from, { state: pageState });
     } catch (err: any) {
       setMessage(err.response?.data?.message || 'Google login failed');
     }

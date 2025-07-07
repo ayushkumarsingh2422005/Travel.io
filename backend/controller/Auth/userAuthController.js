@@ -12,6 +12,26 @@ function generateToken(user) {
     return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 }
 
+const verifytoken=(req,res)=>{
+    try{
+      const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided.',success:false });
+        }
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ message: 'Invalid token.',success:false });
+            }
+            // Token is valid, you can access decoded data
+            res.status(200).json({ message: 'Token is valid',success:true, customer: decoded });
+        });
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({ message: 'Token verification failed',success:false, error: err.message });
+    }
+}
+
 const signup = async (req, res) => {
     try {
         const { name, email, phone, password, gender, age, current_address } = req.body;
@@ -91,4 +111,4 @@ const google = async (req, res) => {
     }
 }
 
-module.exports = {signup, login, google}
+module.exports = {signup, login, google,verifytoken};

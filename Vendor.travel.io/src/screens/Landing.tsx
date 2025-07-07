@@ -1,7 +1,7 @@
 // src/pages/Landing.tsx
-import React, { useState } from 'react';
-import Sidebar from '../components/Sidebar';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
+import Sidebar from '../components/SideBar';
 import DriverRewards from './DriverRewards';
 import Inventory from './Inventory';
 import Penalty from './Penalty';
@@ -10,6 +10,8 @@ import AddCarForm from './Car';
 import Booking from './Booking'
 import Wallet from './Wallet'
 import Driver from './Driver'
+import { useNavigate } from 'react-router-dom';
+import { checkAuth } from '../utils/verifytoken';
 
 type ComponentKey = 'inventory' | 'driverRewards' | 'penalty' | 'trips' | 'addcabs' | 'booking' | 'Wallet' | 'adddriver';
 
@@ -27,6 +29,7 @@ const componentMap: Record<ComponentKey, React.FC> = {
 const Landing: React.FC = () => {
   const [activeComponent, setActiveComponent] = useState<ComponentKey>('booking');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate=useNavigate();
 
   const handleMenuClick = (menuItem: string) => {
     const normalized = menuItem.toLowerCase();
@@ -58,6 +61,27 @@ const Landing: React.FC = () => {
   };
 
   const ActiveComponent = componentMap[activeComponent];
+
+
+ useEffect(() => {
+  const check = async () => {
+    const token = localStorage.getItem('marcocabs_customer_token');
+    const type = 'customer';
+
+    if (!token) {
+     
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
+    const result = await checkAuth(type, token);
+    if (!result) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  };
+
+  check();
+}, [navigate, location]);
 
   return (
     <div className="flex h-screen bg-gray-50">
