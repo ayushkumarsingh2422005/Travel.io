@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const sidebarContent = (
     <div className="h-screen flex flex-col bg-white">
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4  ">
         <Link 
           to="/" 
           className="flex items-center space-x-2 transform hover:scale-105 transition-transform duration-200"
