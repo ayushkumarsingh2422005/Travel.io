@@ -60,35 +60,37 @@ const columns = [
 ];
 
 const Drivers: React.FC = () => {
-  const { data, isLoading, error } = useData<Driver[]>('/api/drivers');
+  // const { data, isLoading, error } = useData<Driver[]>('/api/drivers');
 
-  const handleExport = () => {
-    if (!data) return;
-    
-    const csv = data.map((row: Driver) => 
-      columns.map(col => row[col.id as keyof Driver]).join(',')
-    ).join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'drivers.csv';
-    a.click();
-  };
+  // console.log(data);
 
-  if (error) {
-    return <div className="text-red-600 p-4">Error: {error}</div>;
-  }
+  // const handleExport = () => {
+  //   if (!data) return;
+    
+  //   const csv = data.map((row: Driver) => 
+  //     columns.map(col => row[col.id as keyof Driver]).join(',')
+  //   ).join('\n');
+    
+  //   const blob = new Blob([csv], { type: 'text/csv' });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = 'drivers.csv';
+  //   a.click();
+  // };
+
+  // if (error) {
+  //   return <div className="text-red-600 p-4">Error: {error}</div>;
+  // }
 
   return (
     <div className="p-6">
       <Table
         columns={columns}
-        data={data || []}
-        isLoading={isLoading}
+        data={ mockDrivers}
+        isLoading={false}
         title="Drivers Management"
-        onExport={handleExport}
+        // onExport={handleExport}
       />
     </div>
   );

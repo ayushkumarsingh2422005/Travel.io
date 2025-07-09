@@ -87,35 +87,35 @@ const columns = [
 ];
 
 const Ratings: React.FC = () => {
-  const { data, isLoading, error } = useData<Rating[]>('/api/ratings');
+  // const { data, isLoading, error } = useData<Rating[]>('/api/ratings');
 
-  const handleExport = () => {
-    if (!data) return;
+  // const handleExport = () => {
+  //   if (!data) return;
     
-    const csv = data.map((row: Rating) => 
-      columns.map(col => row[col.id as keyof Rating]).join(',')
-    ).join('\n');
+  //   const csv = data.map((row: Rating) => 
+  //     columns.map(col => row[col.id as keyof Rating]).join(',')
+  //   ).join('\n');
     
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ratings.csv';
-    a.click();
-  };
+  //   const blob = new Blob([csv], { type: 'text/csv' });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = 'ratings.csv';
+  //   a.click();
+  // };
 
-  if (error) {
-    return <div className="text-red-600 p-4">Error: {error}</div>;
-  }
+  // if (error) {
+  //   return <div className="text-red-600 p-4">Error: {error}</div>;
+  // }
 
   return (
     <div className="p-6">
       <Table
         columns={columns}
-        data={data || []}
-        isLoading={isLoading}
+        data={ mockRatings}
+        isLoading={false}
         title="Ratings & Reviews"
-        onExport={handleExport}
+        // onExport={handleExport}
       />
     </div>
   );

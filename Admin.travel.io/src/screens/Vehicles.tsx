@@ -78,35 +78,35 @@ const columns = [
 ];
 
 const Vehicles: React.FC = () => {
-  const { data, isLoading, error } = useData<Vehicle[]>('/api/vehicles');
+  // const { data, isLoading, error } = useData<Vehicle[]>('/api/vehicles');
 
-  const handleExport = () => {
-    if (!data) return;
+  // const handleExport = () => {
+  //   if (!data) return;
     
-    const csv = data.map((row: Vehicle) => 
-      columns.map(col => row[col.id as keyof Vehicle]).join(',')
-    ).join('\n');
+  //   const csv = data.map((row: Vehicle) => 
+  //     columns.map(col => row[col.id as keyof Vehicle]).join(',')
+  //   ).join('\n');
     
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'vehicles.csv';
-    a.click();
-  };
+  //   const blob = new Blob([csv], { type: 'text/csv' });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = 'vehicles.csv';
+  //   a.click();
+  // };
 
-  if (error) {
-    return <div className="text-red-600 p-4">Error: {error}</div>;
-  }
+  // if (error) {
+  //   return <div className="text-red-600 p-4">Error: {error}</div>;
+  // }
 
   return (
     <div className="p-6">
       <Table
         columns={columns}
-        data={data || []}
-        isLoading={isLoading}
+        data={mockVehicles}
+        isLoading={false}
         title="Vehicles Management"
-        onExport={handleExport}
+        // onExport={handleExport}
       />
     </div>
   );

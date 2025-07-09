@@ -30,6 +30,8 @@ const useData = <T>(endpoint: string): UseDataResponse<T> => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        console.log(response);
+        
         const result = await response.json();
         setData(result);
         setError(null);
