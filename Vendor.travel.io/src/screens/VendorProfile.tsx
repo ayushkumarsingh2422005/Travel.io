@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { checkAuth } from '../utils/verifytoken';
 
 interface VendorInfo {
   id: string;
@@ -63,25 +62,6 @@ const VendorProfile: React.FC = () => {
   }, []);
 
 
-useEffect(() => {
-  const check = async () => {
-    const token = localStorage.getItem('marcocabs_vendor_token');
-    const type = 'customer';
-
-    if (!token) {
-     
-      navigate('/login', { state: { from: location.pathname } });
-      return;
-    }
-
-    const result = await checkAuth(type, token);
-    if (!result) {
-      navigate('/login', { state: { from: location.pathname } });
-    }
-  };
-
-  check();
-}, [navigate, location]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

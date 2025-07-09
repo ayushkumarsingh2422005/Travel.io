@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Table from '../components/Table';
 import useData from '../hooks/useData';
+import { useSearch } from '../context/SearchContext';
 
 interface Booking {
   id: string;
@@ -15,6 +16,70 @@ interface Booking {
   vehicleType: string;
 }
 
+const dummyBookings: Booking[] = [
+  {
+    id: 'b1',
+    userId: 'u1',
+    userName: 'Satyam Tiwari',
+    pickupLocation: 'NIT Jamshedpur',
+    dropLocation: 'Tatanagar Junction',
+    status: 'confirmed',
+    amount: 250,
+    date: '2025-07-05T10:00:00Z',
+    driverName: 'Raj Verma',
+    vehicleType: 'Sedan',
+  },
+  {
+    id: 'b2',
+    userId: 'u2',
+    userName: 'Aman Gupta',
+    pickupLocation: 'Adityapur Colony',
+    dropLocation: 'Sonari Airport',
+    status: 'completed',
+    amount: 450,
+    date: '2025-07-01T08:30:00Z',
+    driverName: 'Sunil Kumar',
+    vehicleType: 'SUV',
+  },
+  {
+    id: 'b3',
+    userId: 'u3',
+    userName: 'Priya Sharma',
+    pickupLocation: 'Bistupur',
+    dropLocation: 'Kadma',
+    status: 'cancelled',
+    amount: 0,
+    date: '2025-06-28T15:45:00Z',
+    driverName: 'Deepak Singh',
+    vehicleType: 'Auto',
+  },
+  {
+    id: 'b4',
+    userId: 'u4',
+    userName: 'Ravi Patel',
+    pickupLocation: 'Telco',
+    dropLocation: 'Sakchi',
+    status: 'pending',
+    amount: 180,
+    date: '2025-07-10T19:20:00Z',
+    driverName: 'Manoj Yadav',
+    vehicleType: 'Mini',
+  },
+  {
+    id: 'b5',
+    userId: 'u5',
+    userName: 'Kavita Joshi',
+    pickupLocation: 'Jugsalai',
+    dropLocation: 'Mango',
+    status: 'completed',
+    amount: 300,
+    date: '2025-07-03T09:10:00Z',
+    driverName: 'Anil Das',
+    vehicleType: 'Sedan',
+  },
+];
+
+
 interface Column {
   id: string;
   label: string;
@@ -23,7 +88,32 @@ interface Column {
 }
 
 const Bookings: React.FC = () => {
-  const { data, isLoading } = useData<Booking[]>('/api/bookings');
+  // const { data, isLoading } = useData<Booking[]>('/api/bookings');
+
+  const { query } = useSearch();
+  // const { data, isLoading } = useData<User[]>('/api/users');
+  const [data, setData] = useState<Booking[]>(dummyBookings);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [filtered, setFiltered] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    if (!data) return;
+    const lower = query.toLowerCase();
+    setFiltered(
+      data.filter(
+        (u) =>
+          u.driverName.toLowerCase().includes(lower) ||
+          u.dropLocation.toLowerCase().includes(lower) ||
+          u.pickupLocation.toLowerCase().includes(lower) ||
+          u.vehicleType.toLowerCase().includes(lower) ||
+          u.status.toLowerCase().includes(lower) ||
+          u.amount.toString().includes(lower) ||
+          u.date.toLowerCase().includes(lower) ||
+          u.userName.toLowerCase().includes(lower)
+      )
+    );
+  }, [query, data]);
 
   const columns: Column[] = [
     { id: 'id', label: 'Booking ID', minWidth: 130 },
@@ -210,7 +300,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Bookings</p>
               <p className="text-2xl font-bold mt-1">
-                {data?.length || 0}
+                {filtered?.length || 0}
               </p>
             </div>
           </div>
@@ -236,7 +326,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Pending</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.filter(booking => booking.status === 'pending').length || 0}
+                {filtered?.filter(booking => booking.status === 'pending').length || 0}
               </p>
             </div>
           </div>
@@ -262,7 +352,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Completed</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.filter(booking => booking.status === 'completed').length || 0}
+                {filtered?.filter(booking => booking.status === 'completed').length || 0}
               </p>
             </div>
           </div>
@@ -288,7 +378,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Cancelled</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.filter(booking => booking.status === 'cancelled').length || 0}
+                {filtered?.filter(booking => booking.status === 'cancelled').length || 0}
               </p>
             </div>
           </div>
@@ -299,7 +389,7 @@ const Bookings: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <Table
           columns={columns}
-          data={data || []}
+          data={filtered || []}
           isLoading={isLoading}
           title="Booking List"
           onExport={handleExport}

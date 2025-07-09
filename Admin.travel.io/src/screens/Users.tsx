@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Table from '../components/Table';
 import useData from '../hooks/useData';
+import { useSearch } from '../context/SearchContext';
 
 interface User {
   id: string;
@@ -12,8 +13,56 @@ interface User {
   joinedDate: string;
 }
 
+const dummyUsers: User[] = [
+  {
+    id: '1',
+    name: 'Satyam Tiwari',
+    email: 'satyam@example.com',
+    phone: '9876543210',
+    status: 'active',
+    totalSpent: 10250,
+    joinedDate: '2024-02-10T00:00:00Z',
+  },
+  {
+    id: '2',
+    name: 'Aman Gupta',
+    email: 'aman@example.com',
+    phone: '9876500000',
+    status: 'inactive',
+    totalSpent: 5500,
+    joinedDate: '2023-11-12T00:00:00Z',
+  },
+  {
+    id: '3',
+    name: 'Priya Sharma',
+    email: 'priya@example.com',
+    phone: '9876000000',
+    status: 'active',
+    totalSpent: 7800,
+    joinedDate: '2023-08-01T00:00:00Z',
+  },
+];
+
 const Users: React.FC = () => {
-  const { data, isLoading } = useData<User[]>('/api/users');
+  const { query } = useSearch();
+  // const { data, isLoading } = useData<User[]>('/api/users');
+  const [data, setData] = useState<User[]>(dummyUsers);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [filtered, setFiltered] = useState<User[]>([]);
+
+  useEffect(() => {
+    if (!data) return;
+    const lower = query.toLowerCase();
+    setFiltered(
+      data.filter(
+        (u) =>
+          u.name.toLowerCase().includes(lower) ||
+          u.email.toLowerCase().includes(lower)
+      )
+    );
+  }, [query, data]);
+  
 
   const columns = [
     { id: 'name', label: 'Name', minWidth: 170 },
@@ -153,7 +202,7 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Users</p>
               <p className="text-2xl font-bold mt-1">
-                {data?.length || 0}
+                {filtered?.length || 0}
               </p>
             </div>
           </div>
@@ -179,7 +228,7 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Active Users</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.filter(user => user.status === 'active').length || 0}
+                {filtered?.filter(user => user.status === 'active').length || 0}
               </p>
             </div>
           </div>
@@ -205,7 +254,7 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{data?.reduce((sum, user) => sum + user.totalSpent, 0).toFixed(2) || '0.00'}
+                ₹{filtered?.reduce((sum, user) => sum + user.totalSpent, 0).toFixed(2) || '0.00'}
               </p>
             </div>
           </div>
@@ -216,7 +265,7 @@ const Users: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm">
         <Table
           columns={columns}
-          data={data || []}
+          data={filtered || []}
           isLoading={isLoading}
           title="User List"
           onExport={handleExport}

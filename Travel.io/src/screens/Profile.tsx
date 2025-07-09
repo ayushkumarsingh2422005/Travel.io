@@ -1,4 +1,4 @@
-import  { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
@@ -76,7 +76,7 @@ const Profile = () => {
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-8 text-gray-800">Profile Settings</h1>
       <div className="bg-white rounded-2xl shadow-sm p-8">
-        <div className="text-gray-600 mb-8">Manage your account and business information</div>
+        <div className="text-gray-600 mb-8">Manage your account</div>
         
         {/* Profile Header */}
         <div className="flex flex-col items-center mb-8">

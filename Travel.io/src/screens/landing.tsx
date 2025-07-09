@@ -268,6 +268,8 @@ export default function MarcoCabService() {
       stops: additionalStops.map(stop => stop.location),
       tripType: bookingForm.tripType
     };
+
+    console.log(routeData);
     
 
     // Navigate to cabs page with route data

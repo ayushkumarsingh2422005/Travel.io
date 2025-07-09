@@ -25,9 +25,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick }) => {
   return (
     <div className="h-screen bg-white border-r border-gray-200 w-64 flex-shrink-0 flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 ">
         <Link to="/dashboard" className="flex items-center space-x-2">
-          <span className="text-xl font-bold text-gray-900">Travel.io</span>
+          <span className="text-xl font-bold text-green-600">Travel.io</span>
           <span className="text-sm text-gray-600">Vendor Portal</span>
         </Link>
       </div>

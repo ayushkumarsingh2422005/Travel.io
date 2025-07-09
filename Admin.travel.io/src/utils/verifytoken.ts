@@ -2,10 +2,12 @@ import axios from '../api/axios';
 
 
 
-export const checkAuth = async (type:string,token:string | null): Promise<boolean> => {
+export const checkAuth = async (type:string ,token:string | null): Promise<boolean> => {
   // const token = localStorage.getItem(`marcocabs_${type}_token`) ;
 
-  console.log('type: ', type);
+  if(type){
+    console.log('type',type);
+  }
 
   if (!token) {
     console.log('No token found');

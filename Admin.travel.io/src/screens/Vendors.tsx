@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Table from '../components/Table';
 import useData from '../hooks/useData';
+import { useSearch } from '../context/SearchContext';
 
 interface Vendor {
   id: string;
@@ -15,6 +16,70 @@ interface Vendor {
   joinedDate: string;
 }
 
+const dummyVendors: Vendor[] = [
+  {
+    id: 'v1',
+    name: 'Sharma Travels',
+    email: 'contact@sharmatravels.in',
+    phone: '9876543210',
+    status: 'active',
+    totalEarnings: 150000,
+    totalVehicles: 12,
+    totalDrivers: 8,
+    rating: 4.5,
+    joinedDate: '2024-12-15T09:30:00Z',
+  },
+  {
+    id: 'v2',
+    name: 'GoFast Cabs',
+    email: 'support@gofastcabs.com',
+    phone: '9123456789',
+    status: 'pending',
+    totalEarnings: 0,
+    totalVehicles: 0,
+    totalDrivers: 0,
+    rating: 0,
+    joinedDate: '2025-07-05T12:00:00Z',
+  },
+  {
+    id: 'v3',
+    name: 'Speedy Rides',
+    email: 'hello@speedyrides.com',
+    phone: '9012345678',
+    status: 'inactive',
+    totalEarnings: 52300,
+    totalVehicles: 5,
+    totalDrivers: 3,
+    rating: 3.9,
+    joinedDate: '2023-09-01T08:00:00Z',
+  },
+  {
+    id: 'v4',
+    name: 'SafeDrive Services',
+    email: 'admin@safedrive.com',
+    phone: '9988776655',
+    status: 'active',
+    totalEarnings: 235600,
+    totalVehicles: 18,
+    totalDrivers: 12,
+    rating: 4.7,
+    joinedDate: '2022-06-20T10:15:00Z',
+  },
+  {
+    id: 'v5',
+    name: 'Jamshedpur Taxi Co.',
+    email: 'info@jtco.in',
+    phone: '8765432190',
+    status: 'active',
+    totalEarnings: 98000,
+    totalVehicles: 9,
+    totalDrivers: 6,
+    rating: 4.3,
+    joinedDate: '2025-01-10T14:45:00Z',
+  },
+];
+
+
 interface Column {
   id: string;
   label: string;
@@ -23,7 +88,32 @@ interface Column {
 }
 
 const Vendors: React.FC = () => {
-  const { data, isLoading } = useData<Vendor[]>('/api/vendors');
+
+  const { query } = useSearch();
+  // const { data, isLoading } = useData<User[]>('/api/users');
+  const [data, setData] = useState<Vendor[]>(dummyVendors);
+  const [isLoading, setIsLoading] = useState(false);
+  const [filtered, setFiltered] = useState<Vendor[]>([]);
+
+
+  useEffect(() => {
+    if (!data) return;
+    const lower = query.toLowerCase();
+    setFiltered(
+      data.filter(
+        (u) =>
+          u.name.toLowerCase().includes(lower) ||
+          u.email.toLowerCase().includes(lower) ||
+          u.phone.toLowerCase().includes(lower) ||
+          u.status.toLowerCase().includes(lower) ||
+          u.totalEarnings.toString().includes(lower) ||
+          u.totalVehicles.toString().includes(lower) ||
+          u.totalDrivers.toString().includes(lower) ||
+          u.rating.toString().includes(lower) ||
+          u.joinedDate.toLowerCase().includes(lower)
+        )
+    );
+  }, [query, data]);
 
   const columns: Column[] = [
     { id: 'name', label: 'Name', minWidth: 170 },
@@ -278,7 +368,7 @@ const Vendors: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Vendors</p>
               <p className="text-2xl font-bold mt-1">
-                {data?.length || 0}
+                {filtered?.length || 0}
               </p>
             </div>
           </div>
@@ -304,7 +394,7 @@ const Vendors: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Active Vendors</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.filter(vendor => vendor.status === 'active').length || 0}
+                {filtered?.filter(vendor => vendor.status === 'active').length || 0}
               </p>
             </div>
           </div>
@@ -330,7 +420,7 @@ const Vendors: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Total Earnings</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{data?.reduce((sum, vendor) => sum + vendor.totalEarnings, 0).toFixed(2) || '0.00'}
+                ₹{filtered?.reduce((sum, vendor) => sum + vendor.totalEarnings, 0).toFixed(2) || '0.00'}
               </p>
             </div>
           </div>
@@ -356,7 +446,7 @@ const Vendors: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Total Vehicles</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {data?.reduce((sum, vendor) => sum + vendor.totalVehicles, 0) || 0}
+                {filtered?.reduce((sum, vendor) => sum + vendor.totalVehicles, 0) || 0}
               </p>
             </div>
           </div>
@@ -367,7 +457,7 @@ const Vendors: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm">
         <Table
           columns={columns}
-          data={data || []}
+          data={filtered || []}
           isLoading={isLoading}
           title="Vendor List"
           onExport={handleExport}

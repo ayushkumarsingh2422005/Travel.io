@@ -1,5 +1,5 @@
 // src/pages/Landing.tsx
-import React, { useEffect, useState } from 'react';
+import React, {  useState } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/SideBar';
 import DriverRewards from './DriverRewards';
@@ -11,7 +11,6 @@ import Booking from './Booking'
 import Wallet from './Wallet'
 import Driver from './Driver'
 import { useNavigate } from 'react-router-dom';
-import { checkAuth } from '../utils/verifytoken';
 
 type ComponentKey = 'inventory' | 'driverRewards' | 'penalty' | 'trips' | 'addcabs' | 'booking' | 'Wallet' | 'adddriver';
 
@@ -63,25 +62,7 @@ const Landing: React.FC = () => {
   const ActiveComponent = componentMap[activeComponent];
 
 
- useEffect(() => {
-  const check = async () => {
-    const token = localStorage.getItem('marcocabs_customer_token');
-    const type = 'customer';
 
-    if (!token) {
-     
-      navigate('/login', { state: { from: location.pathname } });
-      return;
-    }
-
-    const result = await checkAuth(type, token);
-    if (!result) {
-      navigate('/login', { state: { from: location.pathname } });
-    }
-  };
-
-  check();
-}, [navigate, location]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -93,7 +74,7 @@ const Landing: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header />
+        <Header onMenuToggle={toggleMobileMenu} />
         
         {/* Mobile menu toggle button */}
         <button 

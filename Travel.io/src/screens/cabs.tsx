@@ -1,12 +1,17 @@
-import  { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { checkAuth } from '../utils/verifytoken';
+import { Loader } from '@googlemaps/js-api-loader';
+
+
+const cabOptions = ["Outstation", "Local", "Airport"]
 
 const dummyCabData = [
   {
     id: 1,
     type: 'Hatchback',
     models: 'Wagon R, Swift, Alto, Similar',
+    registration_no: 'KA01AB1234',
     price: 2000,
     includedKms: 135,
     extraFare: '10/KMs',
@@ -14,11 +19,20 @@ const dummyCabData = [
     fuelCharges: 'Included',
     tollTax: 'Not Included',
     image: 'https://via.placeholder.com/180x80?text=Hatchback',
+    seats: 4,
+    ac: true,
+    luggageCapacity: '2 bags',
+    year: 2021,
+    rating: 4.5,
+    amenities: ['AC', 'USB Charging', 'Tracking'],
+    vehicleCondition: 'Excellent',
+    fuelType: 'Petrol'
   },
   {
     id: 2,
     type: 'Sedan',
     models: 'Dzire, Etios, Tigor, Similar',
+    registration_no: 'KA01CD5678',
     price: 2500,
     includedKms: 135,
     extraFare: '10/KMs',
@@ -26,11 +40,20 @@ const dummyCabData = [
     fuelCharges: 'Included',
     tollTax: 'Not Included',
     image: 'https://via.placeholder.com/180x80?text=Sedan',
+    seats: 5,
+    ac: true,
+    luggageCapacity: '3 bags',
+    year: 2022,
+    rating: 4.7,
+    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking'],
+    vehicleCondition: 'Excellent',
+    fuelType: 'CNG'
   },
   {
     id: 3,
     type: 'SUV',
     models: 'Innova, Ertiga, Marazzo, Similar',
+    registration_no: 'KA01EF9012',
     price: 3500,
     includedKms: 135,
     extraFare: '13/KMs',
@@ -38,11 +61,20 @@ const dummyCabData = [
     fuelCharges: 'Included',
     tollTax: 'Not Included',
     image: 'https://via.placeholder.com/180x80?text=SUV',
+    seats: 7,
+    ac: true,
+    luggageCapacity: '4 bags',
+    year: 2022,
+    rating: 4.6,
+    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking', 'Entertainment'],
+    vehicleCondition: 'Good',
+    fuelType: 'Diesel'
   },
   {
     id: 4,
     type: 'Premium SUV',
     models: 'Innova Crysta, Kia Carnes, Scorpio',
+    registration_no: 'KA01GH3456',
     price: 5800,
     includedKms: 135,
     extraFare: '18/KMs',
@@ -50,6 +82,14 @@ const dummyCabData = [
     fuelCharges: 'Included',
     tollTax: 'Not Included',
     image: 'https://via.placeholder.com/180x80?text=Premium+SUV',
+    seats: 7,
+    ac: true,
+    luggageCapacity: '5 bags',
+    year: 2023,
+    rating: 4.8,
+    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking', 'Entertainment', 'Premium Leather Seats'],
+    vehicleCondition: 'Excellent',
+    fuelType: 'Diesel'
   },
 ];
 
@@ -124,6 +164,16 @@ const faqs = [
   },
 ];
 
+interface AutocompleteService {
+  getPlacePredictions: (request: {
+    input: string;
+    types?: string[];
+    componentRestrictions?: { country: string };
+  }) => Promise<{
+    predictions: Array<{ description: string }>;
+  }>;
+}
+
 export default function Cabs() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -131,16 +181,348 @@ export default function Cabs() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [cabData, setCabData] = useState<any[]>([]);
+  const[data,setData]=useState(cabOptions)
+  // State to hold data that would come from API
+  
+  // Form states
+  const [bookingForm, setBookingForm] = useState({
+    tripType: "Round Trip",
+    pickupLocation: "",
+    destination: "",
+    stops: [],
+    cabType: "Outstation"
+  });
+
+  useEffect(() => {
+    if (location.state) {
+      const state = location.state as any;
+      setBookingForm(prev => ({
+        ...prev,
+        tripType: state.tripType || '',
+        pickupLocation: state.pickup || '',
+        destination: state.destination || '',
+        stops: state.stops || []
+      }));
+      setAdditionalStops(state.stops.map((stop: string) => ({
+        id: nextStopId,
+        location: stop,
+        suggestions: [],
+        showSuggestions: false
+      })));
+      setNextStopId(nextStopId + 1);
+    }
+  }, [location]);
+  
+  
+  
+
+  // Add new states for location suggestions
+  const [pickupSuggestions, setPickupSuggestions] = useState<string[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<string[]>([]);
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
+  // const [data, setData] = useState();
+
+  // Add state for additional stops and their suggestions
+  const [additionalStops, setAdditionalStops] = useState<Array<{ 
+    id: number; 
+    location: string;
+    suggestions: string[];
+    showSuggestions: boolean;
+  }>>([]);
+  const [nextStopId, setNextStopId] = useState(1);
+
+  // Effect to simulate API data fetch
+  useEffect(() => {
+    // This is where you would fetch data from your API
+    // For example:
+    // const fetchData = async () => {
+    //   try {
+    //     const response = await fetch('https://api.example.com/data');
+    //     const jsonData = await response.json();
+    //     setData(jsonData);
+    //   } catch (error) {
+    //     console.error("Error fetching data:", error);
+    //   }
+    // };
+    // fetchData();
+    
+    // For now, we'll just use the initial data
+  }, []);
+  
+  // Initialize Google Maps services
+  useEffect(() => {
+    const loader = new Loader({
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+      version: "weekly",
+      libraries: ["places"]
+    });
+
+    loader.load().then((google) => {
+      setAutocompleteService(new google.maps.places.AutocompleteService());
+    });
+  }, []);
+
+  type FormState = Record<string, string>;
+
+  // The issue is a type mismatch: handleInputChange expects a formSetter for a generic FormState (Record<string, string>),
+  // but setBookingForm is typed for a more specific shape (with fields like tripType, pickupLocation, etc).
+  // The types are not compatible because the booking form state is not just Record<string, string>.
+
+  // Solution: Remove the generic and just type handleInputChange for the actual booking form state shape.
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    formSetter: React.Dispatch<React.SetStateAction<{
+      tripType: string;
+      pickupLocation: string;
+      destination: string;
+      stops: never[];
+      cabType: string;
+    }>>
+  ) => {
+    const { name, value } = e.target;
+    formSetter(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Booking form handler
+  const handleBookingChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    handleInputChange(e, setBookingForm);
+  };
+  
+  
+  
+  // Trip type selector
+  const handleTripTypeChange = (type: string) => {
+    setBookingForm(prev => ({ ...prev, tripType: type }));
+  };
+  
+  // Click handler: Book now
+  const handleBookNow = () => {
+    console.log("Book Now clicked");
+    // Implement book now functionality
+  };
+  
+
+  
+  // Form submission: Booking
+  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log("Booking form submitted:", bookingForm);
+
+    // Prepare basic route data for navigation
+    const routeData = {
+      pickup: bookingForm.pickupLocation,
+      destination: bookingForm.destination,
+      stops: additionalStops.map(stop => stop.location),
+      tripType: bookingForm.tripType
+    };
+
+
+    // search logic here
+    
+
+  };
+
+  // Function to get location suggestions
+  const getLocationSuggestions = async (input: string, setSuggestions: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (!autocompleteService || !input) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await autocompleteService.getPlacePredictions({
+        input: input,
+        types: ['(cities)'],
+        componentRestrictions: { country: 'in' }
+      });
+
+      if (response && response.predictions) {
+        setSuggestions(response.predictions.map((prediction: { description: string }) => prediction.description));
+      }
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+    }
+  };
+
+   // Handle pickup location input change
+   const handlePickupLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBookingForm(prev => ({ ...prev, pickupLocation: value }));
+    setShowPickupSuggestions(true);
+    await getLocationSuggestions(value, setPickupSuggestions);
+  };
+
+  // Handle destination input change
+  const handleDestinationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBookingForm(prev => ({ ...prev, destination: value }));
+    setShowDestinationSuggestions(true);
+    await getLocationSuggestions(value, setDestinationSuggestions);
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (location: string, type: 'pickup' | 'destination') => {
+    if (type === 'pickup') {
+      setBookingForm(prev => ({ ...prev, pickupLocation: location }));
+      setShowPickupSuggestions(false);
+    } else {
+      setBookingForm(prev => ({ ...prev, destination: location }));
+      setShowDestinationSuggestions(false);
+    }
+  };
+
+  // Handle adding a new stop
+  const handleAddStop = () => {
+    setAdditionalStops(prev => [...prev, { 
+      id: nextStopId, 
+      location: '',
+      suggestions: [],
+      showSuggestions: false
+    }]);
+    setNextStopId(prev => prev + 1);
+  };
+
+  // Handle removing a stop
+  const handleRemoveStop = (id: number) => {
+    setAdditionalStops(prev => prev.filter(stop => stop.id !== id));
+  };
+
+  // Handle stop location change
+  const handleStopLocationChange = async (id: number, value: string) => {
+    setAdditionalStops(prev => 
+      prev.map(stop => {
+        if (stop.id === id) {
+          return { 
+            ...stop, 
+            location: value,
+            showSuggestions: true
+          };
+        }
+        return stop;
+      })
+    );
+
+    if (autocompleteService && value) {
+      try {
+        const response = await autocompleteService.getPlacePredictions({
+          input: value,
+          types: ['(cities)'],
+          componentRestrictions: { country: 'in' }
+        });
+
+        if (response && response.predictions) {
+          setAdditionalStops(prev => 
+            prev.map(stop => {
+              if (stop.id === id) {
+                return {
+                  ...stop,
+                  suggestions: response.predictions.map((prediction: { description: string }) => prediction.description)
+                };
+              }
+              return stop;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching location suggestions:', error);
+      }
+    }
+  };
+
+  // Handle stop suggestion selection
+  const handleStopSuggestionSelect = (id: number, location: string) => {
+    setAdditionalStops(prev => 
+      prev.map(stop => {
+        if (stop.id === id) {
+          return {
+            ...stop,
+            location: location,
+            showSuggestions: false
+          };
+        }
+        return stop;
+      })
+    );
+  };
+
+  const [filteredCabData, setFilteredCabData] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    minPrice: '',
+    maxPrice: '',
+    minSeats: '',
+    searchTerm: '',
+    ac: false,
+    sortBy: 'price', // 'price' | 'rating' | 'seats'
+    fuelType: 'all' // 'all' | 'Petrol' | 'Diesel' | 'CNG'
+  });
 
   const handleBook = (cab: typeof dummyCabData[0]) => {
     navigate('/prices', { state: { ...routeData, cabType: cab.type } });
   };
 
-  console.log("present sir");
-
   const handleFaqClick = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
+
+  const applyFilters = () => {
+    let filtered = [...cabData];
+
+    // Apply search term filter
+    if (filters.searchTerm) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(cab => 
+        cab.type.toLowerCase().includes(searchLower) ||
+        cab.models.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply price range filter
+    if (filters.minPrice) {
+      filtered = filtered.filter(cab => cab.price >= parseInt(filters.minPrice));
+    }
+    if (filters.maxPrice) {
+      filtered = filtered.filter(cab => cab.price <= parseInt(filters.maxPrice));
+    }
+
+    // Apply seats filter
+    if (filters.minSeats) {
+      filtered = filtered.filter(cab => cab.seats >= parseInt(filters.minSeats));
+    }
+
+    // Apply AC filter
+    if (filters.ac) {
+      filtered = filtered.filter(cab => cab.ac);
+    }
+
+    // Apply fuel type filter
+    if (filters.fuelType !== 'all') {
+      filtered = filtered.filter(cab => cab.fuelType === filters.fuelType);
+    }
+
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'price':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'rating':
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'seats':
+        filtered.sort((a, b) => b.seats - a.seats);
+        break;
+    }
+
+    setFilteredCabData(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, cabData]);
 
   useEffect(() => {
     const check = async () => {
@@ -160,9 +542,11 @@ export default function Cabs() {
     setLoading(true);
     setTimeout(() => {
       setCabData(dummyCabData);
+      setFilteredCabData(dummyCabData);
       setLoading(false);
     }, 1500);
   }, [navigate, location]);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -173,7 +557,7 @@ export default function Cabs() {
             className="bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors"
             onClick={() => navigate('/')}
           >
-            <div className='flex gap-1 '>
+            <div className='flex gap-1'>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -182,7 +566,216 @@ export default function Cabs() {
           </button>
         </div>
       </header>
-      <div className="container mx-auto px-4 py-10">
+      {/* Booking Form Section */}
+{/* Booking Section */}
+<div className="container mx-auto px-4 pt-6">
+  <div className="bg-white shadow-md rounded-xl p-6">
+    <form onSubmit={handleBookingSubmit}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Cab Type */}
+        <select 
+          name="cabType"
+          className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+          value={bookingForm.cabType}
+          onChange={handleBookingChange}
+        >
+          {data.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+
+        {/* Trip Type */}
+        <div className="flex gap-2">
+          {["Round Trip", "One Way"].map(type => (
+            <button 
+              key={type}
+              type="button"
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                bookingForm.tripType === type 
+                  ? "bg-green-600 text-white" 
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              onClick={() => handleTripTypeChange(type)}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        {/* Pickup Location */}
+        <div className="relative">
+          <input 
+            type="text" 
+            name="pickupLocation"
+            value={bookingForm.pickupLocation}
+            onChange={handlePickupLocationChange}
+            placeholder="Pickup location" 
+            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+          />
+          {/* Suggestions */}
+          {showPickupSuggestions && pickupSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+              {pickupSuggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Destination */}
+        <div className="relative">
+          <input 
+            type="text" 
+            name="destination"
+            value={bookingForm.destination}
+            onChange={handleDestinationChange}
+            placeholder="Destination" 
+            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+          />
+          {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+              {destinationSuggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Additional Stops */}
+      {additionalStops.map((stop) => (
+        <div key={stop.id} className="mt-4 relative flex items-center">
+          <input 
+            type="text" 
+            value={stop.location}
+            onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+            placeholder="Stop location" 
+            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+          />
+          <button
+            type="button"
+            onClick={() => handleRemoveStop(stop.id)}
+            className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      {/* Add Stop Button */}
+      <button 
+        type="button"
+        onClick={handleAddStop}
+        className="w-full mt-4 p-3 rounded-lg border border-dashed border-green-500 text-green-600 flex items-center justify-center hover:bg-green-50 transition-colors"
+      >
+        + Add Stop
+      </button>
+
+      {/* Submit Button */}
+      <button 
+        type="submit"
+        className="w-full mt-4 p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+      >
+        Check Price & Book
+      </button>
+    </form>
+  </div>
+</div>
+
+       
+
+      {/* Filters Section */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            <div>
+              <input
+                type="text"
+                placeholder="Search cabs..."
+                className="w-full p-2 border rounded-lg"
+                value={filters.searchTerm}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+              />
+            </div>
+            <div>
+              <input
+                type="number"
+                placeholder="Min Price"
+                className="w-full p-2 border rounded-lg"
+                value={filters.minPrice}
+                onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+              />
+            </div>
+            <div>
+              <input
+                type="number"
+                placeholder="Max Price"
+                className="w-full p-2 border rounded-lg"
+                value={filters.maxPrice}
+                onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+              />
+            </div>
+            <div>
+              <input
+                type="number"
+                placeholder="Min Seats"
+                className="w-full p-2 border rounded-lg"
+                value={filters.minSeats}
+                onChange={(e) => setFilters(prev => ({ ...prev, minSeats: e.target.value }))}
+              />
+            </div>
+            <div>
+              <select
+                className="w-full p-2 border rounded-lg"
+                value={filters.sortBy}
+                onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
+              >
+                <option value="price">Sort by Price</option>
+                <option value="rating">Sort by Rating</option>
+                <option value="seats">Sort by Seats</option>
+              </select>
+            </div>
+            <div>
+              <select
+                className="w-full p-2 border rounded-lg"
+                value={filters.fuelType}
+                onChange={(e) => setFilters(prev => ({ ...prev, fuelType: e.target.value }))}
+              >
+                <option value="all">All Fuel Types</option>
+                <option value="Petrol">Petrol</option>
+                <option value="Diesel">Diesel</option>
+                <option value="CNG">CNG</option>
+              </select>
+            </div>
+            <div className="flex items-center">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.ac}
+                  onChange={(e) => setFilters(prev => ({ ...prev, ac: e.target.checked }))}
+                  className="form-checkbox h-5 w-5 text-green-600"
+                />
+                <span>AC Only</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Cabs Grid */}
+      <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {loading
             ? Array.from({ length: 4 }).map((_, idx) => (
@@ -199,27 +792,69 @@ export default function Cabs() {
                   <div className="w-full h-10 bg-gray-200 rounded" />
                 </div>
               ))
-            : cabData.map((cab) => (
+            : filteredCabData.map((cab) => (
                 <div key={cab.id} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
                   <img src={cab.image} alt={cab.type} className="w-44 h-20 object-contain mb-4" />
                   <div className="text-xl font-bold mb-1">{cab.type}</div>
                   <div className="text-gray-600 mb-2 text-center">{cab.models}</div>
-                  <div className="text-2xl font-bold text-green-700 mb-2">₹{cab.price}</div>
-                  <div className="text-sm text-gray-500 mb-2">Included KMs: <span className="font-semibold">{cab.includedKms}</span></div>
-                  <div className="text-sm text-gray-500 mb-2">Extra fare per KM: <span className="font-semibold">{cab.extraFare}</span></div>
-                  <div className="text-sm text-gray-500 mb-2">Driver Allowance: <span className="font-semibold">{cab.driverAllowance}</span></div>
-                  <div className="text-sm text-gray-500 mb-2">Fuel Charges: <span className="font-semibold">{cab.fuelCharges}</span></div>
-                  <div className="text-sm text-gray-500 mb-4">Toll/State Tax: <span className="font-semibold">{cab.tollTax}</span></div>
+                  <div className="flex items-center mb-2">
+                    <div className="text-2xl font-bold text-green-700">₹{cab.price}</div>
+                    <div className="ml-2 flex items-center text-yellow-500">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="ml-1">{cab.rating}</span>
+                    </div>
+                  </div>
+                  <div className="w-full space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Seats:</span>
+                      <span className="font-semibold">{cab.seats}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Fuel Type:</span>
+                      <span className="font-semibold">{cab.fuelType}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Included KMs:</span>
+                      <span className="font-semibold">{cab.includedKms}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Extra fare/KM:</span>
+                      <span className="font-semibold">{cab.extraFare}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Luggage:</span>
+                      <span className="font-semibold">{cab.luggageCapacity}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Vehicle Year:</span>
+                      <span className="font-semibold">{cab.year}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {cab.amenities.map((amenity: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
                   <button
                     className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors mt-auto"
                     onClick={() => handleBook(cab)}
                   >
-                    Book
+                    Book Now
                   </button>
                 </div>
               ))}
         </div>
+        {filteredCabData.length === 0 && !loading && (
+          <div className="text-center py-8">
+            <div className="text-xl text-gray-600">No cabs found matching your criteria</div>
+          </div>
+        )}
       </div>
+
       {/* FAQ Section */}
       <div className="max-w-4xl mx-auto mt-12 mb-12">
         <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Frequently Asked Questions (FAQs)</h2>

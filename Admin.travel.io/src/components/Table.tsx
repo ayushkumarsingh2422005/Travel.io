@@ -26,7 +26,7 @@ const Table: React.FC<TableProps> = ({
     key: string;
     direction: 'asc' | 'desc';
   } | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  // const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
@@ -53,23 +53,23 @@ const Table: React.FC<TableProps> = ({
     });
   }, [data, sortConfig]);
 
-  // Search logic
-  const filteredData = React.useMemo(() => {
-    if (!searchTerm) return sortedData;
+  // // Search logic
+  // const filteredData = React.useMemo(() => {
+  //   if (!searchTerm) return sortedData;
 
-    return sortedData.filter((row) =>
-      Object.values(row).some(
-        (value) =>
-          value &&
-          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [sortedData, searchTerm]);
+  //   return sortedData.filter((row) =>
+  //     Object.values(row).some(
+  //       (value) =>
+  //         value &&
+  //         value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+  //     )
+  //   );
+  // }, [sortedData, searchTerm]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = Math.ceil(data.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = filteredData.slice(
+  const paginatedData = data.slice(
     startIndex,
     startIndex + rowsPerPage
   );
@@ -110,7 +110,7 @@ const Table: React.FC<TableProps> = ({
       <div className="p-6 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <div className="relative w-full sm:w-64">
+          {/* <div className="relative w-full sm:w-64">
             <input
               type="text"
               placeholder="Search..."
@@ -131,7 +131,7 @@ const Table: React.FC<TableProps> = ({
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -224,8 +224,8 @@ const Table: React.FC<TableProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
           <div className="text-sm text-gray-500 text-center sm:text-left">
             Showing {startIndex + 1} to{' '}
-            {Math.min(startIndex + rowsPerPage, filteredData.length)} of{' '}
-            {filteredData.length} results
+            {Math.min(startIndex + rowsPerPage, data.length)} of{' '}
+            {data.length} results
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <button

@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import Users from './screens/Users';
 import Bookings from './screens/Bookings';
 import Vendors from './screens/Vendors';
@@ -10,9 +10,39 @@ import Payments from './screens/Payments';
 import PromoCodes from './screens/PromoCodes';
 import Ratings from './screens/Ratings';
 import Vehicles from './screens/Vehicles';
+import { checkAuth } from './utils/verifytoken';
+import { SearchProvider } from './context/SearchContext';
+import Header from './components/Header';
 
 const App: React.FC = () => {
-  const isAuthenticated = !!localStorage.getItem('marcocabs_admin_token');
+
+
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      const token = localStorage.getItem('marcocabs_admin_token');
+      const type = 'admin';
+  
+      if (!token) {
+        console.log('No token found, redirecting to login');
+        setIsAuthenticated(false);
+        return;
+      }
+  
+      const result = await checkAuth(type, token);
+  
+      if (result) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+  
+    check();
+  }, []);
+  
 
   return (
     <Router>
@@ -22,21 +52,22 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       ) : (
+        <SearchProvider>
         <div className="min-h-screen bg-gray-100">
           <div className="flex h-screen">
             {/* Sidebar */}
             <div className="w-64 bg-white shadow-sm fixed inset-y-0 left-0 z-30">
               <div className="flex flex-col h-full">
                 {/* Logo */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-6 ">
                   <h1 className="text-2xl font-bold text-red-600">Travel.io</h1>
                   <p className="text-sm text-gray-600">Admin Portal</p>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                  <a
-                    href="/dashboard"
+                  <Link
+                    to="/dashboard"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -53,9 +84,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Dashboard
-                  </a>
-                  <a
-                    href="/users"
+                  </Link>
+                  <Link
+                    to="/users"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -72,9 +103,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Users
-                  </a>
-                  <a
-                    href="/bookings"
+                  </Link>
+                  <Link
+                    to="/bookings"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -91,9 +122,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Bookings
-                  </a>
-                  <a
-                    href="/vendors"
+                  </Link>
+                  <Link
+                    to="/vendors"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -110,9 +141,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Vendors
-                  </a>
-                  <a
-                    href="/drivers"
+                  </Link>
+                  <Link
+                    to="/drivers"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -129,9 +160,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Drivers
-                  </a>
-                  <a
-                    href="/vehicles"
+                  </Link>
+                  <Link
+                    to="/vehicles"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -148,9 +179,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Vehicles
-                  </a>
-                  <a
-                    href="/payments"
+                  </Link>
+                  <Link
+                    to="/payments"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -167,9 +198,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Payments
-                  </a>
-                  <a
-                    href="/promocodes"
+                  </Link>
+                  <Link
+                    to="/promocodes"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -186,9 +217,9 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Promo Codes
-                  </a>
-                  <a
-                    href="/ratings"
+                  </Link>
+                  <Link
+                    to="/ratings"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                   >
                     <svg
@@ -205,7 +236,7 @@ const App: React.FC = () => {
                       />
                     </svg>
                     Ratings
-                  </a>
+                  </Link>
                 </nav>
 
                 {/* User Profile */}
@@ -238,55 +269,7 @@ const App: React.FC = () => {
 
             {/* Main Content */}
             <div className="flex-1 ml-64 min-h-screen overflow-x-hidden">
-              {/* Header */}
-              <header className="bg-white shadow-sm sticky top-0 z-20">
-                <div className="px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Search..."
-                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        />
-                        <svg
-                          className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <svg
-                          className="w-6 h-6"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                          />
-                        </svg>
-                      </button>
-                      <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-semibold">
-                        A
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </header>
+            <Header/>
 
               {/* Page Content */}
               <main className="max-w-[2000px] mx-auto">
@@ -306,6 +289,7 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+        </SearchProvider>
       )}
     </Router>
   );

@@ -21,6 +21,7 @@ export default function Login() {
       console.log(res.data);
       localStorage.setItem('marcocabs_admin_token', res.data.token); // Store token in local storage
       setMessage('Login successful!');
+      window.location.reload();
       // Extract redirect info
       const from = location.state?.from || '/';
       const pageState = location.state?.pageState;
