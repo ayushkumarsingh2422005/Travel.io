@@ -1,44 +1,23 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Users from './screens/Users';
 import Bookings from './screens/Bookings';
 import Vendors from './screens/Vendors';
 import Login from './screens/login';
 
 const App: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isAuthenticated = !!localStorage.getItem('marcocabs_admin_token');
 
   if (!isAuthenticated) {
     return <Login />;
   }
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setIsSidebarOpen(false);
-  };
-
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
         <div className="flex h-screen">
-          {/* Overlay */}
-          {isSidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-              onClick={closeSidebar}
-            />
-          )}
-
           {/* Sidebar */}
-          <div
-            className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-sm transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-              isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
-          >
+          <div className="w-64 bg-white shadow-sm fixed inset-y-0 left-0 z-30">
             <div className="flex flex-col h-full">
               {/* Logo */}
               <div className="p-6 border-b border-gray-200">
@@ -48,10 +27,9 @@ const App: React.FC = () => {
 
               {/* Navigation */}
               <nav className="flex-1 p-4 space-y-1">
-                <Link
-                  to="/users"
+                <a
+                  href="/users"
                   className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
-                  onClick={closeSidebar}
                 >
                   <svg
                     className="w-5 h-5 mr-3"
@@ -67,11 +45,10 @@ const App: React.FC = () => {
                     />
                   </svg>
                   Users
-                </Link>
-                <Link
-                  to="/bookings"
+                </a>
+                <a
+                  href="/bookings"
                   className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
-                  onClick={closeSidebar}
                 >
                   <svg
                     className="w-5 h-5 mr-3"
@@ -87,11 +64,10 @@ const App: React.FC = () => {
                     />
                   </svg>
                   Bookings
-                </Link>
-                <Link
-                  to="/vendors"
+                </a>
+                <a
+                  href="/vendors"
                   className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
-                  onClick={closeSidebar}
                 >
                   <svg
                     className="w-5 h-5 mr-3"
@@ -107,7 +83,7 @@ const App: React.FC = () => {
                     />
                   </svg>
                   Vendors
-                </Link>
+                </a>
               </nav>
 
               {/* User Profile */}
@@ -139,31 +115,11 @@ const App: React.FC = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 lg:ml-64">
+          <div className="flex-1 ml-64 min-h-screen overflow-x-hidden">
             {/* Header */}
             <header className="bg-white shadow-sm sticky top-0 z-20">
-              <div className="px-4 sm:px-6 py-4 max-w-[2000px] mx-auto">
+              <div className="px-6 py-4">
                 <div className="flex items-center justify-between">
-                  {/* Hamburger Menu */}
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 6h16M4 12h16M4 18h16"
-                      />
-                    </svg>
-                  </button>
-
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       <input
@@ -211,14 +167,14 @@ const App: React.FC = () => {
             </header>
 
             {/* Page Content */}
-            <div className="max-w-[2000px] mx-auto">
+            <main className="max-w-[2000px] mx-auto">
               <Routes>
                 <Route path="/users" element={<Users />} />
                 <Route path="/bookings" element={<Bookings />} />
                 <Route path="/vendors" element={<Vendors />} />
                 <Route path="/" element={<Navigate to="/users" replace />} />
               </Routes>
-            </div>
+            </main>
           </div>
         </div>
       </div>

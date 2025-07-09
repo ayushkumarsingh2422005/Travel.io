@@ -224,7 +224,7 @@ const Vendors: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
