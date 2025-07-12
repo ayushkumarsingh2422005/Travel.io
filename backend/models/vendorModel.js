@@ -11,10 +11,15 @@ const createVendorsTable = async () => {
             password_hash CHAR(60) NOT NULL,
             gender ENUM('Male', 'Female', 'Other') NOT NULL,
             profile_pic VARCHAR(500),
-            otp CHAR(6) UNIQUE,
-            otp_expiration DATETIME, 
+            phone_otp CHAR(6) UNIQUE,
+            phone_otp_expiration DATETIME, 
             is_phone_verified TINYINT(1) DEFAULT 0,
             is_profile_completed TINYINT(1) DEFAULT 0,
+            email_verification_token VARCHAR(100),
+            email_verification_expiry DATETIME,
+            is_email_verified TINYINT(1) DEFAULT 0,
+            reset_password_token VARCHAR(100),
+            reset_password_expiry DATETIME,
             age INT NOT NULL,
             current_address TEXT NOT NULL,
             amount BIGINT DEFAULT 0,
@@ -26,8 +31,7 @@ const createVendorsTable = async () => {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
 
             INDEX (email),
-            INDEX (phone),
-            INDEX (otp)
+            INDEX (phone)
         )
     `);
     console.log('✅ Vendors Table Created');
