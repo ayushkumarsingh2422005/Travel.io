@@ -1,31 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from '../api/axios'
 
 interface VendorInfo {
+  // Basic Information (from registration form)
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  phone: string;
-  address: string;
+  mobile: string;
   city: string;
-  joinDate: string;
-  totalCars: number;
-  activeCars: number;
-  totalDrivers: number;
+  numberOfCars: number;
+  
+  // Identity Details (from registration form)
+  aadharNumber: string;
+  panNumber: string;
+  
+  // Business Details (from registration form)
+  businessName: string;
+  businessType: string;
+  gstNumber: string;
+  businessAddress: string;
+  
+  // Bank Details (from registration form)
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+  
+  // Additional backend data
+  profilePic?: string;
   totalEarnings: number;
+  walletBalance: number;
+  starRating: number;
+  age: number;
+  gender: 'Male' | 'Female' | 'Other';
+  currentAddress: string;
+  isPhoneVerified: boolean;
+  isEmailVerified: boolean;
+  joinDate: string;
+  
+  // KYC Status
   kycStatus: 'Verified' | 'Pending' | 'Incomplete';
-  accountDetails: {
-    bankName: string;
-    accountNumber: string;
-    ifscCode: string;
-    accountHolderName: string;
-  };
-  documents: {
-    type: string;
-    status: 'Valid' | 'Expired' | 'Awaited';
-    expiryDate: string;
-    documentUrl: string;
-  }[];
 }
 
 const VendorProfile: React.FC = () => {
@@ -35,16 +50,27 @@ const VendorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
 
-  const navigate=useNavigate();
+  const [phoneOtp, setPhoneOtp] = useState<string>('');
+  const [emailOtp, setEmailOtp] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
+  const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Simulate fetching vendor data
     const fetchVendorData = async () => {
       setLoading(true);
       try {
-        // In a real app, this would be replaced with an API call
-        // const response = await fetch('/api/vendor/profile');
-        // const data = await response.json();
+        // Demo API request - in real app, this would be an actual API call
+        // const response = await axios.get('/vendor/profile', {
+        //   headers: {
+        //     Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
+        //   },
+        // });
+        // const data = await response.data;
         
         // Using mock data for demonstration
         setTimeout(() => {
@@ -61,9 +87,189 @@ const VendorProfile: React.FC = () => {
     fetchVendorData();
   }, []);
 
+  const handleVerifyPhone = async () => {
+    try {
+      if (!vendorInfo?.mobile) {
+        setError('Phone number is required for verification.');
+        return;
+      }
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
+     
+      const response = await axios.post(
+        '/auth/send-phone-otp',
+        {
+          phone: vendorInfo.mobile,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if(response){
+        setSuccess('OTP sent successfully to your phone number. It will be valid for 10 minutes.');
+        setShowPhoneOtp(true);
+        setError('');
+        }
+        else{
+        setError('Failed to send OTP. Please try again.');
+        }
 
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    } catch (error) {
+      console.log('Error sending phone OTP:', error);
+      setError('Failed to send OTP. Please try again.');
+      setSuccess('');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      if (!phoneOtp) {
+        setError('Please enter the OTP sent to your phone.');
+        return;
+      }
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
+     
+      const response = await axios.post(
+        '/auth/verify-phone-otp',
+        {
+          otp: phoneOtp,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if(response){
+        setSuccess("phone number verified successfully.");
+        setError('');
+        setPhoneOtp(''); 
+        setShowPhoneOtp(false);
+        vendorInfo?.isPhoneVerified!= true; 
+      }
+      else{
+        setError('Failed to verify OTP. Please check the OTP and try again.');
+        setSuccess('');
+      }
+
+ 
+
+    } catch (error) {
+      console.log('Error verifying phone OTP:', error);
+      setError('Failed to verify OTP. Please try again.');
+      setSuccess('');
+    }
+  }
+
+  const handleVerifyEmail = async () => {
+    try {
+      if (!vendorInfo?.email) {
+        setError('Email address is required for verification.');
+        return;
+      }
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your email.');
+        return;
+      }
+
+      // Demo API request
+      const response = await axios.post(
+        '/auth/resend-verification',
+        {
+          email: vendorInfo.email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if(response){
+        setSuccess('OTP sent successfully to your email. It will be valid for 10 minutes.');
+        setError('');
+        setShowEmailOtp(true);
+      }
+      else{
+        setSuccess('');
+        setError('Otp Was Not Send Try Again');
+        setShowEmailOtp(false);
+      }
+
+
+    } catch (error) {
+      console.log('Error sending email OTP:', error);
+      setError('Failed to send OTP. Please try again.');
+      setSuccess('');
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    try {
+      if (!emailOtp) {
+        setError('Please enter the OTP sent to your email.');
+        return;
+      }
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your email.');
+        return;
+      }
+
+      const response = await axios.post(
+        '/auth//verify-email',
+        {
+          otp: emailOtp,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+     if(response){ 
+        setSuccess("Email verified successfully.");
+        setError('');
+        setEmailOtp('');
+        setShowEmailOtp(false);
+        vendorInfo?.isEmailVerified!= true;
+      }
+      else{
+        setError('Failed to verify OTP. Please check the OTP and try again.');
+        setSuccess('');
+        setEmailOtp('');
+        setShowEmailOtp(false);
+      }
+
+    } catch (error) {
+      console.log('Error verifying email OTP:', error);
+      setError('Failed to verify OTP. Please try again.');
+      setSuccess('');
+      setShowEmailOtp(false);
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEditedInfo(prev => ({
       ...prev,
@@ -72,16 +278,15 @@ const VendorProfile: React.FC = () => {
   };
 
   const handleSaveProfile = () => {
-    // In a real app, this would be replaced with an API call to update the profile
+    // Demo API request to update profile
     // const updateProfile = async () => {
-    //   const response = await fetch('/api/vendor/profile', {
-    //     method: 'PUT',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(editedInfo)
+    //   const response = await axios.put('/vendor/profile', editedInfo, {
+    //     headers: {
+    //       Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
+    //     },
     //   });
-    //   if (response.ok) {
-    //     const data = await response.json();
-    //     setVendorInfo(data);
+    //   if (response.data) {
+    //     setVendorInfo(response.data);
     //   }
     // };
     
@@ -89,17 +294,8 @@ const VendorProfile: React.FC = () => {
     setIsEditing(false);
   };
 
-  const getDocStatusClass = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'valid': return 'bg-green-100 text-green-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      case 'awaited': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getKycStatusClass = (status: string) => {
-    switch(status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'verified': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'incomplete': return 'bg-red-100 text-red-800';
@@ -172,17 +368,25 @@ const VendorProfile: React.FC = () => {
       <div className="bg-white shadow-sm p-8 mb-8">
         <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
           <div className="w-32 h-32 rounded-full bg-gray-100 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden">
-            <div className="w-full h-full rounded-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
+            {vendorInfo.profilePic ? (
+              <img 
+                src={vendorInfo.profilePic} 
+                alt="Profile" 
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-bold text-gray-900">{vendorInfo.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{vendorInfo.fullName}</h1>
             <p className="text-gray-600 mt-2">{vendorInfo.email}</p>
-            <p className="text-gray-600">{vendorInfo.phone}</p>
+            <p className="text-gray-600">{vendorInfo.mobile}</p>
             
             <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
               <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getKycStatusClass(vendorInfo.kycStatus)}`}>
@@ -190,6 +394,9 @@ const VendorProfile: React.FC = () => {
               </span>
               <span className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
                 Member since {new Date(vendorInfo.joinDate).toLocaleDateString()}
+              </span>
+              <span className="px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                {vendorInfo.businessType}
               </span>
             </div>
           </div>
@@ -224,14 +431,8 @@ const VendorProfile: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 px-4 md:px-6">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <p className="text-sm font-medium text-gray-500 mb-1">Total Cars</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.totalCars}</p>
-          <p className="text-sm text-gray-600 mt-1">{vendorInfo.activeCars} active</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Total Drivers</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.totalDrivers}</p>
-          <p className="text-sm text-gray-600 mt-1">Registered drivers</p>
+          <p className="text-2xl font-bold text-gray-900">{vendorInfo.numberOfCars}</p>
+          <p className="text-sm text-gray-600 mt-1">Registered vehicles</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
@@ -241,9 +442,15 @@ const VendorProfile: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Account Status</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.kycStatus}</p>
-          <p className="text-sm text-gray-600 mt-1">KYC verification</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">Wallet Balance</p>
+          <p className="text-2xl font-bold text-gray-900">₹{vendorInfo.walletBalance.toLocaleString()}</p>
+          <p className="text-sm text-gray-600 mt-1">Available balance</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <p className="text-sm font-medium text-gray-500 mb-1">Rating</p>
+          <p className="text-2xl font-bold text-gray-900">{vendorInfo.starRating}</p>
+          <p className="text-sm text-gray-600 mt-1">Customer rating</p>
         </div>
       </div>
 
@@ -261,14 +468,14 @@ const VendorProfile: React.FC = () => {
             Profile Details
           </button>
           <button
-            onClick={() => setActiveTab('documents')}
+            onClick={() => setActiveTab('business')}
             className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'documents'
+              activeTab === 'business'
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            Documents
+            Business Details
           </button>
           <button
             onClick={() => setActiveTab('bank')}
@@ -293,19 +500,46 @@ const VendorProfile: React.FC = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    name="name"
-                    value={editedInfo.name || ''}
+                    name="fullName"
+                    value={editedInfo.fullName || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.name}</p>
+                  <p className="text-gray-900">{vendorInfo.fullName}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p className="text-gray-900">{vendorInfo.email}</p>
+                <p className="text-gray-900">{vendorInfo.email || 'No email address added'}</p>
+                
+                {vendorInfo.email ? (
+                  <>
+                    <button
+                      onClick={handleVerifyEmail}
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm mt-1"
+                    >
+                      {vendorInfo.isEmailVerified ? 'Email Verified ✓' : 'Verify Email'}
+                    </button>
+                    {showEmailOtp && (
+                      <>
+                        <input
+                          type="text"
+                          value={emailOtp}
+                          onChange={(e) => setEmailOtp(e.target.value)}
+                          placeholder="Enter OTP"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 mt-2"
+                        />
+                        <button onClick={handleVerifyEmailOtp} className="bg-blue-600 text-white px-3 py-1 rounded text-sm mt-2">
+                          Verify OTP
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-gray-600 text-sm mt-1">Please add an email address to verify</p>
+                )}
               </div>
 
               <div>
@@ -313,29 +547,43 @@ const VendorProfile: React.FC = () => {
                 {isEditing ? (
                   <input
                     type="tel"
-                    name="phone"
-                    value={editedInfo.phone || ''}
+                    name="mobile"
+                    value={editedInfo.mobile || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.phone}</p>
+                  <p className="text-gray-900">{vendorInfo.mobile || 'No phone number added'}</p>
                 )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="address"
-                    value={editedInfo.address || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
-                  />
+                
+                {vendorInfo.mobile ? (
+                  <>
+                    <button
+                      onClick={handleVerifyPhone}
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm mt-1"
+                    >
+                      {vendorInfo.isPhoneVerified ? 'Phone Verified ✓' : 'Verify Phone'}
+                    </button>
+                    {showPhoneOtp && (
+                      <>
+                        <input
+                          type="text"
+                          value={phoneOtp}
+                          onChange={(e) => setPhoneOtp(e.target.value)}
+                          placeholder="Enter OTP"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 mt-2"
+                        />
+                        <button onClick={handleVerifyOtp} className="bg-blue-600 text-white px-3 py-1 rounded text-sm mt-2">
+                          Verify OTP
+                        </button>
+                      </>
+                    )}
+                  </>
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.address}</p>
+                  <p className="text-gray-600 text-sm mt-1">Please add a phone number to verify</p>
                 )}
+                {error && <p className="text-red-500 mt-2">{error}</p>}
+                {success && <p className="text-green-500 mt-2">{success}</p>}
               </div>
 
               <div>
@@ -352,10 +600,66 @@ const VendorProfile: React.FC = () => {
                   <p className="text-gray-900">{vendorInfo.city}</p>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                <p className="text-gray-900">{vendorInfo.age} years</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <p className="text-gray-900">{vendorInfo.gender}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Address</label>
+                {isEditing ? (
+                  <textarea
+                    name="currentAddress"
+                    value={editedInfo.currentAddress || ''}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  />
+                ) : (
+                  <p className="text-gray-900">{vendorInfo.currentAddress}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Cars</label>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    name="numberOfCars"
+                    value={editedInfo.numberOfCars || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  />
+                ) : (
+                  <p className="text-gray-900">{vendorInfo.numberOfCars}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                <p className="text-gray-900">
+                  {vendorInfo.aadharNumber ? `XXXX-XXXX-${vendorInfo.aadharNumber.slice(-4)}` : '—'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                <p className="text-gray-900">
+                  {vendorInfo.panNumber ? `XXXXX${vendorInfo.panNumber.slice(-5)}` : '—'}
+                </p>
+              </div>
             </div>
 
             {isEditing && (
-              <div className="flex justify-end gap-4 mt-6">
+              <div className="md:col-span-2 flex justify-end gap-4 mt-6">
                 <button
                   onClick={() => setIsEditing(false)}
                   className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
@@ -373,32 +677,73 @@ const VendorProfile: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'documents' && (
-          <div className="space-y-6">
-            {vendorInfo.documents.map((doc, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                  <p className="font-medium text-gray-900">{doc.type}</p>
-                  <p className="text-sm text-gray-600">Expires: {doc.expiryDate}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDocStatusClass(doc.status)}`}>
-                    {doc.status}
-                  </span>
-                  <a
-                    href={doc.documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5z" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            ))}
+        {activeTab === 'business' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="businessName"
+                  value={editedInfo.businessName || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                />
+              ) : (
+                <p className="text-gray-900">{vendorInfo.businessName}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+              {isEditing ? (
+                <select
+                  name="businessType"
+                  value={editedInfo.businessType || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                >
+                  <option value="">Select business type</option>
+                  <option value="Individual Proprietorship">Individual Proprietorship</option>
+                  <option value="Partnership Firm">Partnership Firm</option>
+                  <option value="Private Limited Company">Private Limited Company</option>
+                  <option value="Public Limited Company">Public Limited Company</option>
+                  <option value="Limited Liability Partnership">Limited Liability Partnership</option>
+                </select>
+              ) : (
+                <p className="text-gray-900">{vendorInfo.businessType}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="gstNumber"
+                  value={editedInfo.gstNumber || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                />
+              ) : (
+                <p className="text-gray-900">{vendorInfo.gstNumber || '—'}</p>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Address</label>
+              {isEditing ? (
+                <textarea
+                  name="businessAddress"
+                  value={editedInfo.businessAddress || ''}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                />
+              ) : (
+                <p className="text-gray-900">{vendorInfo.businessAddress}</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -406,22 +751,65 @@ const VendorProfile: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
-              <p className="text-gray-900">{vendorInfo.accountDetails.bankName}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="bankName"
+                  value={editedInfo.bankName || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                />
+              ) : (
+                <p className="text-gray-900">{vendorInfo.bankName}</p>
+              )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
-              <p className="text-gray-900">
-                {'•'.repeat(vendorInfo.accountDetails.accountNumber.length - 4)}
-                {vendorInfo.accountDetails.accountNumber.slice(-4)}
-              </p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="accountNumber"
+                  value={editedInfo.accountNumber || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 font-mono"
+                />
+              ) : (
+                <p className="text-gray-900 font-mono">
+                  {'•'.repeat(vendorInfo.accountNumber.length - 4)}
+                  {vendorInfo.accountNumber.slice(-4)}
+                </p>
+              )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
-              <p className="text-gray-900">{vendorInfo.accountDetails.ifscCode}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="ifscCode"
+                  value={editedInfo.ifscCode || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 font-mono uppercase"
+                />
+              ) : (
+                <p className="text-gray-900 font-mono">{vendorInfo.ifscCode}</p>
+              )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Account Holder Name</label>
-              <p className="text-gray-900">{vendorInfo.accountDetails.accountHolderName}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="accountHolderName"
+                  value={editedInfo.accountHolderName || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                />
+              ) : (
+                <p className="text-gray-900">{vendorInfo.accountHolderName}</p>
+              )}
             </div>
           </div>
         )}
@@ -430,52 +818,35 @@ const VendorProfile: React.FC = () => {
   );
 };
 
-// Mock data for the vendor profile
+// Mock data for the vendor profile - updated to match registration form and backend structure
 const mockVendorData: VendorInfo = {
   "id": "VEN123456",
-  "name": "Priya Transport Services",
-  "email": "priya.transport@example.com",
-  "phone": "+91 98765 43210",
-  "address": "123, Main Street, Commercial Area",
+  "fullName": "Priya Transport Services",
+  "email": "satyamtiwari7492@gmail.com",
+  "mobile": "+91 9693240525",
   "city": "Mumbai",
-  "joinDate": "2022-08-15",
-  "totalCars": 5,
-  "activeCars": 4,
-  "totalDrivers": 6,
+  "numberOfCars": 5,
+  "aadharNumber": "123456789012",
+  "panNumber": "ABCDE1234F",
+  "businessName": "Priya Transport Services",
+  "businessType": "Individual Proprietorship",
+  "gstNumber": "27ABCDE1234F1Z5",
+  "businessAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
+  "bankName": "HDFC Bank",
+  "accountNumber": "1234567890123456",
+  "ifscCode": "HDFC0001234",
+  "accountHolderName": "Priya Transport Services",
+  "profilePic": "",
   "totalEarnings": 356000,
-  "kycStatus": "Verified",
-  "accountDetails": {
-    "bankName": "HDFC Bank",
-    "accountNumber": "1234567890123456",
-    "ifscCode": "HDFC0001234",
-    "accountHolderName": "Priya Transport Services"
-  },
-  "documents": [
-    {
-      "type": "Business Registration",
-      "status": "Valid",
-      "expiryDate": "2025-05-15",
-      "documentUrl": "/documents/business-registration.pdf"
-    },
-    {
-      "type": "GST Certificate",
-      "status": "Valid",
-      "expiryDate": "2024-12-31",
-      "documentUrl": "/documents/gst-certificate.pdf"
-    },
-    {
-      "type": "Insurance Policy",
-      "status": "Expired",
-      "expiryDate": "2023-11-30",
-      "documentUrl": "/documents/insurance-policy.pdf"
-    },
-    {
-      "type": "Trade License",
-      "status": "Awaited",
-      "expiryDate": "2024-03-15",
-      "documentUrl": "/documents/trade-license.pdf"
-    }
-  ]
+  "walletBalance": 45000,
+  "starRating": 4.5,
+  "age": 35,
+  "gender": "Male",
+  "currentAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
+  "isPhoneVerified": true,
+  "isEmailVerified": false,
+  "joinDate": "2022-08-15",
+  "kycStatus": "Verified"
 };
 
 export default VendorProfile; 

@@ -11,6 +11,8 @@ const sendOTP = async (phone, otp) => {
   try {
     // Format phone number (remove country code if present)
     const formattedPhone = phone.replace(/^\+91|^91/, '');
+
+    console.log(`Sending OTP ${otp} to phone ${formattedPhone}`);
     
     // Fast2SMS API configuration
     const url = 'https://www.fast2sms.com/dev/bulkV2';

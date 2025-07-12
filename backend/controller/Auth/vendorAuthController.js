@@ -240,7 +240,7 @@ const resendVerificationEmail = async (req, res) => {
 const sendPhoneVerificationOTP = async (req, res) => {
     try {
         const { phone } = req.body;
-        const vendorId = req.user.id; // From auth middleware
+        const vendorId = req.user.id ; // From auth middleware
         
         if (!phone) {
             return res.status(400).json({ message: 'Phone number is required.' });
@@ -249,10 +249,10 @@ const sendPhoneVerificationOTP = async (req, res) => {
         // Generate OTP
         const otp = generateOTP();
         const otp_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        
         // Update vendor with OTP
         // Check if the phone number matches the vendor's registered phone
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
+        console.log('Vendors found:', vendors[0],phone);
         if (!vendors.length || vendors[0].phone !== phone) {
             return res.status(400).json({ message: 'Phone number does not match our records.' });
         }
@@ -260,13 +260,13 @@ const sendPhoneVerificationOTP = async (req, res) => {
             'UPDATE vendors SET phone_otp = ?, phone_otp_expiration = ? WHERE id = ?',
             [otp, otp_expiration, vendorId]
         );
+
+        const formattedPhone = phone.replace(/^\+91|^91/, '');
+
+        console.log(`Sending OTP ${otp} to phone ${formattedPhone}`);
         
         // Send OTP via SMS
         const sent = await sendOTP(phone, otp);
-        
-        if (!sent) {
-            return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
-        }
         
         res.status(200).json({ message: 'OTP sent successfully to your phone.' });
     } catch (err) {
@@ -364,7 +364,7 @@ const resetPassword = async (req, res) => {
             'SELECT * FROM vendors WHERE reset_password_token = ? AND reset_password_expiry > NOW()',
             [token]
         );
-        
+
         console.log("Resetting password with token:", token,password);
         
         if (vendors.length === 0) {
