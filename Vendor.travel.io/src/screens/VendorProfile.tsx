@@ -57,7 +57,7 @@ const VendorProfile: React.FC = () => {
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
   const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
 
-  const navigate = useNavigate();
+
 
   useEffect(() => {
     // Simulate fetching vendor data
