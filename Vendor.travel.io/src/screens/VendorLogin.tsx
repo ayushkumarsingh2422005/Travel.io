@@ -114,6 +114,10 @@ export default function VendorLogin() {
               required
               className="p-3 border rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
             />
+             <div className="text-center text-gray-500 mt-4">
+            Forget Password ?{' '}
+            <Link to="/forget-password" className="text-green-700 font-medium hover:underline">Reset Password</Link>
+          </div>
             <button
               type="submit"
               className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium rounded-lg transition-colors shadow-md"

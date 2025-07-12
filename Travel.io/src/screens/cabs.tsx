@@ -181,7 +181,7 @@ export default function Cabs() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [cabData, setCabData] = useState<any[]>([]);
-  const[data,setData]=useState(cabOptions)
+  const data=cabOptions;
   // State to hold data that would come from API
   
   // Form states

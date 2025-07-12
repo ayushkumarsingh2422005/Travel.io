@@ -14,6 +14,8 @@ import Trips from './screens/Trips';
 import VendorProfile from './screens/VendorProfile';
 import Wallet from './screens/Wallet';
 import Dashboard from './screens/Dashboard';
+import ResetPasswordMail from './screens/ResetPasswordMail';
+import ResetPassword from './screens/ResetPassword';
 
 function App() {
   return (
@@ -24,7 +26,8 @@ function App() {
         <Route path="/login" element={<VendorLogin />} />
         <Route path="/signup" element={<VendorSignup />} />
         <Route path="/register" element={<VendorRegistration />} />
-
+        <Route path="/forget-password" element={<ResetPasswordMail/>} />
+        <Route path="/forget-password/:token" element={<ResetPassword />} />
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />

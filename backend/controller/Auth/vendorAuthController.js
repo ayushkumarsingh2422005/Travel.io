@@ -312,6 +312,8 @@ const verifyPhoneOTP = async (req, res) => {
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
+
+        console.log("response recieved",email);
         
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
@@ -350,16 +352,20 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     try {
         const { token, password } = req.body;
+
         
         if (!token || !password) {
             return res.status(400).json({ message: 'Token and new password are required.' });
         }
+
         
         // Find vendor with this token
         const [vendors] = await db.execute(
             'SELECT * FROM vendors WHERE reset_password_token = ? AND reset_password_expiry > NOW()',
             [token]
         );
+        
+        console.log("Resetting password with token:", token,password);
         
         if (vendors.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired reset token.' });
