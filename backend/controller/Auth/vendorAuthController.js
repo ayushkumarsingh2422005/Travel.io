@@ -5,6 +5,8 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../../utils/emailService');
 const { sendOTP, generateOTP } = require('../../utils/smsService');
+const { encrypt, decrypt } = require('../../utils/authencrypt');
+const axios = require('axios');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'your_google_client_id';
@@ -389,6 +391,194 @@ const resetPassword = async (req, res) => {
     }
 }
 
+/**
+ * Generate Aadhaar verification link via AuthBridge
+ * This function is moved to the route handler for better error handling
+ */
+const generateAadhaarLink = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        console.log("vendorId", vendorId);
+
+        // Get vendor email
+        const [vendorResult] = await db.execute('SELECT id FROM vendors WHERE id = ?', [vendorId]);
+        if (vendorResult.length === 0) {
+            return res.status(404).json({ status: 0, message: 'Vendor not found' });
+        }
+
+        // Prepare payload for AuthBridge
+        const payload = {
+            trans_id: vendorId,
+            doc_type: "472",
+            action: "LINK",
+            callback_url: process.env.AUTHBRIDGE_CALLBACK_URL || "https://api.travel.io/vendor/auth/aadhaar-callback",
+            redirect_url: process.env.AUTHBRIDGE_REDIRECT_URL || "https://vendor.travel.io/verification-complete"
+        };
+
+        // Encrypt the payload
+        const plainText = JSON.stringify(payload);
+        const encryptedData = encrypt(plainText);
+
+        // Call AuthBridge API with custom headers
+        const authbridgeUrl = process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+        const response = await axios.post(
+            authbridgeUrl,
+            { requestData: encryptedData },
+            {
+                headers: {
+                    "username": process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com "
+                }
+            }
+        );
+
+        // console.log(decrypt(response.data.responseData));
+        const data = decrypt(response.data.responseData);
+        const dataObj = JSON.parse(data);
+        console.log(dataObj);
+
+        if (dataObj.status === 1) {
+            // Store the transaction ID and URL
+            await db.execute(
+                'UPDATE vendors SET ts_trans_id = ?, digilocker_url = ? WHERE id = ?',
+                [dataObj.ts_trans_id, dataObj.data.url, vendorId]
+            );
+
+            res.json({
+                status: 1,
+                message: 'Aadhaar verification link generated successfully',
+                verification_url: dataObj.data.url
+            });
+        } else {
+            res.status(400).json({
+                status: 0,
+                message: 'Failed to generate Aadhaar verification link',
+                error: dataObj.msg
+            });
+        }
+    } catch (error) {
+        console.error('Aadhaar verification error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during Aadhaar verification' });
+    }
+};
+
+/**
+ * Process callback from AuthBridge after Aadhaar verification
+ * This function is moved to the route handler for better error handling
+ */
+// const processAadhaarCallback = async (req, res) => {
+//     try {
+//         const { ts_trans_id, status, message } = req.body;
+        
+//         if (!ts_trans_id) {
+//             return res.status(400).json({ status: 0, message: 'Missing transaction ID' });
+//         }
+        
+//         // Find vendor by transaction ID
+//         const [vendorResult] = await db.execute('SELECT id FROM vendors WHERE ts_trans_id = ?', [ts_trans_id]);
+        
+//         if (vendorResult.length === 0) {
+//             return res.status(404).json({ status: 0, message: 'No vendor found with this transaction ID' });
+//         }
+        
+//         const vendorId = vendorResult[0].id;
+        
+//         if (status === 1 || status === '1' || status === true) {
+//             // Update vendor's Aadhaar verification status
+//             await db.execute(
+//                 'UPDATE vendors SET is_aadhaar_verified = 1 WHERE id = ?',
+//                 [vendorId]
+//             );
+            
+//             res.json({ status: 1, message: 'Aadhaar verification completed successfully' });
+//         } else {
+//             res.status(400).json({
+//                 status: 0,
+//                 message: 'Aadhaar verification failed',
+//                 error: message || 'Unknown error'
+//             });
+//         }
+//     } catch (error) {
+//         console.error('Aadhaar callback error:', error);
+//         res.status(500).json({ status: 0, message: 'Server error processing Aadhaar verification callback' });
+//     }
+// };
+
+/**
+ * Get Aadhaar verification status for a vendor
+ * This function is moved to the route handler for better error handling
+ */
+const getAadhaarStatus = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+
+        // Fetch vendor's Aadhaar info from DB
+        const [vendorResult] = await db.execute(
+            'SELECT is_aadhaar_verified, ts_trans_id FROM vendors WHERE id = ?',
+            [vendorId]
+        );
+
+        if (vendorResult.length === 0) {
+            return res.status(404).json({ status: 0, message: 'Vendor not found' });
+        }
+
+        const { is_aadhaar_verified, ts_trans_id } = vendorResult[0];
+
+        // If already verified, return status and details
+        // if (is_aadhaar_verified === 1) {
+        //     return res.json({
+        //         status: 1,
+        //         is_verified: true
+        //     });
+        // }
+
+        // If no transaction ID, cannot check status
+        if (!ts_trans_id) {
+            return res.status(400).json({ status: 0, message: 'No Aadhaar transaction found for this vendor' });
+        }
+
+        // Prepare request to AuthBridge API to get Aadhaar details
+        const apiUrl = process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+        const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
+        const doc_type = "472";
+        const action = "STATUS";
+
+        const payload = {
+            ts_trans_id: ts_trans_id,
+            doc_type: doc_type,
+            action: action
+        };
+
+        const plainText = JSON.stringify(payload);
+        console.log(payload)
+        const encryptedData = encrypt(plainText);
+
+        const headers = {
+            "username": username,
+            "Content-Type": "application/json"
+        };
+
+        // Use axios to make the POST request
+        const response = await axios.post(apiUrl, { requestData: encryptedData }, { headers });
+
+        // The response from AuthBridge
+        const data = decrypt(response.data.responseData);
+        const dataObj = JSON.parse(data);
+        console.log(dataObj);
+
+        // You may want to parse aadhaarData as per your API's response structure
+        // For now, return the full response
+        return res.json({
+            status: 1,
+            is_verified: dataObj.status === 1,
+            aadhaar_details: dataObj
+        });
+
+    } catch (error) {
+        console.error('Error fetching Aadhaar status:', error?.response?.data || error.message);
+        res.status(500).json({ status: 0, message: 'Server error fetching Aadhaar verification status', error: error?.response?.data || error.message });
+    }
+};
+
 module.exports = { 
     signup, 
     login, 
@@ -399,5 +589,8 @@ module.exports = {
     sendPhoneVerificationOTP,
     verifyPhoneOTP,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    
+    generateAadhaarLink,
+    getAadhaarStatus
 };

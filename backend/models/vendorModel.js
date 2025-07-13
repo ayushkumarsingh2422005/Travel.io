@@ -27,6 +27,9 @@ const createVendorsTable = async () => {
             document TEXT,
             description TEXT,
             star_rating DECIMAL(3,2) DEFAULT 0,
+            ts_trans_id VARCHAR(100),
+            digilocker_url VARCHAR(500),
+            is_aadhaar_verified TINYINT(1) DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
 
