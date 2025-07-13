@@ -19,7 +19,7 @@ export const checkAuth = async (type:string,token:string | null): Promise<boolea
   }
 });
 
-// console.log('Auth response:', response);
+console.log('Auth response:', response);
 
 
      return response.data.success;
