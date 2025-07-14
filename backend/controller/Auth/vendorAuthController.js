@@ -226,6 +226,8 @@ const resendVerificationEmail = async (req, res) => {
             return res.status(404).json({ message: 'Vendor not found.' });
         }
         
+        console.log("Resending verification email");
+        
         const vendor = vendors[0];
         
         // Check if email is already verified
@@ -242,6 +244,7 @@ const resendVerificationEmail = async (req, res) => {
             'UPDATE vendors SET email_verification_token = ?, email_verification_expiry = ? WHERE id = ?',
             [email_verification_token, email_verification_expiry, vendor.id]
         );
+        
         
         // Send verification email
         await sendVerificationEmail(email, email_verification_token, 'vendor');
@@ -445,7 +448,10 @@ const generateAadhaarLink = async (req, res) => {
         const encryptedData = encrypt(plainText);
 
         // Call AuthBridge API with custom headers
-        const authbridgeUrl = process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+        const authbridgeUrl = 
+        // (process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/") ||
+         "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+
         const response = await axios.post(
             authbridgeUrl,
             { requestData: encryptedData },
@@ -562,7 +568,9 @@ const getAadhaarStatus = async (req, res) => {
         }
 
         // Prepare request to AuthBridge API to get Aadhaar details
-        const apiUrl = process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+        const apiUrl = 
+        // process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || 
+        "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
         const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
         const doc_type = "472";
         const action = "STATUS";

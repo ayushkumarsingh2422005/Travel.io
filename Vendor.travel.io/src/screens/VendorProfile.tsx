@@ -12,7 +12,6 @@ interface VendorInfo {
   numberOfCars: number;
   
   // Identity Details (from registration form)
-  aadharNumber: string;
   panNumber: string;
   
   // Business Details (from registration form)
@@ -37,11 +36,14 @@ interface VendorInfo {
   currentAddress: string;
   isPhoneVerified: boolean;
   isEmailVerified: boolean;
+  is_aadhar_verified: boolean;
   joinDate: string;
   
   // KYC Status
   kycStatus: 'Verified' | 'Pending' | 'Incomplete';
 }
+
+
 
 const VendorProfile: React.FC = () => {
   const [vendorInfo, setVendorInfo] = useState<VendorInfo | null>(null);
@@ -276,6 +278,91 @@ const VendorProfile: React.FC = () => {
       [name]: value
     }));
   };
+
+  const generateAadharVerificationLink=async()=>{
+   try {
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your email.');
+        return;
+      }
+
+    const response=await axios.post('/auth/generate-aadhaar-link',{},
+       {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+    )
+
+    console.log('Aadhar verification link response:', response.data.verification_url);
+
+    if(response){
+      setSuccess('Aadhar verification link generated successfully. Please check your email.');
+      setError('');
+      window.open(response.data.verification_url, '_blank');
+    }
+    else{
+      setError('Failed to generate Aadhar verification link. Please try again.');
+      setSuccess('');
+    }
+    
+   } catch (error) {
+     console.error('Error generating Aadhar verification link:', error);
+     setError('Failed to generate Aadhar verification link. Please try again.');
+    
+   }
+  }
+
+  const confirmAadharVerification = async () => {
+    try {
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your Aadhar.');
+        return;
+      }
+
+      const response = await axios.get('/auth/aadhaar-status',{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const responseData = response.data ;
+
+      if (responseData.status===1) {
+
+        if(!responseData.is_verified){
+          setError('Aadhar verification is still pending or incomplete. Please try again later.');
+          return ;
+        }
+
+        setSuccess('Aadhar verification confirmed successfully.');
+        setError('');
+
+        console.log(responseData.aadhaar_details);
+
+        // set aadhar verification status in vendorInfo
+
+        vendorInfo!.is_aadhar_verified = true;
+
+
+      }
+      else{
+        setError('Aadhar verification is still pending or incomplete. Please try again later.');
+        setSuccess('');
+      }
+      
+    } catch (error) {
+      
+      console.error('Error confirming Aadhar verification:', error);
+      setError('Failed to confirm Aadhar verification. Please try again.');
+      setSuccess('');
+
+    }
+  }
 
   const handleSaveProfile = () => {
     // Demo API request to update profile
@@ -643,11 +730,25 @@ const VendorProfile: React.FC = () => {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Verification</label>
                 <p className="text-gray-900">
-                  {vendorInfo.aadharNumber ? `XXXX-XXXX-${vendorInfo.aadharNumber.slice(-4)}` : '—'}
+                  {vendorInfo.is_aadhar_verified ? 'Verified ✓' : 'Not Verified'}
                 </p>
+                
+                <button
+                  onClick={generateAadharVerificationLink}
+                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors mr-2"
+                >
+                  Generate Aadhar Verification Link
+                </button>
+                
+                <button
+                  onClick={confirmAadharVerification}
+                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Confirm Aadhar Verification
+                </button>
               </div>
 
               <div>
@@ -826,7 +927,6 @@ const mockVendorData: VendorInfo = {
   "mobile": "+91 9693240525",
   "city": "Mumbai",
   "numberOfCars": 5,
-  "aadharNumber": "123456789012",
   "panNumber": "ABCDE1234F",
   "businessName": "Priya Transport Services",
   "businessType": "Individual Proprietorship",
@@ -845,6 +945,7 @@ const mockVendorData: VendorInfo = {
   "currentAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
   "isPhoneVerified": true,
   "isEmailVerified": false,
+  "is_aadhar_verified": false,
   "joinDate": "2022-08-15",
   "kycStatus": "Verified"
 };

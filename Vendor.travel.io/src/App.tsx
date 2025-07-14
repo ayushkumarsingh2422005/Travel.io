@@ -27,7 +27,7 @@ function App() {
         <Route path="/signup" element={<VendorSignup />} />
         <Route path="/register" element={<VendorRegistration />} />
         <Route path="/forget-password" element={<ResetPasswordMail/>} />
-        <Route path="/forget-password/:token" element={<ResetPassword />} />
+        <Route path="/vendor/reset-password/:token" element={<ResetPassword />} />
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />

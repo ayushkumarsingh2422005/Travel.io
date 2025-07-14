@@ -1,9 +1,10 @@
 import axios from "../api/axios";
 import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 const ResetPassword = () => {
-    const params = useParams();
+     const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
     const navigate = useNavigate();
     const location = useLocation();
     const [password, setPassword] = useState('');
@@ -28,8 +29,8 @@ const ResetPassword = () => {
 
         try {
 
-            console.log('Resetting password with token:', params.token);
-            if (!params.token) {
+            console.log('Resetting password with token:', token);
+            if (!token) {
                 setError('The session has expired. Please try again.');
                 return;
             }
@@ -47,7 +48,7 @@ const ResetPassword = () => {
             }
 
             const response = await axios.post(`/auth/reset-password`, {
-                token: params.token,
+                token: token,
                 password: password
             });
 
