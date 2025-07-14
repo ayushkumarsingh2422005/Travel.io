@@ -14,7 +14,8 @@ const {
     resetPassword,
     generateAadhaarLink,
     // processAadhaarCallback,
-    getAadhaarStatus
+    getAadhaarStatus,
+    panDetails
 } = require('../../controller/Auth/vendorAuthController');
 
 // Middleware to verify vendor token
@@ -91,5 +92,9 @@ router.post('/reset-password', resetPassword);
 router.post('/generate-aadhaar-link', authMiddleware, generateAadhaarLink);
 // router.post('/aadhaar-callback', processAadhaarCallback);
 router.get('/aadhaar-status', authMiddleware, getAadhaarStatus);
+
+// Pan verification routes
+router.post('/pan-details', authMiddleware, panDetails);
+router.get('/pan-details', authMiddleware, panDetails);
 
 module.exports = router; 

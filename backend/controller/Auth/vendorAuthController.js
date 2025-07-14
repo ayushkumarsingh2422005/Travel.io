@@ -625,43 +625,64 @@ const getAadhaarStatus = async (req, res) => {
 const panDetails = async (req, res) => {
     try {
         const vendorId = req.user.id;
-        // Try to get PAN number from DB for this vendor
-        const [vendorResult] = await db.execute('SELECT pan_number, pan_details FROM vendors WHERE id = ?', [vendorId]);
+        let { pan_number } = req.body;
+        console.log(pan_number, req.user);
+
+        // Fetch PAN and Aadhaar data from DB for this vendor
+        const [vendorResult] = await db.execute('SELECT pan_data, aadhar_data FROM vendors WHERE id = ?', [vendorId]);
         if (vendorResult.length === 0) {
             return res.status(404).json({ status: 0, message: 'Vendor not found' });
         }
-        let panNumber = vendorResult[0].pan_number;
-        let panDetailsFromDb = vendorResult[0].pan_details ? JSON.parse(vendorResult[0].pan_details) : null;
+
+        // Try to get PAN details from DB
+        let panDetailsFromDb = vendorResult[0].pan_data ? JSON.parse(vendorResult[0].pan_data) : null;
 
         // If PAN details already exist in DB, return them
         if (panDetailsFromDb) {
-            return res.json({ status: 1, pan_number: panNumber, pan_details: panDetailsFromDb });
+            // Get verification status
+            const [verificationResult] = await db.execute('SELECT is_pan_verified FROM vendors WHERE id = ?', [vendorId]);
+            const isPanVerified = verificationResult[0].is_pan_verified || 0;
+            
+            return res.json({ 
+                status: 1, 
+                pan_number: pan_number, 
+                pan_details: panDetailsFromDb,
+                is_pan_verified: !!isPanVerified
+            });
         }
 
         // If PAN number is not present, require it from request body
-        if (!panNumber) {
-            panNumber = req.body.pan_number;
-            if (!panNumber) {
+        if (!pan_number) {
+            pan_number = req.body.pan_number;
+            if (!pan_number) {
                 return res.status(400).json({ status: 0, message: 'PAN number not provided' });
             }
         }
 
+        // Check if Aadhaar data exists - we'll need this for verification
+        let aadhaarData = null;
+        if (vendorResult[0].aadhar_data) {
+            try {
+                aadhaarData = JSON.parse(vendorResult[0].aadhar_data);
+            } catch (e) {
+                console.error("Failed to parse aadhar_data from DB:", e.message);
+            }
+        }
+
         // Prepare request to AuthBridge API
-        const apiUrl = process.env.AUTHBRIDGE_API_URL + "/v1/apicall/nid/idsearch" || "https://www.truthscreen.com/v1/apicall/nid/idsearch";
+        const apiUrl = "https://www.truthscreen.com/v1/apicall/nid/panComprehensive";
         const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
-        const doc_type = "PAN";
-        const action = "SEARCH";
+        const doc_type = 523;
 
         // Prepare payload as per AuthBridge requirements
         const payload = {
-            pan_number: panNumber,
-            doc_type: doc_type,
-            action: action
+            PanNumber: pan_number,
+            docType: doc_type,
+            transID: vendorId
         };
+        console.log(payload);
 
-        // Encrypt payload if required by AuthBridge (if not, just send as is)
-        // If encryption is required, use encrypt(JSON.stringify(payload))
-        // For now, let's assume encryption is required as in Aadhaar
+        // Encrypt payload
         const plainText = JSON.stringify(payload);
         const encryptedData = encrypt(plainText);
 
@@ -677,23 +698,153 @@ const panDetails = async (req, res) => {
             { headers }
         );
 
-        // Decrypt response if required
-        let panData;
+        // Process the response
+        console.log("PAN API Response:", response.data);
+
         if (response.data && response.data.responseData) {
-            const decrypted = decrypt(response.data.responseData);
-            panData = JSON.parse(decrypted);
+            try {
+                // Decrypt the response data
+                const decryptedData = decrypt(response.data.responseData);
+                console.log("Decrypted PAN data:", decryptedData);
+                
+                // Parse the decrypted JSON
+                const panData = JSON.parse(decryptedData);
+
+                // Get Aadhaar data from DB for name and DOB comparison
+                let aadhaarName = null, aadhaarDob = null;
+                if (aadhaarData) {
+                    // Aadhaar data structure: { [ts_trans_id]: { name, dob, ... } }
+                    // Get the first key (ts_trans_id)
+                    const aadhaarKey = Object.keys(aadhaarData)[0];
+                    if (aadhaarKey && aadhaarData[aadhaarKey]) {
+                        // Check if the data has the expected structure
+                        if (aadhaarData[aadhaarKey].msg && 
+                            aadhaarData[aadhaarKey].msg[0] && 
+                            aadhaarData[aadhaarKey].msg[0].data) {
+                            
+                            aadhaarName = (aadhaarData[aadhaarKey].msg[0].data.name || "").toLowerCase().replace(/\s+/g, '');
+                            // Convert DD-MM-YYYY to YYYY-MM-DD if needed
+                            let dobStr = aadhaarData[aadhaarKey].msg[0].data.dob || "";
+                            if (dobStr.includes('-')) {
+                                const parts = dobStr.split('-');
+                                if (parts.length === 3 && parts[0].length === 2) {
+                                    // Format is DD-MM-YYYY, convert to YYYY-MM-DD
+                                    aadhaarDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                } else {
+                                    aadhaarDob = dobStr.split('T')[0]; // Remove time if present
+                                }
+                            } else {
+                                aadhaarDob = dobStr.split('T')[0]; // Remove time if present
+                            }
+                        }
+                        console.log("Aadhaar data:", aadhaarName, aadhaarDob);
+                    }
+                }
+
+                let panName = null, panDob = null;
+                // PAN data structure may vary, but usually has fields like name, dob, etc.
+                // Try to extract from common fields
+                if (panData && panData.result) {
+                    // AuthBridge PAN result structure
+                    panName = (panData.result.name || "").toLowerCase().replace(/\s+/g, '');
+                    panDob = (panData.result.dob || "").split('T')[0];
+                } else if (panData && panData.name) {
+                    panName = (panData.name || "").toLowerCase().replace(/\s+/g, '');
+                    panDob = (panData.dob || "").split('T')[0];
+                } else if (panData && panData.data) {
+                    // Format from the decrypted response
+                    panName = (panData.data.full_name || "").toLowerCase().replace(/\s+/g, '');
+                    panDob = panData.data.dob || "";
+                }
+
+                console.log(panName, panDob);
+
+                // Compare name and DOB for verification
+                let isPanVerified = 0;
+                if (aadhaarName && aadhaarDob && panName && panDob) {
+                    console.log("Comparing names and DOBs:");
+                    console.log("Aadhaar Name:", aadhaarName);
+                    console.log("PAN Name:", panName);
+                    console.log("Aadhaar DOB:", aadhaarDob);
+                    console.log("PAN DOB:", panDob);
+                    
+                    // Compare names (case-insensitive, ignore spaces)
+                    const nameMatch = aadhaarName === panName;
+                    
+                    // Compare DOBs (handle different formats)
+                    let dobMatch = false;
+                    if (aadhaarDob === panDob) {
+                        dobMatch = true;
+                    } else {
+                        // Try to normalize dates for comparison
+                        try {
+                            const aadhaarDate = new Date(aadhaarDob);
+                            const panDate = new Date(panDob);
+                            dobMatch = aadhaarDate.getTime() === panDate.getTime();
+                        } catch (e) {
+                            console.error("Error comparing dates:", e.message);
+                        }
+                    }
+                    
+                    console.log("Name match:", nameMatch);
+                    console.log("DOB match:", dobMatch);
+                    
+                    if (nameMatch && dobMatch) {
+                        isPanVerified = 1;
+                    }
+                }
+
+                // Save PAN details and verification status to DB for future requests
+                await db.execute(
+                    'UPDATE vendors SET pan_data = ?, is_pan_verified = ? WHERE id = ?',
+                    [decryptedData, isPanVerified, vendorId]
+                );
+
+                return res.json({
+                    status: 1,
+                    pan_number: pan_number,
+                    pan_details: panData,
+                    is_pan_verified: !!isPanVerified
+                });
+            } catch (decryptError) {
+                console.error('Error decrypting PAN response:', decryptError.message);
+                return res.status(500).json({ 
+                    status: 0, 
+                    message: 'Error processing PAN verification response',
+                    error: 'Decryption failed'
+                });
+            }
         } else {
-            panData = response.data;
+            return res.status(400).json({ 
+                status: 0, 
+                message: 'Invalid response from PAN verification service',
+                raw_response: response.data
+            });
         }
 
-        // Optionally, save PAN details to DB for future requests
-        await db.execute('UPDATE vendors SET pan_details = ? WHERE id = ?', [JSON.stringify(panData), vendorId]);
-
-        return res.json({ status: 1, pan_number: panNumber, pan_details: panData });
-
     } catch (error) {
-        console.error('Error fetching PAN details:', error?.response?.data || error.message);
-        res.status(500).json({ status: 0, message: 'Server error fetching PAN details', error: error?.response?.data || error.message });
+        console.error('Error fetching PAN details:', error.message || JSON.stringify(error));
+        
+        // If the error contains encrypted response data, try to decrypt it
+        if (error.response?.data?.responseData) {
+            try {
+                const decryptedError = decrypt(error.response.data.responseData);
+                console.log("Decrypted error response:", decryptedError);
+                return res.status(500).json({ 
+                    status: 0, 
+                    message: 'PAN verification failed', 
+                    error: JSON.parse(decryptedError) 
+                });
+            } catch (decryptError) {
+                console.error('Failed to decrypt error response:', decryptError.message);
+            }
+        }
+        
+        res.status(500).json({ 
+            status: 0, 
+            message: 'Server error fetching PAN details', 
+            error: error?.response?.data || error.message 
+        });
     }
 }
 module.exports = { 
