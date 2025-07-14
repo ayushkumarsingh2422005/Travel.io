@@ -63,7 +63,7 @@ const sendEmail = async (options) => {
 
     // Send the email
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('Email sent successfully via Brevo SDK:', data);
+    // console.log('Email sent successfully via Brevo SDK:', data);
     return { success: true, data };
   } catch (error) {
     console.error('Error sending email:', error);

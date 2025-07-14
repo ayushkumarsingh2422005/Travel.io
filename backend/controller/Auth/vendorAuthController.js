@@ -544,7 +544,7 @@ const getAadhaarStatus = async (req, res) => {
 
         // Fetch vendor's Aadhaar info from DB
         const [vendorResult] = await db.execute(
-            'SELECT is_aadhaar_verified, ts_trans_id FROM vendors WHERE id = ?',
+            'SELECT is_aadhaar_verified, ts_trans_id, aadhar_data FROM vendors WHERE id = ?',
             [vendorId]
         );
 
@@ -552,15 +552,16 @@ const getAadhaarStatus = async (req, res) => {
             return res.status(404).json({ status: 0, message: 'Vendor not found' });
         }
 
-        const { is_aadhaar_verified, ts_trans_id } = vendorResult[0];
+        const { is_aadhaar_verified, ts_trans_id, aadhar_data } = vendorResult[0];
 
         // If already verified, return status and details
-        // if (is_aadhaar_verified === 1) {
-        //     return res.json({
-        //         status: 1,
-        //         is_verified: true
-        //     });
-        // }
+        if (is_aadhaar_verified === 1) {
+            return res.json({
+                status: 1,
+                is_verified: true,
+                aadhaar_data: JSON.parse(aadhar_data)
+            });
+        }
 
         // If no transaction ID, cannot check status
         if (!ts_trans_id) {
@@ -597,14 +598,23 @@ const getAadhaarStatus = async (req, res) => {
         const data = decrypt(response.data.responseData);
         const dataObj = JSON.parse(data);
         console.log(dataObj);
-
-        // You may want to parse aadhaarData as per your API's response structure
-        // For now, return the full response
-        return res.json({
-            status: 1,
-            is_verified: dataObj.status === 1,
-            aadhaar_details: dataObj
-        });
+        if(dataObj.data[ts_trans_id].final_status === "Completed"){
+            await db.execute(
+                'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ? WHERE id = ?',
+                [JSON.stringify(dataObj.data), vendorId]
+            );
+            return res.json({
+                status: 1,
+                is_verified: true,
+                aadhaar_data: JSON.parse(dataObj.data)
+            });
+        }else{
+            return res.json({
+                status: 0,
+                is_verified: false,
+                aadhaar_data: null
+            });
+        }
 
     } catch (error) {
         console.error('Error fetching Aadhaar status:', error?.response?.data || error.message);
