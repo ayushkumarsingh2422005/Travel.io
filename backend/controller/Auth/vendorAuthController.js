@@ -45,6 +45,9 @@ const verifytoken=(req,res)=>{
 const signup = async (req, res) => {
     try {
         const { name, email, phone, password, gender, age, current_address, description } = req.body;
+        
+        console.log(`Vendor signup request for: ${email}`);
+        
         if (!name || !email || !phone || !password || !gender || !age || !current_address) {
             return res.status(400).json({ message: 'All required fields are missing.' });
         }
@@ -52,11 +55,13 @@ const signup = async (req, res) => {
         const [existing] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
 
         if (existing.length > 0) {
+            console.log(`Signup failed: Email ${email} already registered`);
             return res.status(409).json({ message: 'Email already registered.' });
         }
 
         const [existingPhone] = await db.execute('SELECT * FROM vendors WHERE phone = ?', [phone]);
         if (existingPhone.length > 0) {
+            console.log(`Signup failed: Phone ${phone} already registered`);
             return res.status(409).json({ message: 'Phone number already registered.' });
         }
 
@@ -67,6 +72,8 @@ const signup = async (req, res) => {
         const email_verification_token = generateRandomToken();
         const email_verification_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
         
+        console.log(`Creating new vendor account with ID: ${id}`);
+        
         await db.execute(
             `INSERT INTO vendors (id, name, email, phone, password_hash, gender, age, current_address, description, 
             email_verification_token, email_verification_expiry, is_email_verified) 
@@ -75,16 +82,24 @@ const signup = async (req, res) => {
             email_verification_token, email_verification_expiry, 0]
         );
         
+        console.log(`Vendor account created, sending verification email to: ${email}`);
+        
         // Send verification email
-        await sendVerificationEmail(email, email_verification_token, 'vendor');
+        const emailSent = await sendVerificationEmail(email, email_verification_token, 'vendor');
+        
+        if (!emailSent) {
+            console.warn(`Warning: Verification email could not be sent to ${email}`);
+        }
         
         const token = generateToken({ id, email });
+        console.log(`Vendor signup successful for: ${email}`);
+        
         res.status(201).json({ 
             token,
             message: 'Account created successfully. Please verify your email address.'
         });
     } catch (err) {
-        console.log(err);
+        console.error('Vendor signup error:', err);
         res.status(500).json({ message: 'Vendor signup failed', error: err.message });
     }
 }
@@ -315,7 +330,7 @@ const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
-        console.log("response recieved",email);
+        console.log("Password reset request received for:", email);
         
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
@@ -325,10 +340,12 @@ const forgotPassword = async (req, res) => {
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
         
         if (vendors.length === 0) {
+            console.log(`No vendor found with email: ${email}`);
             return res.status(404).json({ message: 'No account found with this email.' });
         }
         
         const vendor = vendors[0];
+        console.log(`Vendor found: ${vendor.id}`);
         
         // Generate reset token
         const reset_password_token = generateRandomToken();
@@ -340,12 +357,20 @@ const forgotPassword = async (req, res) => {
             [reset_password_token, reset_password_expiry, vendor.id]
         );
         
-        // Send password reset email
-        await sendPasswordResetEmail(email, reset_password_token, 'vendor');
+        console.log(`Reset token generated for vendor: ${vendor.id}`);
         
-        res.status(200).json({ message: 'Password reset link sent to your email.' });
+        // Send password reset email
+        const emailResult = await sendPasswordResetEmail(email, reset_password_token, 'vendor');
+        
+        if (emailResult) {
+            console.log(`Password reset email sent successfully to: ${email}`);
+            res.status(200).json({ message: 'Password reset link sent to your email.' });
+        } else {
+            console.error(`Failed to send password reset email to: ${email}`);
+            res.status(500).json({ message: 'Failed to send password reset email. Please try again later.' });
+        }
     } catch (err) {
-        console.error(err);
+        console.error('Error in forgotPassword:', err);
         res.status(500).json({ message: 'Failed to process password reset request', error: err.message });
     }
 }
@@ -579,6 +604,80 @@ const getAadhaarStatus = async (req, res) => {
     }
 };
 
+const panDetails = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        // Try to get PAN number from DB for this vendor
+        const [vendorResult] = await db.execute('SELECT pan_number, pan_details FROM vendors WHERE id = ?', [vendorId]);
+        if (vendorResult.length === 0) {
+            return res.status(404).json({ status: 0, message: 'Vendor not found' });
+        }
+        let panNumber = vendorResult[0].pan_number;
+        let panDetailsFromDb = vendorResult[0].pan_details ? JSON.parse(vendorResult[0].pan_details) : null;
+
+        // If PAN details already exist in DB, return them
+        if (panDetailsFromDb) {
+            return res.json({ status: 1, pan_number: panNumber, pan_details: panDetailsFromDb });
+        }
+
+        // If PAN number is not present, require it from request body
+        if (!panNumber) {
+            panNumber = req.body.pan_number;
+            if (!panNumber) {
+                return res.status(400).json({ status: 0, message: 'PAN number not provided' });
+            }
+        }
+
+        // Prepare request to AuthBridge API
+        const apiUrl = process.env.AUTHBRIDGE_API_URL + "/v1/apicall/nid/idsearch" || "https://www.truthscreen.com/v1/apicall/nid/idsearch";
+        const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
+        const doc_type = "PAN";
+        const action = "SEARCH";
+
+        // Prepare payload as per AuthBridge requirements
+        const payload = {
+            pan_number: panNumber,
+            doc_type: doc_type,
+            action: action
+        };
+
+        // Encrypt payload if required by AuthBridge (if not, just send as is)
+        // If encryption is required, use encrypt(JSON.stringify(payload))
+        // For now, let's assume encryption is required as in Aadhaar
+        const plainText = JSON.stringify(payload);
+        const encryptedData = encrypt(plainText);
+
+        const headers = {
+            "Content-Type": "application/json",
+            "username": username
+        };
+
+        // Make POST request to AuthBridge
+        const response = await axios.post(
+            apiUrl,
+            { requestData: encryptedData },
+            { headers }
+        );
+
+        // Decrypt response if required
+        let panData;
+        if (response.data && response.data.responseData) {
+            const decrypted = decrypt(response.data.responseData);
+            panData = JSON.parse(decrypted);
+        } else {
+            panData = response.data;
+        }
+
+        // Optionally, save PAN details to DB for future requests
+        await db.execute('UPDATE vendors SET pan_details = ? WHERE id = ?', [JSON.stringify(panData), vendorId]);
+
+        return res.json({ status: 1, pan_number: panNumber, pan_details: panData });
+
+    } catch (error) {
+        console.error('Error fetching PAN details:', error?.response?.data || error.message);
+        res.status(500).json({ status: 0, message: 'Server error fetching PAN details', error: error?.response?.data || error.message });
+    }
+}
 module.exports = { 
     signup, 
     login, 
@@ -592,5 +691,6 @@ module.exports = {
     resetPassword,
     
     generateAadhaarLink,
-    getAadhaarStatus
+    getAadhaarStatus,
+    panDetails
 };
