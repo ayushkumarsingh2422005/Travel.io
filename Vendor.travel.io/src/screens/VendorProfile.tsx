@@ -37,6 +37,7 @@ interface VendorInfo {
   isPhoneVerified: boolean;
   isEmailVerified: boolean;
   is_aadhar_verified: boolean;
+  is_pan_verified:boolean;
   joinDate: string;
   
   // KYC Status
@@ -333,8 +334,33 @@ const VendorProfile: React.FC = () => {
       const responseData = response.data ;
 
       if (responseData.status===1) {
+        // Step 1: Get the only key dynamically (e.g., "H3-NIA-700669")
+const [key] = Object.keys(responseData?.aadhaar_data);
 
-        if(!responseData.is_verified){
+console.log(key);
+
+// Step 2: Destructure using the key
+const { final_status, msg } = responseData?.aadhaar_data[key];
+const { data } = msg[0];
+
+// Optional: extract fields from data
+const {
+  name,
+  aadhar_number,
+  gender,
+  dob,
+  photo,
+  address,
+  co,
+  ["Father Name"]: fatherName // special handling for key with space
+} = data;
+
+console.log(final_status); // "Completed"
+console.log(name);         // "Priya Raj"
+console.log(fatherName);   // " Prem Tiwari"
+console.log(aadhar_number);
+
+        if(final_status!=='Completed'){
           setError('Aadhar verification is still pending or incomplete. Please try again later.');
           return ;
         }
@@ -342,7 +368,6 @@ const VendorProfile: React.FC = () => {
         setSuccess('Aadhar verification confirmed successfully.');
         setError('');
 
-        console.log(responseData.aadhaar_details);
 
         // set aadhar verification status in vendorInfo
 
@@ -361,6 +386,41 @@ const VendorProfile: React.FC = () => {
       setError('Failed to confirm Aadhar verification. Please try again.');
       setSuccess('');
 
+    }
+  }
+
+  const handleVerifyPan=async()=>{
+    try {
+    
+
+        const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your Aadhar.');
+        return;
+      }
+
+      const response = await axios.post('/auth/pan-details',{
+        pan_number:vendorInfo?.panNumber
+      },{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if(response.data.is_pan_verified){
+        setSuccess('Pan Verification SuccessFull');
+        console.log(response.data.pan_number,response.data.pan_details);
+        vendorInfo!.is_pan_verified=true;
+      }
+      else{
+        setError('Pan Verification Unsuccessfull make sure the details are Up To Date');
+      }
+
+
+      
+    } catch (error) {
+      setError('Pan Verification Failed Please Try After Some Time');
+      console.log(error);
     }
   }
 
@@ -736,7 +796,7 @@ const VendorProfile: React.FC = () => {
                   {vendorInfo.is_aadhar_verified ? 'Verified ✓' : 'Not Verified'}
                 </p>
                 
-                <button
+            {!vendorInfo.is_aadhar_verified &&   (<div><button
                   onClick={generateAadharVerificationLink}
                   className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors mr-2"
                 >
@@ -748,14 +808,20 @@ const VendorProfile: React.FC = () => {
                   className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
                 >
                   Confirm Aadhar Verification
-                </button>
+                </button></div>)}
+
+
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
                 <p className="text-gray-900">
                   {vendorInfo.panNumber ? `XXXXX${vendorInfo.panNumber.slice(-5)}` : '—'}
+                  <p>{vendorInfo.is_pan_verified ? 'Verified ✓' : 'Not Verified'}</p>
                 </p>
+                {!vendorInfo.is_pan_verified && (<div>
+                  <button className='bg-green-500 text-white' onClick={handleVerifyPan}>Verify Pan</button>
+                </div>)}
               </div>
             </div>
 
@@ -923,11 +989,11 @@ const VendorProfile: React.FC = () => {
 const mockVendorData: VendorInfo = {
   "id": "VEN123456",
   "fullName": "Priya Transport Services",
-  "email": "satyamtiwari7492@gmail.com",
+  "email": "satyamtiwari87090@gmail.com",
   "mobile": "+91 9693240525",
   "city": "Mumbai",
   "numberOfCars": 5,
-  "panNumber": "ABCDE1234F",
+  "panNumber": "GSPPR6328H",
   "businessName": "Priya Transport Services",
   "businessType": "Individual Proprietorship",
   "gstNumber": "27ABCDE1234F1Z5",
@@ -944,8 +1010,9 @@ const mockVendorData: VendorInfo = {
   "gender": "Male",
   "currentAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
   "isPhoneVerified": true,
-  "isEmailVerified": false,
-  "is_aadhar_verified": false,
+  "isEmailVerified": true,
+  "is_aadhar_verified": true,
+  "is_pan_verified":true,
   "joinDate": "2022-08-15",
   "kycStatus": "Verified"
 };

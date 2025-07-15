@@ -16,7 +16,6 @@ import Wallet from './screens/Wallet';
 import Dashboard from './screens/Dashboard';
 import ResetPasswordMail from './screens/ResetPasswordMail';
 import ResetPassword from './screens/ResetPassword';
-
 function App() {
   return (
     <Router>
@@ -27,7 +26,8 @@ function App() {
         <Route path="/signup" element={<VendorSignup />} />
         <Route path="/register" element={<VendorRegistration />} />
         <Route path="/forget-password" element={<ResetPasswordMail/>} />
-        <Route path="/vendor/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/vendor/reset-password" element={<ResetPassword />} />
+        
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />

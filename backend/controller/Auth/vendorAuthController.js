@@ -426,8 +426,8 @@ const resetPassword = async (req, res) => {
 const generateAadhaarLink = async (req, res) => {
     try {
         const vendorId = req.user.id;
+        
         console.log("vendorId", vendorId);
-
         // Get vendor email
         const [vendorResult] = await db.execute('SELECT id FROM vendors WHERE id = ?', [vendorId]);
         if (vendorResult.length === 0) {
@@ -582,6 +582,7 @@ const getAadhaarStatus = async (req, res) => {
             action: action
         };
 
+
         const plainText = JSON.stringify(payload);
         console.log(payload)
         const encryptedData = encrypt(plainText);
@@ -603,6 +604,7 @@ const getAadhaarStatus = async (req, res) => {
                 'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ? WHERE id = ?',
                 [JSON.stringify(dataObj.data), vendorId]
             );
+            console.log(dataObj.data);
             return res.json({
                 status: 1,
                 is_verified: true,
