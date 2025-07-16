@@ -8,22 +8,22 @@ const createDriversTable = async () => {
             name VARCHAR(100) NOT NULL,
             phone VARCHAR(15) UNIQUE NOT NULL,
             address TEXT NOT NULL,
-            license VARCHAR(50) UNIQUE NOT NULL,
+            dl_number VARCHAR(50) UNIQUE NOT NULL,
+            dl_data TEXT,
             is_active TINYINT(1) DEFAULT 0, 
-            vehicle_id CHAR(64),
+            vehicle_id CHAR(64) DEFAULT NULL,
             FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
 
             INDEX (phone), 
-            INDEX (license)
+            INDEX (dl_number),
+            INDEX (is_active)
         )
     `);
     console.log('✅ Scalable Drivers Table Created!');
 };
 
 module.exports = createDriversTable;
-
-
 
 // DL varification
 // DL No, DOB 

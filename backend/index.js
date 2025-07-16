@@ -20,6 +20,7 @@ const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
+const driverRoutes = require('./routes/driverRoutes');
 const cors = require("cors")
 require('dotenv').config();
 
@@ -60,6 +61,7 @@ createTables();
 app.use('/user/auth', userAuthRoutes);
 app.use('/vendor/auth', vendorAuthRoutes);
 app.use('/admin/auth', adminAuthRoutes);
+app.use('/vendor/driver', driverRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, Express!");
