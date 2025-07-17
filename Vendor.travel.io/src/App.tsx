@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Landing from './screens/Landing';
 import VendorLogin from './screens/VendorLogin';
@@ -27,7 +27,7 @@ function App() {
         <Route path="/register" element={<VendorRegistration />} />
         <Route path="/forget-password" element={<ResetPasswordMail/>} />
         <Route path="/vendor/reset-password" element={<ResetPassword />} />
-        
+
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />

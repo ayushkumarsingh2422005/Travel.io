@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-
+import axios from '../api/axios'
 interface Driver {
   id: string;
   name: string;
-  phoneNumber: string;
+  phone: string;
   languages: string[];
-  dlNumber: string;
-  validity: string;
-  status: 'Approved' | 'Awaited' | 'Rejected';
+  dl_number: string;
+  dl_data: string;
+  address: string;
 }
 
 const DriverManagementComponent: React.FC = () => {
@@ -15,33 +15,39 @@ const DriverManagementComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showAddDriverModal, setShowAddDriverModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  
+  const[error,setError]=useState('');
+  const[success,setSuccess]=useState('');
+  const[AutoFetchData,setAutoFetchData]=useState({
+    name:'',
+    IssueDate:'',
+    ExpiryDate:''
+  });
   // Driver form data
   const [dlState, setDlState] = useState<string>('');
   const [dlRtoCode, setDlRtoCode] = useState<string>('');
   const [dlIssueYear, setDlIssueYear] = useState<string>('');
-  const [dlNumber, setDlNumber] = useState<string>('');
+  const [dl_number, setdl_number] = useState<string>('');
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['hindi','english']);
-  
+  const[phone,setPhone]=useState('');
   const mockDrivers: Driver[] = [
     {
       id: '1',
       name: 'Akash Rai',
-      phoneNumber: 'xx xxxx xxxx',
+      phone: 'xx xxxx xxxx',
       languages: ['Hindi', 'English'],
-      dlNumber: 'UP522024(7)',
-      validity: '06/09/2047',
-      status: 'Approved'
+      dl_number: 'UP522024(7)',
+      dl_data: '06/09/2047',
+      address: 'Approved'
     },
     {
       id: '2',
       name: 'Akash Rai',
-      phoneNumber: 'xx xxxx xxxx',
+      phone: 'xx xxxx xxxx',
       languages: ['Hindi', 'English'],
-      dlNumber: 'UP522024(7)',
-      validity: '06/09/2047',
-      status: 'Awaited'
+      dl_number: 'UP522024(7)',
+      dl_data: '06/09/2047',
+      address: 'Awaited'
     }
   ];
 
@@ -50,10 +56,23 @@ const DriverManagementComponent: React.FC = () => {
     const fetchDrivers = async () => {
       setLoading(true);
       try {
+
+          const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
         // Replace with actual API call
-        // const response = await fetch('/api/drivers');
+        const response = await axios.get('/driver', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         // const data = await response.json();
         // setDrivers(data);
+
+        console.log(response);
         
         // Using mock data for demonstration
         setTimeout(() => {
@@ -76,7 +95,7 @@ const DriverManagementComponent: React.FC = () => {
 
   const filteredDrivers = drivers.filter(driver => 
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.dlNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    driver.dl_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddDriver = () => {
@@ -90,14 +109,39 @@ const DriverManagementComponent: React.FC = () => {
     setDlState('');
     setDlRtoCode('');
     setDlIssueYear('');
-    setDlNumber('');
+    setdl_number('');
     setDateOfBirth('');
     setSelectedLanguages([]);
   };
 
-  const handleDeleteDriver = (driverId: string) => {
+  const handleDeleteDriver = async(driverId: string) => {
+    try {
+
+        const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
+      const response=await axios.delete(`/driver/${driverId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if(response.data.success){
+          setSuccess(response.data.message)
+          setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
+        }
+        else{
+          setError(response.data.message)
+        }
+      
+    } catch (error) {
+        console.log(error);
+        setError('Something Went Wrong');
+    }
     // Implement delete driver functionality
-    setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
   };
   
   const handleShowBookingHistory = (driverId: string) => {
@@ -105,11 +149,31 @@ const DriverManagementComponent: React.FC = () => {
     alert(`Show booking history for driver ${driverId}`);
   };
   
-  const handleConfirmAddDriver = () => {
+  const handleConfirmAddDriver = async() => {
     // Implement add driver functionality with form validation
     // This would typically be an API call
-    alert('Driver added successfully!');
-    handleCloseModal();
+    try {
+
+      const response=await axios.post('/driver',{
+        phone:phone,
+      ...AutoFetchData
+      });
+
+      if(response.data.success){
+        setSuccess('Driver Added Successfully');
+        setDrivers((prev) => [...prev, response.data.driver]);
+      }
+      else{
+        setError('Please Check Driver Details')
+      }
+      
+    } catch (error) {
+      console.log(error);
+      setError('Please Check Driver Details')
+    }
+    finally {
+      handleCloseModal();
+    }
   };
 
   const handleChooseLanguages = () => {
@@ -118,8 +182,42 @@ const DriverManagementComponent: React.FC = () => {
     setSelectedLanguages(['Hindi', 'English']);
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch(status.toLowerCase()) {
+  const handleFetchDetails=async()=>{
+    try {
+
+        const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
+
+      const DLNumber=dlState+dlRtoCode+dlIssueYear+dl_number;
+       
+    
+      const [year, month, day] = dateOfBirth.split('-');
+      const DOB = `${day}-${month}-${year}`;
+
+      const response=await axios.post('/driver/verify-license',{
+        dl_number:DLNumber,
+        dob:DOB
+      }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        
+        setAutoFetchData(response.data.data);
+        
+      
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const getaddressBadgeClass = (address: string) => {
+    switch(address.toLowerCase()) {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'awaited': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -145,8 +243,8 @@ const DriverManagementComponent: React.FC = () => {
                     {idx === 0
                       ? drivers.length
                       : idx === 1
-                      ? drivers.filter(driver => driver.status === 'Approved').length
-                      : drivers.filter(driver => driver.status === 'Awaited').length}
+                      ? drivers.filter(driver => driver.address === 'Approved').length
+                      : drivers.filter(driver => driver.address === 'Awaited').length}
                   </p>
                 )}
               </div>
@@ -200,8 +298,8 @@ const DriverManagementComponent: React.FC = () => {
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Phone No.</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Languages</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Number</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Validity</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Status</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Expiry</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">address</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Actions</th>
               </tr>
             </thead>
@@ -238,7 +336,7 @@ const DriverManagementComponent: React.FC = () => {
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       <div className="font-medium">{driver.name}</div>
                     </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.phoneNumber}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.phone}</td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       <div className="flex flex-wrap gap-1">
                         {driver.languages.map((lang, index) => (
@@ -248,18 +346,18 @@ const DriverManagementComponent: React.FC = () => {
                         ))}
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono">{driver.dlNumber}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.validity}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono">{driver.dl_number}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_data}</td>
                     <td className="p-4 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(driver.status)}`}>
-                        {driver.status}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getaddressBadgeClass(driver.address)}`}>
+                        {driver.address}
                       </span>
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleShowBookingHistory(driver.id)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                         >
                           Bookings
                         </button>
@@ -345,13 +443,13 @@ const DriverManagementComponent: React.FC = () => {
                           value={dlIssueYear}
                           onChange={(e) => setDlIssueYear(e.target.value)}
                           className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                          maxLength={2}
+                          maxLength={4}
                         />
                         <input
                           type="text"
                           placeholder="7 Digits"
-                          value={dlNumber}
-                          onChange={(e) => setDlNumber(e.target.value)}
+                          value={dl_number}
+                          onChange={(e) => setdl_number(e.target.value)}
                           className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                           maxLength={7}
                         />
@@ -373,7 +471,8 @@ const DriverManagementComponent: React.FC = () => {
                       <div className="w-full md:w-1/2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fetch Details</label>
                         <button
-                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          onClick={handleFetchDetails}
                         >
                           Verify & Fetch Details
                         </button>
@@ -407,7 +506,7 @@ const DriverManagementComponent: React.FC = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Validity</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Expiring Date</label>
                       <input
                         type="text"
                         placeholder="Auto fetch expiry date"
@@ -417,7 +516,20 @@ const DriverManagementComponent: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
+
+                 <div>
+                   <input
+                          type="text"
+                          placeholder="Phone Number"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          maxLength={12}
+                        />
+                 </div>
+
+
                 {/* Document Upload */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Document Upload</h3>

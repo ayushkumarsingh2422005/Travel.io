@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from '../api/axios'
 
 interface VendorInfo {
@@ -347,11 +347,11 @@ const { data } = msg[0];
 const {
   name,
   aadhar_number,
-  gender,
-  dob,
-  photo,
-  address,
-  co,
+  // gender,
+  // dob,
+  // photo,
+  // address,
+  // co,
   ["Father Name"]: fatherName // special handling for key with space
 } = data;
 
