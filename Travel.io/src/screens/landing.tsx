@@ -947,8 +947,9 @@ export default function MarcoCabService() {
               &copy; {new Date().getFullYear()} Marco Cab Services. All rights reserved.
             </div>
             <div className="flex space-x-6">
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+              <Link to="/privacy-policy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms-of-use" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</Link>
+              <Link to="/cancellation-policy" className="text-sm text-gray-400 hover:text-white transition-colors">Cancellation & Refund Policy</Link>
               <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</a>
             </div>
           </div>

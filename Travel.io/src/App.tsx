@@ -9,6 +9,9 @@ import PreviousBookings from './screens/PreviousBookings';
 import Dashboard from './screens/Dashboard';
 import Layout from './components/Layout';
 import Profile from './screens/Profile';
+import CancellationPolicy from './screens/CancellationPolicy';
+import TermsOfUse from './screens/TermsOfUse';
+import PrivacyPolicy from './screens/PrivacyPolicy';
 
 function App() {
   return (
@@ -26,6 +29,9 @@ function App() {
         <Route path="/cabs" element={<Cabs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
     </Router>
   );
