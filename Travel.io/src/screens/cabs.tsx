@@ -264,7 +264,7 @@ export default function Cabs() {
     });
   }, []);
 
-  type FormState = Record<string, string>;
+  // type FormState = Record<string, string>;
 
   // The issue is a type mismatch: handleInputChange expects a formSetter for a generic FormState (Record<string, string>),
   // but setBookingForm is typed for a more specific shape (with fields like tripType, pickupLocation, etc).
@@ -301,10 +301,10 @@ export default function Cabs() {
   };
   
   // Click handler: Book now
-  const handleBookNow = () => {
-    console.log("Book Now clicked");
-    // Implement book now functionality
-  };
+  // const handleBookNow = () => {
+  //   console.log("Book Now clicked");
+  //   // Implement book now functionality
+  // };
   
 
   
@@ -314,12 +314,12 @@ export default function Cabs() {
     console.log("Booking form submitted:", bookingForm);
 
     // Prepare basic route data for navigation
-    const routeData = {
-      pickup: bookingForm.pickupLocation,
-      destination: bookingForm.destination,
-      stops: additionalStops.map(stop => stop.location),
-      tripType: bookingForm.tripType
-    };
+    // const routeData = {
+    //   pickup: bookingForm.pickupLocation,
+    //   destination: bookingForm.destination,
+    //   stops: additionalStops.map(stop => stop.location),
+    //   tripType: bookingForm.tripType
+    // };
 
 
     // search logic here
@@ -435,20 +435,20 @@ export default function Cabs() {
   };
 
   // Handle stop suggestion selection
-  const handleStopSuggestionSelect = (id: number, location: string) => {
-    setAdditionalStops(prev => 
-      prev.map(stop => {
-        if (stop.id === id) {
-          return {
-            ...stop,
-            location: location,
-            showSuggestions: false
-          };
-        }
-        return stop;
-      })
-    );
-  };
+  // const handleStopSuggestionSelect = (id: number, location: string) => {
+  //   setAdditionalStops(prev => 
+  //     prev.map(stop => {
+  //       if (stop.id === id) {
+  //         return {
+  //           ...stop,
+  //           location: location,
+  //           showSuggestions: false
+  //         };
+  //       }
+  //       return stop;
+  //     })
+  //   );
+  // };
 
   const [filteredCabData, setFilteredCabData] = useState<any[]>([]);
   const [filters, setFilters] = useState({
