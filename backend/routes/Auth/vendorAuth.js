@@ -12,10 +12,12 @@ const {
     verifyPhoneOTP, 
     forgotPassword, 
     resetPassword,
-    generateAadhaarLink,
+    generateAadhaarOtp,
     // processAadhaarCallback,
-    getAadhaarStatus,
-    panDetails
+    getAadhaarData,
+    fetchPanData,
+    getPanData,
+    verifyAadhaarOtp
 } = require('../../controller/Auth/vendorAuthController');
 
 // Middleware to verify vendor token
@@ -89,12 +91,13 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 // Aadhaar verification routes
-router.post('/generate-aadhaar-link', authMiddleware, generateAadhaarLink);
+router.post('/generate-aadhaar-otp', authMiddleware, generateAadhaarOtp);
 // router.post('/aadhaar-callback', processAadhaarCallback);
-router.get('/aadhaar-status', authMiddleware, getAadhaarStatus);
+router.post('/verify-aadhaar-otp', authMiddleware, verifyAadhaarOtp);
+router.get('/aadhaar-data', authMiddleware, getAadhaarData);
 
 // Pan verification routes
-router.post('/pan-details', authMiddleware, panDetails);
-router.get('/pan-details', authMiddleware, panDetails);
+router.post('/fetch-pan', authMiddleware, fetchPanData);
+router.post('/get-pan', authMiddleware, getPanData);
 
 module.exports = router; 

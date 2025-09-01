@@ -289,7 +289,7 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-    const response=await axios.post('/auth/generate-aadhaar-link',{},
+      const response=await axios.post('/auth/generate-aadhaar-link',{},
        {
           headers: {
             Authorization: `Bearer ${token}`,

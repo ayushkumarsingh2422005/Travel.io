@@ -423,68 +423,33 @@ const resetPassword = async (req, res) => {
  * Generate Aadhaar verification link via AuthBridge
  * This function is moved to the route handler for better error handling
  */
-const generateAadhaarLink = async (req, res) => {
+const generateAadhaarOtp = async (req, res) => {
     try {
         const vendorId = req.user.id;
-        
-        console.log("vendorId", vendorId);
-        // Get vendor email
-        const [vendorResult] = await db.execute('SELECT id FROM vendors WHERE id = ?', [vendorId]);
-        if (vendorResult.length === 0) {
-            return res.status(404).json({ status: 0, message: 'Vendor not found' });
-        }
+        const {aadhaar_number} = req.body;
 
-        // Prepare payload for AuthBridge
-        const payload = {
-            trans_id: vendorId,
-            doc_type: "472",
-            action: "LINK",
-            callback_url: process.env.AUTHBRIDGE_CALLBACK_URL || "https://api.travel.io/vendor/auth/aadhaar-callback",
-            redirect_url: process.env.AUTHBRIDGE_REDIRECT_URL || "https://vendor.travel.io/verification-complete"
-        };
+        // Call ekycHub API to generate Aadhaar OTP
+        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        const ekycHubUser = process.env.EKYC_USER_NAME;
+        const ekycHubToken = process.env.EKYC_HUB_API;
+        console.log(ekycHubToken, ekycHubUser, ekycHubUrl, aadhaar_number, vendorId);
 
-        // Encrypt the payload
-        const plainText = JSON.stringify(payload);
-        const encryptedData = encrypt(plainText);
+        const aadhaarOtpUrl = `${ekycHubUrl}/verification/get_aadhaar_otp?username=${ekycHubUser}&token=${ekycHubToken}&aadhaar_number=${aadhaar_number}&orderid=${vendorId}`;
 
-        // Call AuthBridge API with custom headers
-        const authbridgeUrl = 
-        // (process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/") ||
-         "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
+        // console.log("Requesting Aadhaar OTP from:", aadhaarOtpUrl);
+        console.log("Requesting Aadhaar OTP from:", aadhaarOtpUrl);
 
-        const response = await axios.post(
-            authbridgeUrl,
-            { requestData: encryptedData },
-            {
-                headers: {
-                    "username": process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com "
-                }
-            }
-        );
+        const ekycResponse = await axios.get(aadhaarOtpUrl);
 
-        // console.log(decrypt(response.data.responseData));
-        const data = decrypt(response.data.responseData);
-        const dataObj = JSON.parse(data);
-        console.log(dataObj);
-
-        if (dataObj.status === 1) {
-            // Store the transaction ID and URL
+        if(ekycResponse.data.status === "Success"){
             await db.execute(
-                'UPDATE vendors SET ts_trans_id = ?, digilocker_url = ? WHERE id = ?',
-                [dataObj.ts_trans_id, dataObj.data.url, vendorId]
+                'UPDATE vendors SET aadhar_ref_id = ?, aadhar_number = ? WHERE id = ?',
+                [ekycResponse.data.ref_id, aadhaar_number, vendorId]
             );
-
-            res.json({
-                status: 1,
-                message: 'Aadhaar verification link generated successfully',
-                verification_url: dataObj.data.url
-            });
-        } else {
-            res.status(400).json({
-                status: 0,
-                message: 'Failed to generate Aadhaar verification link',
-                error: dataObj.msg
-            });
+            return res.json({ status: 1, message: 'Aadhaar OTP generated successfully' });
+        }
+        else{
+            return res.status(400).json({ status: 0, message: 'Failed to generate Aadhaar OTP'});
         }
     } catch (error) {
         console.error('Aadhaar verification error:', error);
@@ -492,59 +457,14 @@ const generateAadhaarLink = async (req, res) => {
     }
 };
 
-/**
- * Process callback from AuthBridge after Aadhaar verification
- * This function is moved to the route handler for better error handling
- */
-// const processAadhaarCallback = async (req, res) => {
-//     try {
-//         const { ts_trans_id, status, message } = req.body;
-        
-//         if (!ts_trans_id) {
-//             return res.status(400).json({ status: 0, message: 'Missing transaction ID' });
-//         }
-        
-//         // Find vendor by transaction ID
-//         const [vendorResult] = await db.execute('SELECT id FROM vendors WHERE ts_trans_id = ?', [ts_trans_id]);
-        
-//         if (vendorResult.length === 0) {
-//             return res.status(404).json({ status: 0, message: 'No vendor found with this transaction ID' });
-//         }
-        
-//         const vendorId = vendorResult[0].id;
-        
-//         if (status === 1 || status === '1' || status === true) {
-//             // Update vendor's Aadhaar verification status
-//             await db.execute(
-//                 'UPDATE vendors SET is_aadhaar_verified = 1 WHERE id = ?',
-//                 [vendorId]
-//             );
-            
-//             res.json({ status: 1, message: 'Aadhaar verification completed successfully' });
-//         } else {
-//             res.status(400).json({
-//                 status: 0,
-//                 message: 'Aadhaar verification failed',
-//                 error: message || 'Unknown error'
-//             });
-//         }
-//     } catch (error) {
-//         console.error('Aadhaar callback error:', error);
-//         res.status(500).json({ status: 0, message: 'Server error processing Aadhaar verification callback' });
-//     }
-// };
-
-/**
- * Get Aadhaar verification status for a vendor
- * This function is moved to the route handler for better error handling
- */
-const getAadhaarStatus = async (req, res) => {
+const verifyAadhaarOtp = async (req, res) => {
     try {
+        const { otp } = req.body;
         const vendorId = req.user.id;
 
-        // Fetch vendor's Aadhaar info from DB
+        // Fetch vendor's Aadhaar number and ref_id from DB
         const [vendorResult] = await db.execute(
-            'SELECT is_aadhaar_verified, ts_trans_id, aadhar_data FROM vendors WHERE id = ?',
+            'SELECT aadhar_ref_id, aadhar_number FROM vendors WHERE id = ?',
             [vendorId]
         );
 
@@ -552,303 +472,101 @@ const getAadhaarStatus = async (req, res) => {
             return res.status(404).json({ status: 0, message: 'Vendor not found' });
         }
 
-        const { is_aadhaar_verified, ts_trans_id, aadhar_data } = vendorResult[0];
+        const { aadhar_ref_id, aadhar_number } = vendorResult[0];
 
-        // If already verified, return status and details
-        if (is_aadhaar_verified === 1) {
-            return res.json({
-                status: 1,
-                is_verified: true,
-                aadhaar_data: JSON.parse(aadhar_data)
-            });
+        if (!aadhar_ref_id || !aadhar_number) {
+            return res.status(400).json({ status: 0, message: 'Aadhaar reference ID or number not found. Please generate OTP first.' });
         }
 
-        // If no transaction ID, cannot check status
-        if (!ts_trans_id) {
-            return res.status(400).json({ status: 0, message: 'No Aadhaar transaction found for this vendor' });
-        }
+        // Prepare ekycHub API params
+        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        const ekycHubUser = process.env.EKYC_USER_NAME;
+        const ekycHubToken = process.env.EKYC_HUB_API;
 
-        // Prepare request to AuthBridge API to get Aadhaar details
-        const apiUrl = 
-        // process.env.AUTHBRIDGE_API_URL + "/v1.0/eaadhaardigilocker/" || 
-        "https://www.truthscreen.com/api/v1.0/eaadhaardigilocker/";
-        const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
-        const doc_type = "472";
-        const action = "STATUS";
+        const aadhaarVerifyUrl = `${ekycHubUrl}/verification/aadhaar_verify?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&aadhaar_number=${encodeURIComponent(aadhar_number)}&ref_id=${encodeURIComponent(aadhar_ref_id)}&otp=${encodeURIComponent(otp)}&orderid=${encodeURIComponent(vendorId)}`;
 
-        const payload = {
-            ts_trans_id: ts_trans_id,
-            doc_type: doc_type,
-            action: action
-        };
+        // Call ekycHub API to verify Aadhaar OTP
+        const ekycResponse = await axios.get(aadhaarVerifyUrl);
 
-
-        const plainText = JSON.stringify(payload);
-        console.log(payload)
-        const encryptedData = encrypt(plainText);
-
-        const headers = {
-            "username": username,
-            "Content-Type": "application/json"
-        };
-
-        // Use axios to make the POST request
-        const response = await axios.post(apiUrl, { requestData: encryptedData }, { headers });
-
-        // The response from AuthBridge
-        const data = decrypt(response.data.responseData);
-        const dataObj = JSON.parse(data);
-        console.log(dataObj);
-        if(dataObj.data[ts_trans_id].final_status === "Completed"){
+        if (ekycResponse.data.status === "Success") {
+            // Save Aadhaar data and mark as verified
             await db.execute(
                 'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ? WHERE id = ?',
-                [JSON.stringify(dataObj.data), vendorId]
+                [JSON.stringify(ekycResponse.data), vendorId]
             );
-            console.log(dataObj.data);
-            return res.json({
-                status: 1,
-                is_verified: true,
-                aadhaar_data: JSON.parse(dataObj.data)
-            });
-        }else{
-            return res.json({
-                status: 0,
-                is_verified: false,
-                aadhaar_data: null
-            });
+            return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: ekycResponse.data });
+        } else {
+            return res.json({ status: 0, message: ekycResponse.data.message || 'Failed to verify Aadhaar OTP' });
         }
-
     } catch (error) {
-        console.error('Error fetching Aadhaar status:', error?.response?.data || error.message);
-        res.status(500).json({ status: 0, message: 'Server error fetching Aadhaar verification status', error: error?.response?.data || error.message });
+        console.error('Aadhaar OTP verification error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during Aadhaar OTP verification' });
     }
-};
+}
 
-const panDetails = async (req, res) => {
+const getAadhaarData = async (req, res) => {
     try {
         const vendorId = req.user.id;
-        let { pan_number } = req.body;
-        console.log(pan_number, req.user);
-
-        // Fetch PAN and Aadhaar data from DB for this vendor
-        const [vendorResult] = await db.execute('SELECT pan_data, aadhar_data FROM vendors WHERE id = ?', [vendorId]);
+        const [vendorResult] = await db.execute('SELECT aadhar_data FROM vendors WHERE id = ?', [vendorId]);
         if (vendorResult.length === 0) {
             return res.status(404).json({ status: 0, message: 'Vendor not found' });
         }
-
-        // Try to get PAN details from DB
-        let panDetailsFromDb = vendorResult[0].pan_data ? JSON.parse(vendorResult[0].pan_data) : null;
-
-        // If PAN details already exist in DB, return them
-        if (panDetailsFromDb) {
-            // Get verification status
-            const [verificationResult] = await db.execute('SELECT is_pan_verified FROM vendors WHERE id = ?', [vendorId]);
-            const isPanVerified = verificationResult[0].is_pan_verified || 0;
-            
-            return res.json({ 
-                status: 1, 
-                pan_number: pan_number, 
-                pan_details: panDetailsFromDb,
-                is_pan_verified: !!isPanVerified
-            });
-        }
-
-        // If PAN number is not present, require it from request body
-        if (!pan_number) {
-            pan_number = req.body.pan_number;
-            if (!pan_number) {
-                return res.status(400).json({ status: 0, message: 'PAN number not provided' });
-            }
-        }
-
-        // Check if Aadhaar data exists - we'll need this for verification
-        let aadhaarData = null;
-        if (vendorResult[0].aadhar_data) {
-            try {
-                aadhaarData = JSON.parse(vendorResult[0].aadhar_data);
-            } catch (e) {
-                console.error("Failed to parse aadhar_data from DB:", e.message);
-            }
-        }
-
-        // Prepare request to AuthBridge API
-        const apiUrl = "https://www.truthscreen.com/v1/apicall/nid/panComprehensive";
-        const username = process.env.AUTHBRIDGE_USERNAME || " test@marcocabs.com ";
-        const doc_type = 523;
-
-        // Prepare payload as per AuthBridge requirements
-        const payload = {
-            PanNumber: pan_number,
-            docType: doc_type,
-            transID: vendorId
-        };
-        console.log(payload);
-
-        // Encrypt payload
-        const plainText = JSON.stringify(payload);
-        const encryptedData = encrypt(plainText);
-
-        const headers = {
-            "Content-Type": "application/json",
-            "username": username
-        };
-
-        // Make POST request to AuthBridge
-        const response = await axios.post(
-            apiUrl,
-            { requestData: encryptedData },
-            { headers }
-        );
-
-        // Process the response
-        console.log("PAN API Response:", response.data);
-
-        if (response.data && response.data.responseData) {
-            try {
-                // Decrypt the response data
-                const decryptedData = decrypt(response.data.responseData);
-                console.log("Decrypted PAN data:", decryptedData);
-                
-                // Parse the decrypted JSON
-                const panData = JSON.parse(decryptedData);
-
-                // Get Aadhaar data from DB for name and DOB comparison
-                let aadhaarName = null, aadhaarDob = null;
-                if (aadhaarData) {
-                    // Aadhaar data structure: { [ts_trans_id]: { name, dob, ... } }
-                    // Get the first key (ts_trans_id)
-                    const aadhaarKey = Object.keys(aadhaarData)[0];
-                    if (aadhaarKey && aadhaarData[aadhaarKey]) {
-                        // Check if the data has the expected structure
-                        if (aadhaarData[aadhaarKey].msg && 
-                            aadhaarData[aadhaarKey].msg[0] && 
-                            aadhaarData[aadhaarKey].msg[0].data) {
-                            
-                            aadhaarName = (aadhaarData[aadhaarKey].msg[0].data.name || "").toLowerCase().replace(/\s+/g, '');
-                            // Convert DD-MM-YYYY to YYYY-MM-DD if needed
-                            let dobStr = aadhaarData[aadhaarKey].msg[0].data.dob || "";
-                            if (dobStr.includes('-')) {
-                                const parts = dobStr.split('-');
-                                if (parts.length === 3 && parts[0].length === 2) {
-                                    // Format is DD-MM-YYYY, convert to YYYY-MM-DD
-                                    aadhaarDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                } else {
-                                    aadhaarDob = dobStr.split('T')[0]; // Remove time if present
-                                }
-                            } else {
-                                aadhaarDob = dobStr.split('T')[0]; // Remove time if present
-                            }
-                        }
-                        console.log("Aadhaar data:", aadhaarName, aadhaarDob);
-                    }
-                }
-
-                let panName = null, panDob = null;
-                // PAN data structure may vary, but usually has fields like name, dob, etc.
-                // Try to extract from common fields
-                if (panData && panData.result) {
-                    // AuthBridge PAN result structure
-                    panName = (panData.result.name || "").toLowerCase().replace(/\s+/g, '');
-                    panDob = (panData.result.dob || "").split('T')[0];
-                } else if (panData && panData.name) {
-                    panName = (panData.name || "").toLowerCase().replace(/\s+/g, '');
-                    panDob = (panData.dob || "").split('T')[0];
-                } else if (panData && panData.data) {
-                    // Format from the decrypted response
-                    panName = (panData.data.full_name || "").toLowerCase().replace(/\s+/g, '');
-                    panDob = panData.data.dob || "";
-                }
-
-                console.log(panName, panDob);
-
-                // Compare name and DOB for verification
-                let isPanVerified = 0;
-                if (aadhaarName && aadhaarDob && panName && panDob) {
-                    console.log("Comparing names and DOBs:");
-                    console.log("Aadhaar Name:", aadhaarName);
-                    console.log("PAN Name:", panName);
-                    console.log("Aadhaar DOB:", aadhaarDob);
-                    console.log("PAN DOB:", panDob);
-                    
-                    // Compare names (case-insensitive, ignore spaces)
-                    const nameMatch = aadhaarName === panName;
-                    
-                    // Compare DOBs (handle different formats)
-                    let dobMatch = false;
-                    if (aadhaarDob === panDob) {
-                        dobMatch = true;
-                    } else {
-                        // Try to normalize dates for comparison
-                        try {
-                            const aadhaarDate = new Date(aadhaarDob);
-                            const panDate = new Date(panDob);
-                            dobMatch = aadhaarDate.getTime() === panDate.getTime();
-                        } catch (e) {
-                            console.error("Error comparing dates:", e.message);
-                        }
-                    }
-                    
-                    console.log("Name match:", nameMatch);
-                    console.log("DOB match:", dobMatch);
-                    
-                    if (nameMatch && dobMatch) {
-                        isPanVerified = 1;
-                    }
-                }
-
-                // Save PAN details and verification status to DB for future requests
-                await db.execute(
-                    'UPDATE vendors SET pan_data = ?, is_pan_verified = ? WHERE id = ?',
-                    [decryptedData, isPanVerified, vendorId]
-                );
-
-                return res.json({
-                    status: 1,
-                    pan_number: pan_number,
-                    pan_details: panData,
-                    is_pan_verified: !!isPanVerified
-                });
-            } catch (decryptError) {
-                console.error('Error decrypting PAN response:', decryptError.message);
-                return res.status(500).json({ 
-                    status: 0, 
-                    message: 'Error processing PAN verification response',
-                    error: 'Decryption failed'
-                });
-            }
-        } else {
-            return res.status(400).json({ 
-                status: 0, 
-                message: 'Invalid response from PAN verification service',
-                raw_response: response.data
-            });
-        }
-
+        return res.json({ status: 1, message: 'Aadhaar data fetched successfully', aadhaar_data: JSON.parse(vendorResult[0].aadhar_data) });
     } catch (error) {
-        console.error('Error fetching PAN details:', error.message || JSON.stringify(error));
-        
-        // If the error contains encrypted response data, try to decrypt it
-        if (error.response?.data?.responseData) {
-            try {
-                const decryptedError = decrypt(error.response.data.responseData);
-                console.log("Decrypted error response:", decryptedError);
-                return res.status(500).json({ 
-                    status: 0, 
-                    message: 'PAN verification failed', 
-                    error: JSON.parse(decryptedError) 
-                });
-            } catch (decryptError) {
-                console.error('Failed to decrypt error response:', decryptError.message);
-            }
-        }
-        
-        res.status(500).json({ 
-            status: 0, 
-            message: 'Server error fetching PAN details', 
-            error: error?.response?.data || error.message 
-        });
+        console.error('Aadhaar data fetching error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during Aadhaar data fetching' });
     }
-}
+};
+
+const fetchPanData = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const { pan_number } = req.body;
+        const panNumber = pan_number;
+        if (!panNumber) {
+            return res.status(400).json({ status: 0, message: 'PAN number not found. Please provide PAN number.' });
+        }
+
+        // Prepare ekycHub API params
+        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        const ekycHubUser = process.env.EKYC_USER_NAME;
+        const ekycHubToken = process.env.EKYC_HUB_API;
+
+        const panVerifyUrl = `${ekycHubUrl}/verification/pan_verification?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&pan=${encodeURIComponent(panNumber)}&orderid=${encodeURIComponent(vendorId)}`;
+
+        // Call ekycHub API to verify PAN
+        const ekycResponse = await axios.get(panVerifyUrl);
+
+        if (ekycResponse.data.status === "Success") {
+            // Save PAN data and mark as verified
+            await db.execute(
+                'UPDATE vendors SET is_pan_verified = 1, pan_data = ? WHERE id = ?',
+                [JSON.stringify(ekycResponse.data), vendorId]
+            );
+            return res.json({ status: 1, message: 'PAN verified successfully', pan_data: ekycResponse.data });
+        } else {
+            return res.json({ status: 0, message: ekycResponse.data.message || 'Failed to verify PAN' });
+        }
+    } catch (error) {
+        console.error('PAN verification error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during PAN verification' });
+    }
+};
+
+const getPanData = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const [vendorResult] = await db.execute('SELECT pan_data FROM vendors WHERE id = ?', [vendorId]);
+        if (vendorResult.length === 0) {
+            return res.status(404).json({ status: 0, message: 'Vendor not found' });
+        }
+        return res.json({ status: 1, message: 'Pan data fetched successfully', pan_data: JSON.parse(vendorResult[0].pan_data) });
+    } catch (error) {
+        console.error('Pan data fetching error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during Pan data fetching' });
+    }
+};
+
 module.exports = { 
     signup, 
     login, 
@@ -860,8 +578,9 @@ module.exports = {
     verifyPhoneOTP,
     forgotPassword,
     resetPassword,
-    
-    generateAadhaarLink,
-    getAadhaarStatus,
-    panDetails
+    generateAadhaarOtp,
+    verifyAadhaarOtp,
+    getAadhaarData,
+    fetchPanData,
+    getPanData
 };
