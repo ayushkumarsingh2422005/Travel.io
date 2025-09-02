@@ -13,6 +13,8 @@ interface VendorInfo {
   
   // Identity Details (from registration form)
   panNumber: string;
+
+  aadhar_number:string;
   
   // Business Details (from registration form)
   businessName: string;
@@ -52,13 +54,15 @@ const VendorProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
-
+  const [AadharOtp, setAadharOtp] = useState<string>('');
   const [phoneOtp, setPhoneOtp] = useState<string>('');
   const [emailOtp, setEmailOtp] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
   const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
+  const [showAadharOtp, setShowAadharOtp] = useState<boolean>(false);
+  const [lastAadharOtpRequestTime, setLastAadharOtpRequestTime] = useState<number | null>(null);
 
 
 
@@ -133,7 +137,7 @@ const VendorProfile: React.FC = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyPhoneOtp = async () => {
     try {
       if (!phoneOtp) {
         setError('Please enter the OTP sent to your phone.');
@@ -280,16 +284,24 @@ const VendorProfile: React.FC = () => {
     }));
   };
 
-  const generateAadharVerificationLink=async()=>{
+  const handleVerifyAadhar=async()=>{
    try {
 
-      const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        setError('You must be logged in to verify your email.');
+     
+     const token = localStorage.getItem("marcocabs_vendor_token");
+     if (!token) {
+       setError('You must be logged in to verify your email.');
+       return;
+      }
+      
+      if(!vendorInfo?.aadhar_number){
+        setError("Enter Your Aadhar Number First ");
         return;
       }
-
-      const response=await axios.post('/auth/generate-aadhaar-link',{},
+      
+      const response=await axios.post('/auth/generate-aadhaar-otp',{
+        aadhaar_number:vendorInfo?.aadhar_number
+      },
        {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -297,27 +309,35 @@ const VendorProfile: React.FC = () => {
         }
     )
 
-    console.log('Aadhar verification link response:', response.data.verification_url);
+    console.log('Aadhar verification OTP response:', response.data.message);
 
-    if(response){
-      setSuccess('Aadhar verification link generated successfully. Please check your email.');
+    if(response.data.status){
+      setSuccess('Aadhar verification OTP generated successfully. Please check your email.');
       setError('');
-      window.open(response.data.verification_url, '_blank');
+      setShowAadharOtp(true);
+      setLastAadharOtpRequestTime(Date.now()); // Set timestamp on successful OTP generation
     }
     else{
       setError('Failed to generate Aadhar verification link. Please try again.');
       setSuccess('');
+      setShowAadharOtp(false);
     }
     
    } catch (error) {
      console.error('Error generating Aadhar verification link:', error);
      setError('Failed to generate Aadhar verification link. Please try again.');
-    
+     setSuccess('');
+     setShowAadharOtp(false);
    }
   }
 
-  const confirmAadharVerification = async () => {
+  const handleVerifyAadharOtp = async () => {
     try {
+
+      if(!AadharOtp){
+        setError("Enter The OTP for verification");
+        return ;
+      }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
@@ -325,7 +345,9 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-      const response = await axios.get('/auth/aadhaar-status',{
+      const response = await axios.post('/auth/verify-aadhar-otp',{
+        otp:AadharOtp
+      },{
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -334,60 +356,66 @@ const VendorProfile: React.FC = () => {
       const responseData = response.data ;
 
       if (responseData.status===1) {
-        // Step 1: Get the only key dynamically (e.g., "H3-NIA-700669")
-const [key] = Object.keys(responseData?.aadhaar_data);
-
-console.log(key);
-
-// Step 2: Destructure using the key
-const { final_status, msg } = responseData?.aadhaar_data[key];
-const { data } = msg[0];
-
-// Optional: extract fields from data
-const {
-  name,
-  aadhar_number,
-  // gender,
-  // dob,
-  // photo,
-  // address,
-  // co,
-  ["Father Name"]: fatherName // special handling for key with space
-} = data;
-
-console.log(final_status); // "Completed"
-console.log(name);         // "Priya Raj"
-console.log(fatherName);   // " Prem Tiwari"
-console.log(aadhar_number);
-
-        if(final_status!=='Completed'){
-          setError('Aadhar verification is still pending or incomplete. Please try again later.');
-          return ;
-        }
-
-        setSuccess('Aadhar verification confirmed successfully.');
+        setSuccess("Aadhar verified successfully.");
         setError('');
-
-
-        // set aadhar verification status in vendorInfo
-
-        vendorInfo!.is_aadhar_verified = true;
-
-
+        setAadharOtp('');
+        setShowAadharOtp(false);
+        setVendorInfo(prev => prev ? { ...prev, is_aadhar_verified: true } : null);
+        setLastAadharOtpRequestTime(null); // Clear cooldown on successful verification
       }
       else{
-        setError('Aadhar verification is still pending or incomplete. Please try again later.');
+        setError('Failed to verify OTP. Please check the OTP and try again.');
         setSuccess('');
+        setAadharOtp('');
+        // Keep showAadharOtp true to allow retry
       }
       
     } catch (error) {
       
       console.error('Error confirming Aadhar verification:', error);
-      setError('Failed to confirm Aadhar verification. Please try again.');
+      setError('Failed to verify OTP. Please try again.');
       setSuccess('');
-
+      setAadharOtp('');
+      // Keep showAadharOtp true to allow retry
     }
   }
+
+  const getAadhaarData=async()=>{
+    try {
+
+      if(!(vendorInfo?.is_aadhar_verified)){
+        setError("Please Complete Aadhar Verification First")
+        return;
+      }
+
+      
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your Aadhar.');
+        return;
+      }
+
+      const response = await axios.get('/auth/aadhar-data',{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if(!response.data.status){
+        setError(response.data.message);
+      }
+      else{
+        console.log(response.data.aadhar_data);
+      }
+
+      
+    } catch (error) {
+      console.log("Something went Wring While Fetching Aadhar details");
+      setError("Something Went Wrong");
+    }
+  }
+
+
 
   const handleVerifyPan=async()=>{
     try {
@@ -399,7 +427,7 @@ console.log(aadhar_number);
         return;
       }
 
-      const response = await axios.post('/auth/pan-details',{
+      const response = await axios.post('/auth/fetch-pan',{
         pan_number:vendorInfo?.panNumber
       },{
         headers: {
@@ -407,9 +435,9 @@ console.log(aadhar_number);
         },
       });
 
-      if(response.data.is_pan_verified){
+      if(response.data.status){
         setSuccess('Pan Verification SuccessFull');
-        console.log(response.data.pan_number,response.data.pan_details);
+        console.log(response.data);
         vendorInfo!.is_pan_verified=true;
       }
       else{
@@ -423,6 +451,42 @@ console.log(aadhar_number);
       console.log(error);
     }
   }
+
+  const getPanData=async()=>{
+    try {
+
+      if(!vendorInfo?.is_pan_verified){
+        setError(" Complete Pan Verification First ");
+        return ;
+      }
+
+       const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your Aadhar.');
+        return;
+      }
+      
+      const response = await axios.get('/auth/verify-aadhar-otp',{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if(!response.data.status){
+        setError("Something Went Wrong");
+      }
+      else{
+        console.log(response.data);
+      }
+
+      
+    } catch (error) {
+      console.log(error);
+      setError("Something Went Wrong"); 
+    }
+  }
+
+
 
   const handleSaveProfile = () => {
     // Demo API request to update profile
@@ -510,11 +574,11 @@ console.log(aadhar_number);
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50">
+    <div className="w-full min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       {/* Profile Header */}
-      <div className="bg-white shadow-sm p-8 mb-8">
-        <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
-          <div className="w-32 h-32 rounded-full bg-gray-100 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden">
+      <div className="bg-white shadow-md rounded-xl p-6 sm:p-8 mb-6">
+        <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-100 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden ring-4 ring-gray-100">
             {vendorInfo.profilePic ? (
               <img 
                 src={vendorInfo.profilePic} 
@@ -523,7 +587,7 @@ console.log(aadhar_number);
               />
             ) : (
               <div className="w-full h-full rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 sm:h-16 sm:w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -531,29 +595,29 @@ console.log(aadhar_number);
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-bold text-gray-900">{vendorInfo.fullName}</h1>
-            <p className="text-gray-600 mt-2">{vendorInfo.email}</p>
-            <p className="text-gray-600">{vendorInfo.mobile}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{vendorInfo.fullName}</h1>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">{vendorInfo.email}</p>
+            <p className="text-gray-600 text-sm sm:text-base">{vendorInfo.mobile}</p>
             
-            <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-              <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getKycStatusClass(vendorInfo.kycStatus)}`}>
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4 justify-center md:justify-start">
+              <span className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium ${getKycStatusClass(vendorInfo.kycStatus)}`}>
                 KYC: {vendorInfo.kycStatus}
               </span>
-              <span className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs sm:text-sm font-medium">
                 Member since {new Date(vendorInfo.joinDate).toLocaleDateString()}
               </span>
-              <span className="px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-medium">
                 {vendorInfo.businessType}
               </span>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 md:mt-0">
             <Link 
               to="/dashboard"
-              className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-300 flex items-center gap-2"
+              className="px-5 py-2 sm:px-6 sm:py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
               </svg>
               Dashboard
@@ -562,9 +626,9 @@ console.log(aadhar_number);
             {!isEditing && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-300 flex items-center gap-2"
+                className="px-5 py-2 sm:px-6 sm:py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 Edit Profile
@@ -575,38 +639,38 @@ console.log(aadhar_number);
       </div>
 
       {/* Dashboard Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 px-4 md:px-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Total Cars</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.numberOfCars}</p>
-          <p className="text-sm text-gray-600 mt-1">Registered vehicles</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Total Cars</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">{vendorInfo.numberOfCars}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Registered vehicles</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Total Earnings</p>
-          <p className="text-2xl font-bold text-gray-900">₹{vendorInfo.totalEarnings.toLocaleString()}</p>
-          <p className="text-sm text-gray-600 mt-1">Lifetime earnings</p>
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Total Earnings</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">₹{vendorInfo.totalEarnings.toLocaleString()}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Lifetime earnings</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Wallet Balance</p>
-          <p className="text-2xl font-bold text-gray-900">₹{vendorInfo.walletBalance.toLocaleString()}</p>
-          <p className="text-sm text-gray-600 mt-1">Available balance</p>
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Wallet Balance</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">₹{vendorInfo.walletBalance.toLocaleString()}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Available balance</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-sm font-medium text-gray-500 mb-1">Rating</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.starRating}</p>
-          <p className="text-sm text-gray-600 mt-1">Customer rating</p>
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 mb-1">Rating</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">{vendorInfo.starRating}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Customer rating</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white shadow-sm mx-4 md:mx-6 rounded-t-xl">
-        <div className="flex overflow-x-auto space-x-1 p-2 border-b">
+      <div className="bg-white shadow-md rounded-t-xl">
+        <div className="flex overflow-x-auto space-x-1 p-2 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
               activeTab === 'profile'
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -616,7 +680,7 @@ console.log(aadhar_number);
           </button>
           <button
             onClick={() => setActiveTab('business')}
-            className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
               activeTab === 'business'
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -626,7 +690,7 @@ console.log(aadhar_number);
           </button>
           <button
             onClick={() => setActiveTab('bank')}
-            className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
               activeTab === 'bank'
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -638,10 +702,10 @@ console.log(aadhar_number);
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white shadow-sm mx-4 md:mx-6 rounded-b-xl p-6">
+      <div className="bg-white shadow-md rounded-b-xl p-6 sm:p-8 mb-8">
         {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 {isEditing ? (
@@ -650,22 +714,22 @@ console.log(aadhar_number);
                     name="fullName"
                     value={editedInfo.fullName || ''}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.fullName}</p>
+                  <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.fullName}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p className="text-gray-900">{vendorInfo.email || 'No email address added'}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.email || 'No email address added'}</p>
                 
                 {vendorInfo.email ? (
                   <>
                     <button
                       onClick={handleVerifyEmail}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm mt-1"
+                      className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm mt-2 hover:bg-green-700 transition-colors"
                     >
                       {vendorInfo.isEmailVerified ? 'Email Verified ✓' : 'Verify Email'}
                     </button>
@@ -676,9 +740,9 @@ console.log(aadhar_number);
                           value={emailOtp}
                           onChange={(e) => setEmailOtp(e.target.value)}
                           placeholder="Enter OTP"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 mt-2"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 mt-3 transition-all duration-200"
                         />
-                        <button onClick={handleVerifyEmailOtp} className="bg-blue-600 text-white px-3 py-1 rounded text-sm mt-2">
+                        <button onClick={handleVerifyEmailOtp} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm mt-2 hover:bg-green-700 transition-colors">
                           Verify OTP
                         </button>
                       </>
@@ -697,17 +761,17 @@ console.log(aadhar_number);
                     name="mobile"
                     value={editedInfo.mobile || ''}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.mobile || 'No phone number added'}</p>
+                  <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.mobile || 'No phone number added'}</p>
                 )}
                 
                 {vendorInfo.mobile ? (
                   <>
                     <button
                       onClick={handleVerifyPhone}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm mt-1"
+                      className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm mt-2 hover:bg-green-700 transition-colors"
                     >
                       {vendorInfo.isPhoneVerified ? 'Phone Verified ✓' : 'Verify Phone'}
                     </button>
@@ -718,9 +782,9 @@ console.log(aadhar_number);
                           value={phoneOtp}
                           onChange={(e) => setPhoneOtp(e.target.value)}
                           placeholder="Enter OTP"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 mt-2"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 mt-3 transition-all duration-200"
                         />
-                        <button onClick={handleVerifyOtp} className="bg-blue-600 text-white px-3 py-1 rounded text-sm mt-2">
+                        <button onClick={handleVerifyPhoneOtp} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm mt-2 hover:bg-green-700 transition-colors">
                           Verify OTP
                         </button>
                       </>
@@ -729,8 +793,8 @@ console.log(aadhar_number);
                 ) : (
                   <p className="text-gray-600 text-sm mt-1">Please add a phone number to verify</p>
                 )}
-                {error && <p className="text-red-500 mt-2">{error}</p>}
-                {success && <p className="text-green-500 mt-2">{success}</p>}
+                {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
+                {success && <p className="text-green-500 mt-2 text-sm">{success}</p>}
               </div>
 
               <div>
@@ -741,25 +805,25 @@ console.log(aadhar_number);
                     name="city"
                     value={editedInfo.city || ''}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.city}</p>
+                  <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.city}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                <p className="text-gray-900">{vendorInfo.age} years</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.age} years</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <p className="text-gray-900">{vendorInfo.gender}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.gender}</p>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Current Address</label>
                 {isEditing ? (
@@ -768,10 +832,10 @@ console.log(aadhar_number);
                     value={editedInfo.currentAddress || ''}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.currentAddress}</p>
+                  <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.currentAddress}</p>
                 )}
               </div>
 
@@ -783,59 +847,119 @@ console.log(aadhar_number);
                     name="numberOfCars"
                     value={editedInfo.numberOfCars || ''}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                   />
                 ) : (
-                  <p className="text-gray-900">{vendorInfo.numberOfCars}</p>
+                  <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.numberOfCars}</p>
                 )}
               </div>
 
                             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Verification</label>
-                <p className="text-gray-900">
-                  {vendorInfo.is_aadhar_verified ? 'Verified ✓' : 'Not Verified'}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="aadhar_number"
+                    value={editedInfo.aadhar_number || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
+                  />
+                ) : (
+                  <p className="text-gray-900 text-base sm:text-lg">
+                    {vendorInfo.aadhar_number ? `XXXX XXXX ${vendorInfo.aadhar_number.slice(-4)}` : 'Not added'}
+                  </p>
+                )}
+
+                <p className="text-gray-900 mt-2 text-sm sm:text-base">
+                  {vendorInfo.is_aadhar_verified ? 'Aadhar Verified ✓' : 'Aadhar Not Verified'}
                 </p>
-                
-            {!vendorInfo.is_aadhar_verified &&   (<div><button
-                  onClick={generateAadharVerificationLink}
-                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors mr-2"
-                >
-                  Generate Aadhar Verification Link
-                </button>
-                
-                <button
-                  onClick={confirmAadharVerification}
-                  className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-                >
-                  Confirm Aadhar Verification
-                </button></div>)}
 
-
+                {!vendorInfo.is_aadhar_verified && editedInfo.aadhar_number && (
+                  <>
+                    {!showAadharOtp && (
+                      <button
+                        onClick={handleVerifyAadhar}
+                        disabled={lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000}
+                        className="mt-2 bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Generate Aadhar OTP
+                      </button>
+                    )}
+                    {showAadharOtp && (
+                      <>
+                        <input
+                          type="text"
+                          value={AadharOtp}
+                          onChange={(e) => setAadharOtp(e.target.value)}
+                          placeholder="Enter Aadhar OTP"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 mt-3 transition-all duration-200"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={handleVerifyAadharOtp}
+                            className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-colors"
+                          >
+                            Verify Aadhar OTP
+                          </button>
+                          <button
+                            onClick={handleVerifyAadhar}
+                            disabled={lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000}
+                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Resend OTP
+                          </button>
+                        </div>
+                        {lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000 && (
+                          <p className="text-sm text-gray-500 mt-2">
+                            Resend available in {Math.ceil((60000 - (Date.now() - lastAadharOtpRequestTime)) / 1000)}s
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
-                <p className="text-gray-900">
-                  {vendorInfo.panNumber ? `XXXXX${vendorInfo.panNumber.slice(-5)}` : '—'}
-                  <p>{vendorInfo.is_pan_verified ? 'Verified ✓' : 'Not Verified'}</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="panNumber"
+                    value={editedInfo.panNumber || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
+                  />
+                ) : (
+                  <p className="text-gray-900 text-base sm:text-lg">
+                    {vendorInfo.panNumber ? `XXXXX${vendorInfo.panNumber.slice(-5)}` : 'Not added'}
+                  </p>
+                )}
+                <p className="text-gray-900 mt-2 text-sm sm:text-base">
+                  {vendorInfo.is_pan_verified ? 'PAN Verified ✓' : 'PAN Not Verified'}
                 </p>
-                {!vendorInfo.is_pan_verified && (<div>
-                  <button className='bg-green-500 text-white' onClick={handleVerifyPan}>Verify Pan</button>
-                </div>)}
+                {!vendorInfo.is_pan_verified && editedInfo.panNumber && (
+                  <button
+                    onClick={handleVerifyPan}
+                    className="mt-2 bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
+                  >
+                    Verify PAN
+                  </button>
+                )}
               </div>
             </div>
 
             {isEditing && (
-              <div className="md:col-span-2 flex justify-end gap-4 mt-6">
+              <div className="md:col-span-2 flex justify-end gap-3 mt-6 sm:mt-8">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-200 text-sm sm:text-base"
                 >
                   Save Changes
                 </button>
@@ -845,7 +969,7 @@ console.log(aadhar_number);
         )}
 
         {activeTab === 'business' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
               {isEditing ? (
@@ -854,10 +978,10 @@ console.log(aadhar_number);
                   name="businessName"
                   value={editedInfo.businessName || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900">{vendorInfo.businessName}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.businessName}</p>
               )}
             </div>
 
@@ -868,7 +992,7 @@ console.log(aadhar_number);
                   name="businessType"
                   value={editedInfo.businessType || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 >
                   <option value="">Select business type</option>
                   <option value="Individual Proprietorship">Individual Proprietorship</option>
@@ -878,7 +1002,7 @@ console.log(aadhar_number);
                   <option value="Limited Liability Partnership">Limited Liability Partnership</option>
                 </select>
               ) : (
-                <p className="text-gray-900">{vendorInfo.businessType}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.businessType}</p>
               )}
             </div>
 
@@ -890,10 +1014,10 @@ console.log(aadhar_number);
                   name="gstNumber"
                   value={editedInfo.gstNumber || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900">{vendorInfo.gstNumber || '—'}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.gstNumber || '—'}</p>
               )}
             </div>
 
@@ -905,17 +1029,17 @@ console.log(aadhar_number);
                   value={editedInfo.businessAddress || ''}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900">{vendorInfo.businessAddress}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.businessAddress}</p>
               )}
             </div>
           </div>
         )}
 
         {activeTab === 'bank' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
               {isEditing ? (
@@ -924,10 +1048,10 @@ console.log(aadhar_number);
                   name="bankName"
                   value={editedInfo.bankName || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900">{vendorInfo.bankName}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.bankName}</p>
               )}
             </div>
 
@@ -939,10 +1063,10 @@ console.log(aadhar_number);
                   name="accountNumber"
                   value={editedInfo.accountNumber || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 font-mono"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 font-mono transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900 font-mono">
+                <p className="text-gray-900 font-mono text-base sm:text-lg">
                   {'•'.repeat(vendorInfo.accountNumber.length - 4)}
                   {vendorInfo.accountNumber.slice(-4)}
                 </p>
@@ -957,10 +1081,10 @@ console.log(aadhar_number);
                   name="ifscCode"
                   value={editedInfo.ifscCode || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300 font-mono uppercase"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 font-mono uppercase transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900 font-mono">{vendorInfo.ifscCode}</p>
+                <p className="text-gray-900 font-mono text-base sm:text-lg">{vendorInfo.ifscCode}</p>
               )}
             </div>
 
@@ -972,10 +1096,10 @@ console.log(aadhar_number);
                   name="accountHolderName"
                   value={editedInfo.accountHolderName || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-200 focus:border-gray-300"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200"
                 />
               ) : (
-                <p className="text-gray-900">{vendorInfo.accountHolderName}</p>
+                <p className="text-gray-900 text-base sm:text-lg">{vendorInfo.accountHolderName}</p>
               )}
             </div>
           </div>
@@ -1003,6 +1127,7 @@ const mockVendorData: VendorInfo = {
   "ifscCode": "HDFC0001234",
   "accountHolderName": "Priya Transport Services",
   "profilePic": "",
+  "aadhar_number":"275365219277",
   "totalEarnings": 356000,
   "walletBalance": 45000,
   "starRating": 4.5,
@@ -1011,10 +1136,10 @@ const mockVendorData: VendorInfo = {
   "currentAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
   "isPhoneVerified": true,
   "isEmailVerified": true,
-  "is_aadhar_verified": true,
-  "is_pan_verified":true,
+  "is_aadhar_verified": false,
+  "is_pan_verified": false,
   "joinDate": "2022-08-15",
-  "kycStatus": "Verified"
+  "kycStatus": "Incomplete"
 };
 
-export default VendorProfile; 
+export default VendorProfile;
