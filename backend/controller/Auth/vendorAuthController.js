@@ -441,7 +441,7 @@ const generateAadhaarOtp = async (req, res) => {
 
         const ekycResponse = await axios.get(aadhaarOtpUrl);
 
-        if(ekycResponse.data.status === "Success"){
+        if(ekycResponse.data.status ){
             await db.execute(
                 'UPDATE vendors SET aadhar_ref_id = ?, aadhar_number = ? WHERE id = ?',
                 [ekycResponse.data.ref_id, aadhaar_number, vendorId]
