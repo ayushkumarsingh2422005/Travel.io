@@ -1,7 +1,6 @@
 const db = require('../config/db');
 const crypto = require('crypto');
 const axios = require('axios');
-const { encrypt, decrypt } = require('../utils/authencrypt');
 
 // Helper function to generate a unique ID
 const generateUniqueId = () => crypto.randomBytes(32).toString('hex');
@@ -304,10 +303,11 @@ const getDriver = async (req, res) => {
     }
 };
 
-// Verify driver using DL and DOB via AuthBridge
+// Verify driver using DL and DOB via eKYC Hub
 const verifyDriverLicense = async (req, res) => {
     try {
         const { dl_number, dob } = req.body;
+        const vendorId = req.user.id; // From auth middleware
         
         if (!dl_number || !dob) {
             return res.status(400).json({ 
@@ -316,42 +316,40 @@ const verifyDriverLicense = async (req, res) => {
             });
         }
         
-        // Prepare request to AuthBridge API
-        const authbridgeUrl = "https://www.truthscreen.com/api/v2.2/idsearch";
+        // Prepare eKYC Hub API params
+        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        const ekycHubUser = process.env.EKYC_USER_NAME;
+        const ekycHubToken = process.env.EKYC_HUB_API;
         
-        const username = process.env.AUTHBRIDGE_USERNAME || "test@marcocabs.com";
+        if (!ekycHubUrl || !ekycHubUser || !ekycHubToken) {
+            return res.status(500).json({
+                success: false,
+                message: 'eKYC Hub configuration missing'
+            });
+        }
         
-        // Prepare payload as per AuthBridge requirements
-        const payload = {
-            transID: req.user.id,
-            docType: 326,
-            docNumber: dl_number.toUpperCase(),
-            dob: dob
-        };
-
-        const plainText = JSON.stringify(payload);
-        const encryptedData = encrypt(plainText);
+        // Generate unique order ID using vendor ID and timestamp
+        const orderId = `${vendorId}_${Date.now()}`;
         
-        // Make POST request to AuthBridge
-        const response = await axios.post(authbridgeUrl, { requestData: encryptedData }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'username': username
-            }
-        });
-
-        // Process response
-        if (response.data) {
+        // Build eKYC Hub API URL
+        const dlVerifyUrl = `${ekycHubUrl}/verification/driving?username=${ekycHubUser}&token=${ekycHubToken}&dl_numner=${dl_number}&dob=${dob}&orderid=${orderId}`;
+        console.log(dlVerifyUrl);
+        console.log('Requesting DL verification from eKYC Hub:', dlVerifyUrl);
+        
+        // Make GET request to eKYC Hub
+        const ekycResponse = await axios.get(dlVerifyUrl);
+        
+        if (ekycResponse.data.status === "Success") {
             res.status(200).json({
                 success: true,
                 message: 'Driver license verified successfully',
-                data: JSON.parse(decrypt(response.data.responseData))
+                data: ekycResponse.data
             });
         } else {
             res.status(400).json({
                 success: false,
-                message: 'Driver license verification failed',
-                error: response.data?.message || 'Invalid license details'
+                message: ekycResponse.data.message || 'Driver license verification failed',
+                error: ekycResponse.data
             });
         }
     } catch (error) {
