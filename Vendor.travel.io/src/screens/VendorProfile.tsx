@@ -380,40 +380,42 @@ const VendorProfile: React.FC = () => {
     }
   }
 
-  const getAadhaarData=async()=>{
-    try {
+  // Get Aadhar Data
 
-      if(!(vendorInfo?.is_aadhar_verified)){
-        setError("Please Complete Aadhar Verification First")
-        return;
-      }
+  // const getAadhaarData=async()=>{
+  //   try {
 
-      
-      const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        setError('You must be logged in to verify your Aadhar.');
-        return;
-      }
-
-      const response = await axios.get('/auth/aadhar-data',{
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if(!response.data.status){
-        setError(response.data.message);
-      }
-      else{
-        console.log(response.data.aadhar_data);
-      }
+  //     if(!(vendorInfo?.is_aadhar_verified)){
+  //       setError("Please Complete Aadhar Verification First")
+  //       return;
+  //     }
 
       
-    } catch (error) {
-      console.log("Something went Wring While Fetching Aadhar details");
-      setError("Something Went Wrong");
-    }
-  }
+  //     const token = localStorage.getItem("marcocabs_vendor_token");
+  //     if (!token) {
+  //       setError('You must be logged in to verify your Aadhar.');
+  //       return;
+  //     }
+
+  //     const response = await axios.get('/auth/aadhar-data',{
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+
+  //     if(!response.data.status){
+  //       setError(response.data.message);
+  //     }
+  //     else{
+  //       console.log(response.data.aadhar_data);
+  //     }
+
+      
+  //   } catch (error) {
+  //     console.log("Something went Wring While Fetching Aadhar details");
+  //     setError("Something Went Wrong");
+  //   }
+  // }
 
 
 
@@ -452,39 +454,41 @@ const VendorProfile: React.FC = () => {
     }
   }
 
-  const getPanData=async()=>{
-    try {
+  // Get PAN Data
 
-      if(!vendorInfo?.is_pan_verified){
-        setError(" Complete Pan Verification First ");
-        return ;
-      }
+  // const getPanData=async()=>{
+  //   try {
 
-       const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        setError('You must be logged in to verify your Aadhar.');
-        return;
-      }
+  //     if(!vendorInfo?.is_pan_verified){
+  //       setError(" Complete Pan Verification First ");
+  //       return ;
+  //     }
+
+  //      const token = localStorage.getItem("marcocabs_vendor_token");
+  //     if (!token) {
+  //       setError('You must be logged in to verify your Aadhar.');
+  //       return;
+  //     }
       
-      const response = await axios.get('/auth/verify-aadhar-otp',{
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  //     const response = await axios.get('/auth/verify-aadhar-otp',{
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
 
-      if(!response.data.status){
-        setError("Something Went Wrong");
-      }
-      else{
-        console.log(response.data);
-      }
+  //     if(!response.data.status){
+  //       setError("Something Went Wrong");
+  //     }
+  //     else{
+  //       console.log(response.data);
+  //     }
 
       
-    } catch (error) {
-      console.log(error);
-      setError("Something Went Wrong"); 
-    }
-  }
+  //   } catch (error) {
+  //     console.log(error);
+  //     setError("Something Went Wrong"); 
+  //   }
+  // }
 
 
 

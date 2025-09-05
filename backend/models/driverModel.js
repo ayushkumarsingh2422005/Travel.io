@@ -29,7 +29,7 @@ module.exports = createDriversTable;
 // DL No, DOB 
 // DL Expiry Date ( baad me dalenge )
 // DL Issue Date ( baad me dalenge )
-// approved_by ( baad me dalenge ) -> default false
+// approved_by ( baad me dalenge ) -> default pending ,awaited,rejected 
 
 // autofill - name, address, expirey date, 
 
