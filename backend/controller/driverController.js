@@ -255,10 +255,23 @@ const getDrivers = async (req, res) => {
             [vendor_id]
         );
         
+        // Parse DL data JSON strings
+        const driversWithParsedData = drivers.map(driver => {
+            if (driver.dl_data) {
+                try {
+                    driver.dl_data = JSON.parse(driver.dl_data);
+                } catch (error) {
+                    console.error('Error parsing DL data for driver:', driver.id, error);
+                    // Keep as string if parsing fails
+                }
+            }
+            return driver;
+        });
+        
         res.status(200).json({
             success: true,
-            count: drivers.length,
-            drivers
+            count: driversWithParsedData.length,
+            drivers: driversWithParsedData
         });
     } catch (error) {
         console.error('Error fetching drivers:', error);
@@ -289,9 +302,20 @@ const getDriver = async (req, res) => {
             });
         }
         
+        // Parse DL data JSON string
+        const driver = drivers[0];
+        if (driver.dl_data) {
+            try {
+                driver.dl_data = JSON.parse(driver.dl_data);
+            } catch (error) {
+                console.error('Error parsing DL data for driver:', driver.id, error);
+                // Keep as string if parsing fails
+            }
+        }
+        
         res.status(200).json({
             success: true,
-            driver: drivers[0]
+            driver: driver
         });
     } catch (error) {
         console.error('Error fetching driver:', error);

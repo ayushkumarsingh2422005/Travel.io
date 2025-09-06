@@ -21,6 +21,7 @@ const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
 const driverRoutes = require('./routes/driverRoutes');
+const vehicleRoutes = require('./routes/vehicleRoutes');
 const cors = require("cors")
 require('dotenv').config();
 
@@ -62,6 +63,7 @@ app.use('/user/auth', userAuthRoutes);
 app.use('/vendor/auth', vendorAuthRoutes);
 app.use('/admin/auth', adminAuthRoutes);
 app.use('/vendor/driver', driverRoutes);
+app.use('/vendor/vehicle', vehicleRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, Express!");

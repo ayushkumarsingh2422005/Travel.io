@@ -7,6 +7,7 @@ const createVehiclesTable = async () => {
             vendor_id CHAR(64) NOT NULL,
             model VARCHAR(100) NOT NULL,
             registration_no VARCHAR(50) UNIQUE NOT NULL,
+            rc_data LONGTEXT,
             image TEXT,
             no_of_seats INT NOT NULL,
             is_active TINYINT(1) DEFAULT 0, 
