@@ -327,6 +327,7 @@ const verifyVehicleRC = async (req, res) => {
     try {
         const { vehicle_number } = req.body;
         const vendorId = req.user.id; // From auth middleware
+
         
         if (!vehicle_number) {
             return res.status(400).json({ 
@@ -389,7 +390,7 @@ const createVehicleWithRC = async (req, res) => {
         // console.log(req.body);
         // Validate required fields
         if (!model || !registration_no || !no_of_seats) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false, 
                 message: 'Missing required fields: model, registration_no, no_of_seats are required' 
             });

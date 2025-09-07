@@ -24,6 +24,8 @@ const DriverManagementComponent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const[error,setError]=useState('');
   const[success,setSuccess]=useState('');
+  const [approvedByFilter, setApprovedByFilter] = useState<string>('all'); // 'all', 'Approved', 'Awaited', 'Rejected'
+  const [isActiveFilter, setIsActiveFilter] = useState<string>('all'); // 'all', 'true', 'false'
   const[AutoFetchData,setAutoFetchData]=useState({
     name:'',
     IssueDate:'',
@@ -397,6 +399,15 @@ const DriverManagementComponent: React.FC = () => {
     }
   };
 
+  const getApprovalStatusBadgeClass = (status: string | undefined) => {
+    switch(status?.toLowerCase()) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'awaited': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <div className="w-full">
       {
@@ -429,11 +440,11 @@ const DriverManagementComponent: React.FC = () => {
                   <div className="h-7 w-16 bg-gray-200 rounded animate-pulse mt-1" />
                 ) : (
                   <p className="text-2xl font-bold text-gray-800 mt-1">
-                    {idx === 0
+                  {idx === 0
                       ? drivers.length
                       : idx === 1
-                      ? drivers.filter(driver => driver.address === 'Approved').length
-                      : drivers.filter(driver => driver.address === 'Awaited').length}
+                      ? drivers.filter(driver => driver.approved_by === 'Approved').length
+                      : drivers.filter(driver => driver.approved_by === 'Awaited').length}
                   </p>
                 )}
               </div>
@@ -487,8 +498,11 @@ const DriverManagementComponent: React.FC = () => {
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Phone No.</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Languages</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Number</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Issue Date</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Expiry</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">address</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date of Birth</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Address</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Approval Status</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Actions</th>
               </tr>
             </thead>
@@ -496,7 +510,7 @@ const DriverManagementComponent: React.FC = () => {
               {loading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
-                    {Array.from({ length: 8 }).map((_, colIdx) => (
+                    {Array.from({ length: 11 }).map((_, colIdx) => (
                       <td key={colIdx} className="p-4 border-b border-gray-100">
                         <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
                       </td>
@@ -505,7 +519,7 @@ const DriverManagementComponent: React.FC = () => {
                 ))
               ) : filteredDrivers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-4 text-center text-gray-500">
+                  <td colSpan={11} className="p-4 text-center text-gray-500">
                     No drivers found. Add your first driver to get started.
                   </td>
                 </tr>
@@ -527,19 +541,22 @@ const DriverManagementComponent: React.FC = () => {
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.phone}</td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      {/* <div className="flex flex-wrap gap-1">
-                        {driver.languages.map((lang, index) => (
+                      <div className="flex flex-wrap gap-1">
+                        {/* {driver.languages.map((lang, index) => (
                           <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
                             {lang}
                           </span>
-                        ))}
-                      </div> */}
+                        ))} */}
+                      </div>
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono">{driver.dl_number}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_data}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_issue_date}</td>
+                    {/* <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_data}</td> */}
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dob}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.address}</td>
                     <td className="p-4 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getaddressBadgeClass(driver.address)}`}>
-                        {driver.address}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalStatusBadgeClass(driver.approved_by)}`}>
+                        {driver.approved_by}
                       </span>
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">

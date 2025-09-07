@@ -25,3 +25,20 @@ module.exports = createVehiclesTable;
 
 
 // 
+/*
+  id: number;
+  brand: string;
+  fuelType: string;
+  carType: string;
+  rcNumber: string;
+  permit: string;
+  status: string;
+  chassis?: string;
+  engine?: string;
+  insuranceExpiry?: string;
+  permitExpiry?: string | null;
+  fitnessExpiry?: string;
+  owner?: string;
+  makeYear?: number;
+  lastUpdated?: string;
+  */
