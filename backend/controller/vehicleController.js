@@ -105,7 +105,7 @@ const updateVehicle = async (req, res) => {
                 if (existingRegistration.length > 0) {
                     return res.status(409).json({ 
                         success: false, 
-                        message: 'Registration number already in use by another vehicle' 
+                        message: 'Registration number already in use b  y another vehicle' 
                     });
                 }
             }
@@ -130,13 +130,81 @@ const updateVehicle = async (req, res) => {
         }
         
         if (rc_data) {
-            // Parse RC data if provided as object
-            let rcDataToStore = rc_data;
-            if (typeof rc_data === 'object') {
-                rcDataToStore = JSON.stringify(rc_data);
+            // Extract individual fields from RC data
+            if (typeof rc_data === 'object' && rc_data.data) {
+                const data = rc_data.data;
+                    const rcFields = {
+                        rc_verification_id: data.verification_id || null,
+                        rc_reference_id: data.reference_id || null,
+                        rc_status: data.status || null,
+                        rc_reg_no: data.reg_no || null,
+                        rc_class: data.class || null,
+                        rc_chassis: data.chassis || null,
+                        rc_engine: data.engine || null,
+                        rc_vehicle_manufacturer_name: data.vehicle_manufacturer_name || null,
+                        rc_model: data.model || null,
+                        rc_vehicle_colour: data.vehicle_colour || null,
+                        rc_type: data.type || null,
+                        rc_norms_type: data.norms_type || null,
+                        rc_body_type: data.body_type || null,
+                        rc_owner_count: data.owner_count || null,
+                        rc_owner: data.owner || null,
+                        rc_owner_father_name: data.owner_father_name || null,
+                        rc_mobile_number: data.mobile_number || null,
+                        rc_rc_status: data.rc_status || null,
+                        rc_status_as_on: data.status_as_on || null,
+                        rc_reg_authority: data.reg_authority || null,
+                        rc_reg_date: data.reg_date || null,
+                        rc_vehicle_manufacturing_month_year: data.vehicle_manufacturing_month_year || null,
+                        rc_expiry_date: data.rc_expiry_date || null,
+                        rc_vehicle_tax_upto: data.vehicle_tax_upto || null,
+                        rc_vehicle_insurance_company_name: data.vehicle_insurance_company_name || null,
+                        rc_vehicle_insurance_upto: data.vehicle_insurance_upto || null,
+                        rc_vehicle_insurance_policy_number: data.vehicle_insurance_policy_number || null,
+                        rc_financer: data.rc_financer || null,
+                        rc_present_address: data.present_address || null,
+                        rc_permanent_address: data.permanent_address || null,
+                        rc_vehicle_cubic_capacity: data.vehicle_cubic_capacity || null,
+                        rc_gross_vehicle_weight: data.gross_vehicle_weight || null,
+                        rc_unladen_weight: data.unladen_weight || null,
+                        rc_vehicle_category: data.vehicle_category || null,
+                        rc_standard_cap: data.rc_standard_cap || null,
+                        rc_vehicle_cylinders_no: data.vehicle_cylinders_no || null,
+                        rc_vehicle_seat_capacity: data.vehicle_seat_capacity || null,
+                        rc_vehicle_sleeper_capacity: data.vehicle_sleeper_capacity || null,
+                        rc_vehicle_standing_capacity: data.vehicle_standing_capacity || null,
+                        rc_wheelbase: data.wheelbase || null,
+                        rc_vehicle_number: data.vehicle_number || null,
+                        rc_pucc_number: data.pucc_number || null,
+                        rc_pucc_upto: data.pucc_upto || null,
+                        rc_blacklist_status: data.blacklist_status || null,
+                        rc_blacklist_details: data.blacklist_details ? JSON.stringify(data.blacklist_details) : null,
+                        rc_challan_details: data.challan_details ? JSON.stringify(data.challan_details) : null,
+                        rc_permit_issue_date: data.permit_issue_date || null,
+                        rc_permit_number: data.permit_number || null,
+                        rc_permit_type: data.permit_type || null,
+                        rc_permit_valid_from: data.permit_valid_from || null,
+                        rc_permit_valid_upto: data.permit_valid_upto || null,
+                        rc_non_use_status: data.non_use_status || null,
+                        rc_non_use_from: data.non_use_from || null,
+                        rc_non_use_to: data.non_use_to || null,
+                        rc_national_permit_number: data.national_permit_number || null,
+                        rc_national_permit_upto: data.national_permit_upto || null,
+                        rc_national_permit_issued_by: data.national_permit_issued_by || null,
+                        rc_is_commercial: data.is_commercial ? 1 : 0,
+                        rc_noc_details: data.noc_details ? JSON.stringify(data.noc_details) : null,
+                        rc_split_present_address: data.split_present_address ? JSON.stringify(data.split_present_address) : null,
+                        rc_split_permanent_address: data.split_permanent_address ? JSON.stringify(data.split_permanent_address) : null
+                    };
+                    
+                // Add RC fields to update query
+                Object.keys(rcFields).forEach(field => {
+                    if (rcFields[field] !== null) {
+                        updateFields.push(`${field} = ?`);
+                        queryParams.push(rcFields[field]);
+                    }
+                });
             }
-            updateFields.push('rc_data = ?');
-            queryParams.push(rcDataToStore);
         }
         
         // If no fields to update
@@ -250,16 +318,23 @@ const getVehicles = async (req, res) => {
             [vendor_id]
         );
         
-        // Parse RC data JSON strings
+        // Parse JSON fields
         const vehiclesWithParsedData = vehicles.map(vehicle => {
-            if (vehicle.rc_data) {
-                try {
-                    vehicle.rc_data = JSON.parse(vehicle.rc_data);
-                } catch (error) {
-                    console.error('Error parsing RC data for vehicle:', vehicle.id, error);
-                    // Keep as string if parsing fails
+            // Parse JSON fields
+            const jsonFields = ['rc_blacklist_details', 'rc_challan_details', 'rc_noc_details', 'rc_split_present_address', 'rc_split_permanent_address'];
+            jsonFields.forEach(field => {
+                if (vehicle[field] && typeof vehicle[field] === 'string' && vehicle[field] !== 'null' && vehicle[field] !== '"[object Object]"') {
+                    try {
+                        vehicle[field] = JSON.parse(vehicle[field]);
+                    } catch (error) {
+                        console.error(`Error parsing ${field} for vehicle:`, vehicle.id, error);
+                        vehicle[field] = null; // Set to null if parsing fails
+                    }
+                } else if (vehicle[field] === '"[object Object]"' || vehicle[field] === 'null') {
+                    vehicle[field] = null;
                 }
-            }
+            });
+            
             return vehicle;
         });
         
@@ -297,16 +372,23 @@ const getVehicle = async (req, res) => {
             });
         }
         
-        // Parse RC data JSON string
+        // Parse JSON fields
         const vehicle = vehicles[0];
-        if (vehicle.rc_data) {
-            try {
-                vehicle.rc_data = JSON.parse(vehicle.rc_data);
-            } catch (error) {
-                console.error('Error parsing RC data for vehicle:', vehicle.id, error);
-                // Keep as string if parsing fails
+        
+        // Parse JSON fields
+        const jsonFields = ['rc_blacklist_details', 'rc_challan_details', 'rc_noc_details', 'rc_split_present_address', 'rc_split_permanent_address'];
+        jsonFields.forEach(field => {
+            if (vehicle[field] && typeof vehicle[field] === 'string' && vehicle[field] !== 'null' && vehicle[field] !== '"[object Object]"') {
+                try {
+                    vehicle[field] = JSON.parse(vehicle[field]);
+                } catch (error) {
+                    console.error(`Error parsing ${field} for vehicle:`, vehicle.id, error);
+                    vehicle[field] = null; // Set to null if parsing fails
+                }
+            } else if (vehicle[field] === '"[object Object]"' || vehicle[field] === 'null') {
+                vehicle[field] = null;
             }
-        }
+        });
         
         res.status(200).json({
             success: true,
@@ -352,7 +434,7 @@ const verifyVehicleRC = async (req, res) => {
         
         // Build eKYC Hub API URL
         const rcVerifyUrl = `${ekycHubUrl}/verification/vehicle_rc?username=${ekycHubUser}&token=${ekycHubToken}&vehicle_number=${vehicle_number}&orderid=${orderId}`;
-        // console.log('Requesting RC verification from eKYC Hub:', rcVerifyUrl);
+        console.log('Requesting RC verification from eKYC Hub:', rcVerifyUrl);
         
         // Make GET request to eKYC Hub
         const ekycResponse = await axios.get(rcVerifyUrl);
@@ -411,39 +493,151 @@ const createVehicleWithRC = async (req, res) => {
         // Generate unique ID for the vehicle
         const id = generateUniqueId();
         
-        // Parse RC data if provided as object and store as JSON string
-        let rcDataToStore = null;
+        // Extract individual fields from RC data
+        let rcFields = {};
+        
         if (rc_data) {
             console.log('RC Data received:', typeof rc_data, rc_data ? 'Present' : 'Null');
-            if (typeof rc_data === 'object') {
-                rcDataToStore = JSON.stringify(rc_data);
-                console.log('RC Data JSON string length:', rcDataToStore.length);
-            } else {
-                rcDataToStore = rc_data; // Already a string
-                console.log('RC Data string length:', rcDataToStore.length);
+            
+            // Extract individual fields from RC data
+            if (rc_data.data) {
+                const data = rc_data.data;
+                rcFields = {
+                    // Basic verification info
+                    rc_verification_id: data.verification_id || null,
+                    rc_reference_id: data.reference_id || null,
+                    rc_status: data.status || null,
+                    rc_reg_no: data.reg_no || null,
+                    
+                    // Vehicle classification
+                    rc_class: data.class || null,
+                    rc_chassis: data.chassis || null,
+                    rc_engine: data.engine || null,
+                    rc_vehicle_manufacturer_name: data.vehicle_manufacturer_name || null,
+                    rc_model: data.model || null,
+                    rc_vehicle_colour: data.vehicle_colour || null,
+                    rc_type: data.type || null,
+                    rc_norms_type: data.norms_type || null,
+                    rc_body_type: data.body_type || null,
+                    
+                    // Owner information
+                    rc_owner_count: data.owner_count || null,
+                    rc_owner: data.owner || null,
+                    rc_owner_father_name: data.owner_father_name || null,
+                    rc_mobile_number: data.mobile_number || null,
+                    
+                    // Registration details
+                    rc_rc_status: data.rc_status || null,
+                    rc_status_as_on: data.status_as_on || null,
+                    rc_reg_authority: data.reg_authority || null,
+                    rc_reg_date: data.reg_date || null,
+                    rc_vehicle_manufacturing_month_year: data.vehicle_manufacturing_month_year || null,
+                    rc_expiry_date: data.rc_expiry_date || null,
+                    
+                    // Tax and insurance
+                    rc_vehicle_tax_upto: data.vehicle_tax_upto || null,
+                    rc_vehicle_insurance_company_name: data.vehicle_insurance_company_name || null,
+                    rc_vehicle_insurance_upto: data.vehicle_insurance_upto || null,
+                    rc_vehicle_insurance_policy_number: data.vehicle_insurance_policy_number || null,
+                    rc_financer: data.rc_financer || null,
+                    
+                    // Address information
+                    rc_present_address: data.present_address || null,
+                    rc_permanent_address: data.permanent_address || null,
+                    
+                    // Technical specifications
+                    rc_vehicle_cubic_capacity: data.vehicle_cubic_capacity || null,
+                    rc_gross_vehicle_weight: data.gross_vehicle_weight || null,
+                    rc_unladen_weight: data.unladen_weight || null,
+                    rc_vehicle_category: data.vehicle_category || null,
+                    rc_standard_cap: data.rc_standard_cap || null,
+                    rc_vehicle_cylinders_no: data.vehicle_cylinders_no || null,
+                    rc_vehicle_seat_capacity: data.vehicle_seat_capacity || null,
+                    rc_vehicle_sleeper_capacity: data.vehicle_sleeper_capacity || null,
+                    rc_vehicle_standing_capacity: data.vehicle_standing_capacity || null,
+                    rc_wheelbase: data.wheelbase || null,
+                    rc_vehicle_number: data.vehicle_number || null,
+                    
+                    // PUCC details
+                    rc_pucc_number: data.pucc_number || null,
+                    rc_pucc_upto: data.pucc_upto || null,
+                    
+                    // Blacklist and challan
+                    rc_blacklist_status: data.blacklist_status || null,
+                    rc_blacklist_details: data.blacklist_details ? JSON.stringify(data.blacklist_details) : null,
+                    rc_challan_details: data.challan_details ? JSON.stringify(data.challan_details) : null,
+                    
+                    // Permit details
+                    rc_permit_issue_date: data.permit_issue_date || null,
+                    rc_permit_number: data.permit_number || null,
+                    rc_permit_type: data.permit_type || null,
+                    rc_permit_valid_from: data.permit_valid_from || null,
+                    rc_permit_valid_upto: data.permit_valid_upto || null,
+                    
+                    // Non-use status
+                    rc_non_use_status: data.non_use_status || null,
+                    rc_non_use_from: data.non_use_from || null,
+                    rc_non_use_to: data.non_use_to || null,
+                    
+                    // National permit
+                    rc_national_permit_number: data.national_permit_number || null,
+                    rc_national_permit_upto: data.national_permit_upto || null,
+                    rc_national_permit_issued_by: data.national_permit_issued_by || null,
+                    
+                    // Commercial status
+                    rc_is_commercial: data.is_commercial ? 1 : 0,
+                    
+                    // Additional details
+                    rc_noc_details: data.noc_details ? JSON.stringify(data.noc_details) : null,
+                    
+                    // Address breakdown (JSON fields)
+                    rc_split_present_address: data.split_present_address ? JSON.stringify(data.split_present_address) : null,
+                    rc_split_permanent_address: data.split_permanent_address ? JSON.stringify(data.split_permanent_address) : null
+                };
             }
         } else {
             console.log('No RC data provided');
         }
         
-        // Insert new vehicle with RC data stored as JSON string
-        // rcDataToStore = JSON.stringify(rcDataToStore);
-        // console.log("--------------------------------", rcDataToStore);
-        await db.execute(
-            `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, rc_data, is_active) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, vendor_id, model, registration_no, no_of_seats, image || null, rcDataToStore, 0]
-        );
+        // Insert new vehicle with basic fields and RC fields
+        if (Object.keys(rcFields).length > 0) {
+            // Insert with RC fields
+            const insertFields = ['id', 'vendor_id', 'model', 'registration_no', 'no_of_seats', 'image', 'is_active'];
+            const insertValues = [id, vendor_id, model, registration_no, no_of_seats, image || null, 0];
+            const placeholders = ['?', '?', '?', '?', '?', '?', '?'];
+            
+            // Add RC fields
+            Object.keys(rcFields).forEach(field => {
+                if (rcFields[field] !== null) {
+                    insertFields.push(field);
+                    insertValues.push(rcFields[field]);
+                    placeholders.push('?');
+                }
+            });
+            
+            await db.execute(
+                `INSERT INTO vehicles (${insertFields.join(', ')}) VALUES (${placeholders.join(', ')})`,
+                insertValues
+            );
+        } else {
+            // Insert without RC fields
+            await db.execute(
+                `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, is_active) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [id, vendor_id, model, registration_no, no_of_seats, image || null, 0]
+            );
+        }
         
         // Verify what was stored in database
         const [insertedVehicle] = await db.execute(
-            'SELECT id, rc_data FROM vehicles WHERE id = ?',
+            'SELECT id, rc_verification_id, rc_reg_no, rc_owner FROM vehicles WHERE id = ?',
             [id]
         );
         
         console.log('Vehicle inserted with ID:', id);
-        console.log('RC data stored in DB:', insertedVehicle[0]?.rc_data ? 'Present' : 'Null');
-        console.log('RC data length in DB:', insertedVehicle[0]?.rc_data?.length || 0);
+        console.log('RC verification ID:', insertedVehicle[0]?.rc_verification_id);
+        console.log('RC reg no:', insertedVehicle[0]?.rc_reg_no);
+        console.log('RC owner:', insertedVehicle[0]?.rc_owner);
         
         res.status(201).json({
             success: true,
@@ -455,7 +649,7 @@ const createVehicleWithRC = async (req, res) => {
                 no_of_seats,
                 image: image || null,
                 is_active: 0,
-                rc_data: rcDataToStore
+                ...rcFields
             }
         });
     } catch (error) {
