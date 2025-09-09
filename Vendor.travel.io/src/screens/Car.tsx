@@ -1,12 +1,22 @@
 // src/components/AddCar.tsx
 import React, { useState, useEffect } from 'react';
+import axios from '../api/axios';
 
 interface Car {
-  id: number;
-  brand: string;
+  id: string; // Changed to string to match backend CHAR(64)
+  vendor_id: string;
+  model: string; // Maps to 'brand' in frontend
+  registration_no: string; // Maps to 'rcNumber' in frontend
+  rc_data?: string; // For RC image/data
+  image?: string; // For car image
+  no_of_seats: number;
+  is_active: boolean; // TINYINT(1) in SQL often maps to boolean
+
+  // Existing frontend-specific fields, to be retained or mapped
+  brand: string; // Retained for UI display, will map to 'model' for API
   fuelType: string;
   carType: string;
-  rcNumber: string;
+  rcNumber: string; // Retained for UI display, will map to 'registration_no' for API
   permit: string;
   status: string;
   chassis?: string;
@@ -17,6 +27,8 @@ interface Car {
   owner?: string;
   makeYear?: number;
   lastUpdated?: string;
+  insuranceCompany?: string;
+  insurancePolicyNumber?: string;
 }
 
 // Car status classification data
@@ -35,56 +47,15 @@ const permitStatusClasses = [
   { status: 'default', class: 'bg-gray-100 text-gray-800' }
 ];
 
-// Mock car data in comprehensive JSON format - ready for API replacement
-const mockCarsData = [
-  { 
-    id: 1,
-    brand: 'Swift Dzire', 
-    fuelType: 'CNG + Petrol', 
-    carType: 'Sedan',
-    rcNumber: 'UP15AB3456',
-    permit: 'Valid',
-    status: 'Approved',
-    chassis: 'MABZKA03ABD123456',
-    engine: 'K12MN9876543',
-    insuranceExpiry: '2025-08-15',
-    permitExpiry: '2025-06-30',
-    fitnessExpiry: '2025-12-31',
-    owner: 'Vendor Name',
-    makeYear: 2022,
-    lastUpdated: '2023-11-05T14:30:00Z'
-  },
-  { 
-    id: 2,
-    brand: 'Ertiga', 
-    fuelType: 'CNG + Petrol', 
-    carType: 'SUV',
-    rcNumber: 'UP15CD7890',
-    permit: 'Awaited',
-    status: 'Awaited',
-    chassis: 'MABZRV05XCD987654',
-    engine: 'K15BH1234567',
-    insuranceExpiry: '2025-03-25',
-    permitExpiry: null,
-    fitnessExpiry: '2025-05-20',
-    owner: 'Vendor Name',
-    makeYear: 2023,
-    lastUpdated: '2023-12-15T09:45:00Z'
-  }
-];
-
-// Mock car data with enhanced structure for API replacement later
-// Commented out to avoid unused variable warning - will be used in future implementation
-/*
 const API_ENDPOINTS = {
-  CARS: '/api/cars',
-  CAR_DETAILS: (id: number) => `/api/cars/${id}`,
-  ADD_CAR: '/api/cars',
-  UPDATE_CAR: (id: number) => `/api/cars/${id}`,
-  DELETE_CAR: (id: number) => `/api/cars/${id}`,
-  FETCH_BY_RC: '/api/cars/fetch-by-rc'
+  CARS: '/vehicle',
+  CAR_DETAILS: (id: string) => `/vehicle/${id}`,
+  ADD_CAR: '/vehicle',
+  UPDATE_CAR: (id: string) => `/vehicle/${id}`,
+  DELETE_CAR: (id: string) => `/vehicle/${id}`,
+  CREATE_CAR_WITH_RC: '/vehicle/with-rc',
+  VERIFY_RC: '/vehicle/verify-rc'
 };
-*/
 
 const AddCarForm: React.FC = () => {
   const [showAddCarForm, setShowAddCarForm] = useState(false);
@@ -94,66 +65,131 @@ const AddCarForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Use mock data with delayed loading
-  useEffect(() => {
-    // Set loading state
-    setLoading(true);
-    setError(null);
-    
-    // Simulate API fetch with setTimeout
-    const timer = setTimeout(() => {
-      try {
-        // Simulate successful API response
-        setCars(mockCarsData as Car[]);
-        setLoading(false);
-      } catch {
-        // Simulate error handling
-        setError("Failed to fetch car data. Please try again.");
-        setLoading(false);
+  // State for RC auto-fetch form
+  const [rcState, setRcState] = useState<string>('');
+  const [rtoCode, setRtoCode] = useState<string>('');
+  const [issueYear, setIssueYear] = useState<string>('');
+  const [rcDigits, setRcDigits] = useState<string>('');
+  const [fetchedCarDetails, setFetchedCarDetails] = useState<Partial<Car> | null>(null);
+
+  // State for Add Car form
+  const [newCar, setNewCar] = useState<{
+    rc_image: File | null;
+    car_image: File | null;
+    insurance_doc: File | null;
+    fitness_doc: File | null;
+    permit_doc: File | null;
+    luggage: string;
+    sourcing: string;
+  }>({
+    rc_image: null,
+    car_image: null,
+    insurance_doc: null,
+    fitness_doc: null,
+    permit_doc: null,
+    luggage: '',
+    sourcing: '',
+  });
+
+  const handleAddCar = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const formData = new FormData();
+      
+      if (fetchedCarDetails) {
+        Object.entries(fetchedCarDetails).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            formData.append(key, String(value));
+          }
+        });
       }
-    }, 2000); // 2 second delay to simulate network latency
-    
-    // Cleanup function to prevent memory leaks
-    return () => {
-      clearTimeout(timer);
-    };
+
+      formData.append('luggage', newCar.luggage);
+      formData.append('sourcing', newCar.sourcing);
+
+      if (newCar.rc_image) {
+        formData.append('rc_image', newCar.rc_image);
+      }
+      if (newCar.car_image) {
+        formData.append('car_image', newCar.car_image);
+      }
+      if (newCar.insurance_doc) {
+        formData.append('insurance_doc', newCar.insurance_doc);
+      }
+      if (newCar.fitness_doc) {
+        formData.append('fitness_doc', newCar.fitness_doc);
+      }
+      if (newCar.permit_doc) {
+        formData.append('permit_doc', newCar.permit_doc);
+      }
+      if (fetchedCarDetails) {
+        formData.append('rc_data', JSON.stringify(fetchedCarDetails));
+      }
+
+        const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+      await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      fetchCars();
+      handleCloseForm();
+    } catch (err) {
+      setError('Failed to add car. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCars();
   }, []);
 
-  // For future implementation - this will fetch car data from the backend
-  // This is commented out to avoid unused function warnings
-  /*
   const fetchCars = async () => {
     try {
       setLoading(true);
-      // Example of how the API_ENDPOINTS would be used
-      // const response = await fetch(API_ENDPOINTS.CARS);
-      // if (!response.ok) throw new Error('Failed to fetch cars');
-      // const data = await response.json();
-      // setCars(data);
-      setCars(mockCarsData as Car[]);
+      setError(null);
+         const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      } // Assuming token is stored in localStorage
+      const response = await axios.get(API_ENDPOINTS.CARS, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      console.log(response.data);
+     const mappedCars = response.data.vehicles.map((car: any) => ({
+  ...car,
+  brand: car.model, 
+  rcNumber: car.registration_no, 
+}));
+setCars(mappedCars);
       setLoading(false);
     } catch (err) {
+      console.log("Error fetching cars:");
+      console.log(err);
       setError("Error fetching car data");
       setLoading(false);
     }
   };
-  */
 
-  const handleDeleteCar = (id: number) => {
-    // For future implementation - delete car via API
-    // Example of how API_ENDPOINTS would be used:
-    // try {
-    //   await fetch(API_ENDPOINTS.DELETE_CAR(id), {
-    //     method: 'DELETE'
-    //   });
-    //   // Refresh the car list
-    // } catch (err) {
-    //   setError("Failed to delete car");
-    // }
-
-    // Mock implementation
-    const newCars = cars.filter(car => car.id !== id);
-    setCars(newCars);
+  const handleDeleteCar = async (id: string) => {
+    try {
+      await axios.delete(API_ENDPOINTS.DELETE_CAR(id));
+      fetchCars(); // Refresh the car list
+    } catch (err) {
+      setError("Failed to delete car");
+    }
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -172,9 +208,66 @@ const AddCarForm: React.FC = () => {
     car.brand.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+  const handleFetchCarDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fullRcNumber = `${rcState}${rtoCode}${issueYear}${rcDigits}`;
+       const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to verify your phone number.');
+        return;
+      }
+
+      const response = await axios.post(API_ENDPOINTS.VERIFY_RC, { vehicle_number: fullRcNumber }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const ResponseData=response.data.data;
+      console.log(ResponseData);
+      if (ResponseData.status !== "Success") {
+        setError("Failed to fetch car details. Please check the RC number and try again.");
+        setLoading(false);
+        setFetchedCarDetails(null);
+        return;
+      }
+    setFetchedCarDetails({
+      owner: ResponseData.data.owner,
+      brand: ResponseData.data.vehicle_manufacturer_name,
+      model: ResponseData.data.model,
+      carType: ResponseData.data.class,
+      fuelType: ResponseData.data.type,
+      chassis: ResponseData.data.chassis,
+      engine: ResponseData.data.engine,
+      registration_no: fullRcNumber,
+      fitnessExpiry: ResponseData.data.rc_expiry_date,
+      insuranceExpiry: ResponseData.data.vehicle_insurance_upto,
+      permit: ResponseData.data.permit_type,
+      permitExpiry: ResponseData.data.permit_valid_upto,
+      no_of_seats: ResponseData.data.vehicle_seat_capacity,
+      insuranceCompany: ResponseData.data.vehicle_insurance_company_name,
+      insurancePolicyNumber: ResponseData.data.vehicle_insurance_policy_number,
+      makeYear: new Date(ResponseData.data.reg_date).getFullYear(),
+});
+
+      setLoading(false);
+    } catch (err) {
+      setError("Failed to fetch car details. Please check the RC number and try again.");
+      setLoading(false);
+      setFetchedCarDetails(null);
+    }
+  };
+
   const handleCloseForm = () => {
     setShowAddCarForm(false);
     setFormStep('auto-fetch'); // Reset to first step when closing
+    setRcState('');
+    setRtoCode('');
+    setIssueYear('');
+    setRcDigits('');
+    setFetchedCarDetails(null);
   };
 
   const handleNextToAddCar = () => {
@@ -406,28 +499,39 @@ const AddCarForm: React.FC = () => {
                         placeholder="State" 
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
+                        value={rcState}
+                        onChange={(e) => setRcState(e.target.value)}
                       />
                       <input 
                         type="text" 
                         placeholder="RTO Code" 
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
+                        value={rtoCode}
+                        onChange={(e) => setRtoCode(e.target.value)}
                       />
                       <input 
                         type="text" 
                         placeholder="Issue Year" 
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
+                        value={issueYear}
+                        onChange={(e) => setIssueYear(e.target.value)}
                       />
                       <input 
                         type="text" 
                         placeholder="4 Digits" 
-                        className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={4}
+                        value={rcDigits}
+                        onChange={(e) => setRcDigits(e.target.value)}
                       />
                     </div>
                     <div className="mt-3">
-                      <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                      <button 
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        onClick={handleFetchCarDetails}
+                      >
                         Fetch Car Details
                       </button>
                     </div>
@@ -445,6 +549,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch name"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.owner || ''}
                         />
                       </div>
                       
@@ -455,6 +560,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch name"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.brand || ''}
                         />
                       </div>
                       
@@ -465,6 +571,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch name"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.model || ''}
                         />
                       </div>
                       
@@ -475,6 +582,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.carType || ''}
                         />
                       </div>
                       
@@ -485,6 +593,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.fuelType || ''}
                         />
                       </div>
                       
@@ -495,6 +604,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.chassis || ''}
                         />
                       </div>
                       
@@ -505,6 +615,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.engine || ''}
                         />
                       </div>
                       
@@ -515,6 +626,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.registration_no || ''}
                         />
                       </div>
                       
@@ -525,6 +637,7 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.fitnessExpiry || ''}
                         />
                       </div>
                       
@@ -535,6 +648,57 @@ const AddCarForm: React.FC = () => {
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
+                          value={fetchedCarDetails?.insuranceExpiry || ''}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                          value={fetchedCarDetails?.permit || ''}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Permit Expiry</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                          value={fetchedCarDetails?.permitExpiry || ''}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                          value={fetchedCarDetails?.no_of_seats || ''}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Company</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                          value={fetchedCarDetails?.insuranceCompany || ''}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy Number</label>
+                        <input 
+                          type="text" 
+                          placeholder="Auto fetch"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                          disabled
+                          value={fetchedCarDetails?.insurancePolicyNumber || ''}
                         />
                       </div>
                     </div>
@@ -582,174 +746,133 @@ const AddCarForm: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">RC Image</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                          <input
+                            type="file"
+                            className="hidden"
+                            id="rc-image-upload"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                setNewCar({ ...newCar, rc_image: e.target.files[0] });
+                              }
+                            }}
+                          />
+                          <label htmlFor="rc-image-upload" className="cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                            <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                          </label>
                         </div>
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Car Image</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                          <input
+                            type="file"
+                            className="hidden"
+                            id="car-image-upload"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                setNewCar({ ...newCar, car_image: e.target.files[0] });
+                              }
+                            }}
+                          />
+                          <label htmlFor="car-image-upload" className="cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                            <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                          </label>
                         </div>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-                        <select 
-                          id="brand" 
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        >
-                          <option value="">Select brand name</option>
-                          <option value="Maruti">Maruti</option>
-                          <option value="Hyundai">Hyundai</option>
-                          <option value="Tata">Tata</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
-                        <select 
-                          id="fuelType" 
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        >
-                          <option value="">Select fuel type</option>
-                          <option value="Petrol">Petrol</option>
-                          <option value="Diesel">Diesel</option>
-                          <option value="CNG + Petrol">CNG + Petrol</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="makeYear" className="block text-sm font-medium text-gray-700 mb-1">Car Make Year</label>
-                        <input
-                          type="number"
-                          id="makeYear"
-                          placeholder="Enter car make year"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Insurance Details Section */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-4">Insurance Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Document</label>
-                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="insurerName" className="block text-sm font-medium text-gray-700 mb-1">Insurer's Name</label>
-                        <select 
-                          id="insurerName" 
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        >
-                          <option value="">Select insurer</option>
-                          <option value="HDFC ERGO">HDFC ERGO</option>
-                          <option value="ICICI Lombard">ICICI Lombard</option>
-                          <option value="Bajaj Allianz">Bajaj Allianz</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="policyNumber" className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy Number</label>
-                        <input
-                          type="text"
-                          id="policyNumber"
-                          placeholder="Enter policy number"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="insuranceExpiry" className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
-                        <input
-                          type="date"
-                          id="insuranceExpiry"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        />
                       </div>
                     </div>
                   </div>
                   
                   {/* Fitness and Permit Section */}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-4">Fitness & Permit Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Document</label>
+                        <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                           <input
+                            type="file"
+                            className="hidden"
+                            id="insurance-doc-upload"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                setNewCar({ ...newCar, insurance_doc: e.target.files[0] });
+                              }
+                            }}
+                          />
+                          <label htmlFor="insurance-doc-upload" className="cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                          </label>
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Document</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                           <input
+                            type="file"
+                            className="hidden"
+                            id="fitness-doc-upload"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                setNewCar({ ...newCar, fitness_doc: e.target.files[0] });
+                              }
+                            }}
+                          />
+                          <label htmlFor="fitness-doc-upload" className="cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                           <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                          </label>
                         </div>
                       </div>
-                      
-                      <div>
-                        <label htmlFor="fitnessExpiry" className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
-                        <input
-                          type="date"
-                          id="fitnessExpiry"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        />
-                      </div>
-                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Permit Document</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                           <input
+                            type="file"
+                            className="hidden"
+                            id="permit-doc-upload"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                setNewCar({ ...newCar, permit_doc: e.target.files[0] });
+                              }
+                            }}
+                          />
+                          <label htmlFor="permit-doc-upload" className="cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                           <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                          </label>
                         </div>
                       </div>
-                      
-                      <div>
-                        <label htmlFor="permitExpiry" className="block text-sm font-medium text-gray-700 mb-1">Permit Expiry Date</label>
-                        <input
-                          type="date"
-                          id="permitExpiry"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="permitType" className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
-                        <select 
-                          id="permitType" 
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                        >
-                          <option value="">Select permit type</option>
-                          <option value="All India">All India</option>
-                          <option value="State">State</option>
-                          <option value="Local">Local</option>
-                        </select>
-                      </div>
-                      
+                    </div>
+                  </div>
+                  {/* Additional Details Section */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">Additional Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="luggageCarrier" className="block text-sm font-medium text-gray-700 mb-1">Luggage Carrier</label>
-                        <select 
-                          id="luggageCarrier" 
+                        <select
+                          id="luggageCarrier"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          value={newCar.luggage}
+                          onChange={(e) => setNewCar({ ...newCar, luggage: e.target.value })}
                         >
                           <option value="">Select availability</option>
                           <option value="Yes">Yes</option>
@@ -759,9 +882,11 @@ const AddCarForm: React.FC = () => {
                       
                       <div>
                         <label htmlFor="sourcing" className="block text-sm font-medium text-gray-700 mb-1">Sourcing</label>
-                        <select 
-                          id="sourcing" 
+                        <select
+                          id="sourcing"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          value={newCar.sourcing}
+                          onChange={(e) => setNewCar({ ...newCar, sourcing: e.target.value })}
                         >
                           <option value="">Select ownership type</option>
                           <option value="Own">Own</option>
@@ -783,6 +908,7 @@ const AddCarForm: React.FC = () => {
                   </button>
                   <button 
                     className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    onClick={handleAddCar}
                   >
                     Add Car
                   </button>
