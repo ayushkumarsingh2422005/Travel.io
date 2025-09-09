@@ -7,7 +7,7 @@ interface Car {
   vendor_id: string;
   model: string; // Maps to 'brand' in frontend
   registration_no: string; // Maps to 'rcNumber' in frontend
-  rc_data?: string; // For RC image/data
+  rc_data?: string; // For 
   image?: string; // For car image
   no_of_seats: number;
   is_active: boolean; // TINYINT(1) in SQL often maps to boolean
@@ -71,6 +71,8 @@ const AddCarForm: React.FC = () => {
   const [issueYear, setIssueYear] = useState<string>('');
   const [rcDigits, setRcDigits] = useState<string>('');
   const [fetchedCarDetails, setFetchedCarDetails] = useState<Partial<Car> | null>(null);
+  const [rawRcData, setRawRcData] = useState<any>(null);
+  const [rcCache, setRcCache] = useState<Record<string, Partial<Car>>>({});
 
   // State for Add Car form
   const [newCar, setNewCar] = useState<{
@@ -91,41 +93,34 @@ const AddCarForm: React.FC = () => {
     sourcing: '',
   });
 
+
   const handleAddCar = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const formData = new FormData();
-      
-      if (fetchedCarDetails) {
-        Object.entries(fetchedCarDetails).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
-            formData.append(key, String(value));
-          }
-        });
+      console.log(fetchedCarDetails?.model);
+
+      console.log(rawRcData);
+
+      if (fetchedCarDetails?.model) {
+        
+        formData.append('model', fetchedCarDetails.model);
+      }
+      if (fetchedCarDetails?.registration_no) {
+        formData.append('registration_no', fetchedCarDetails.registration_no);
+      }
+      if (fetchedCarDetails?.no_of_seats) {
+        formData.append('no_of_seats', String(fetchedCarDetails.no_of_seats));
       }
 
-      formData.append('luggage', newCar.luggage);
-      formData.append('sourcing', newCar.sourcing);
-
-      if (newCar.rc_image) {
-        formData.append('rc_image', newCar.rc_image);
-      }
       if (newCar.car_image) {
-        formData.append('car_image', newCar.car_image);
+        formData.append('image', newCar.car_image);
       }
-      if (newCar.insurance_doc) {
-        formData.append('insurance_doc', newCar.insurance_doc);
-      }
-      if (newCar.fitness_doc) {
-        formData.append('fitness_doc', newCar.fitness_doc);
-      }
-      if (newCar.permit_doc) {
-        formData.append('permit_doc', newCar.permit_doc);
-      }
-      if (fetchedCarDetails) {
-        formData.append('rc_data', JSON.stringify(fetchedCarDetails));
+
+      if (rawRcData) {
+        formData.append('rc_data', JSON.stringify(rawRcData));
       }
 
         const token = localStorage.getItem("marcocabs_vendor_token");
@@ -133,12 +128,25 @@ const AddCarForm: React.FC = () => {
         setError('You must be logged in to verify your phone number.');
         return;
       }
-      await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // use form data when u want to upload files currently just data 
+      // await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, formData, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      // });
+
+      await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, {
+  model: fetchedCarDetails?.model,
+  registration_no: fetchedCarDetails?.registration_no,
+  no_of_seats: fetchedCarDetails?.no_of_seats,
+  rc_data: rawRcData,
+}, {
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  },
+});
 
       fetchCars();
       handleCloseForm();
@@ -172,6 +180,13 @@ const AddCarForm: React.FC = () => {
   ...car,
   brand: car.model, 
   rcNumber: car.registration_no, 
+   status: car.is_active ? 'approved' : 'awaited',
+        permit: car.rc_permit_type || 'N/A',
+        permitExpiry: car.rc_permit_valid_upto,
+        fuelType: car.rc_type || 'N/A',
+        carType: car.rc_class || 'N/A',
+        makeYear: car.rc_reg_date ? new Date(car.rc_reg_date).getFullYear() : undefined,
+        lastUpdated: car.updated_at,
 }));
 setCars(mappedCars);
       setLoading(false);
@@ -209,6 +224,7 @@ setCars(mappedCars);
   );
 
 
+
   const handleFetchCarDetails = async () => {
     try {
       setLoading(true);
@@ -220,6 +236,12 @@ setCars(mappedCars);
         return;
       }
 
+       if (rcCache[fullRcNumber]) {
+        console.log("Using cached RC data for:", fullRcNumber, rcCache[fullRcNumber]);
+        setFetchedCarDetails(rcCache[fullRcNumber]);
+        return;
+  }
+
       const response = await axios.post(API_ENDPOINTS.VERIFY_RC, { vehicle_number: fullRcNumber }, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -227,30 +249,35 @@ setCars(mappedCars);
       });
       const ResponseData=response.data.data;
       console.log(ResponseData);
-      if (ResponseData.status !== "Success") {
+     if (ResponseData.status !== "Success") {
         setError("Failed to fetch car details. Please check the RC number and try again.");
         setLoading(false);
         setFetchedCarDetails(null);
         return;
       }
-    setFetchedCarDetails({
-      owner: ResponseData.data.owner,
-      brand: ResponseData.data.vehicle_manufacturer_name,
-      model: ResponseData.data.model,
-      carType: ResponseData.data.class,
+     setRawRcData(ResponseData);
+     const carDetails: Partial<Car> = {
+     owner: ResponseData.data.owner, 
+     brand: ResponseData.data.vehicle_manufacturer_name, 
+     model: ResponseData.data.model, 
+     carType: ResponseData.data.class,
       fuelType: ResponseData.data.type,
-      chassis: ResponseData.data.chassis,
-      engine: ResponseData.data.engine,
-      registration_no: fullRcNumber,
-      fitnessExpiry: ResponseData.data.rc_expiry_date,
-      insuranceExpiry: ResponseData.data.vehicle_insurance_upto,
-      permit: ResponseData.data.permit_type,
-      permitExpiry: ResponseData.data.permit_valid_upto,
-      no_of_seats: ResponseData.data.vehicle_seat_capacity,
-      insuranceCompany: ResponseData.data.vehicle_insurance_company_name,
-      insurancePolicyNumber: ResponseData.data.vehicle_insurance_policy_number,
-      makeYear: new Date(ResponseData.data.reg_date).getFullYear(),
-});
+       chassis: ResponseData.data.chassis, 
+       engine: ResponseData.data.engine, 
+       registration_no: fullRcNumber,
+        fitnessExpiry: ResponseData.data.rc_expiry_date,
+         insuranceExpiry: ResponseData.data.vehicle_insurance_upto,
+          permit: ResponseData.data.permit_type, permitExpiry: ResponseData.data.permit_valid_upto, 
+          no_of_seats: ResponseData.data.vehicle_seat_capacity,
+           insuranceCompany: ResponseData.data.vehicle_insurance_company_name, 
+           insurancePolicyNumber: ResponseData.data.vehicle_insurance_policy_number, 
+          makeYear: new Date(ResponseData.data.reg_date).getFullYear(),
+    };
+
+    setFetchedCarDetails(carDetails);
+
+    // ✅ Save to cache
+    setRcCache(prev => ({ ...prev, [fullRcNumber]: carDetails }));
 
       setLoading(false);
     } catch (err) {
@@ -268,6 +295,7 @@ setCars(mappedCars);
     setIssueYear('');
     setRcDigits('');
     setFetchedCarDetails(null);
+    setRawRcData(null);
   };
 
   const handleNextToAddCar = () => {
@@ -379,14 +407,14 @@ setCars(mappedCars);
                     ))}
                   </tr>
                 ))
-              ) : filteredCars.length === 0 ? (
+              ) : filteredCars?.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-4 text-center text-gray-500">
                     {cars.length > 0 ? 'No cars match your search criteria.' : 'No cars found. Add your first car to get started.'}
                   </td>
                 </tr>
               ) : (
-                filteredCars.map((car) => (
+                filteredCars?.map((car) => (
                   <tr key={car.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
                       <button 
