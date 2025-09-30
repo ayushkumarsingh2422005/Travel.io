@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { checkAuth } from '../utils/verifytoken';
 import { Loader } from '@googlemaps/js-api-loader';
+import UserAvatar from '../components/UserAvatar';
 
 
 const cabOptions = ["Outstation", "Local", "Airport"]
@@ -525,19 +526,19 @@ export default function Cabs() {
   }, [filters, cabData]);
 
   useEffect(() => {
-    const check = async () => {
-      const token = localStorage.getItem('marcocabs_customer_token');
-      const type = 'customer';
-      if (!token) {
-        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-        return;
-      }
-      const result = await checkAuth(type, token);
-      if (!result) {
-        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-      }
-    };
-    check();
+    // const check = async () => {
+    //   const token = localStorage.getItem('marcocabs_customer_token');
+    //   const type = 'customer';
+    //   if (!token) {
+    //     navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+    //     return;
+    //   }
+    //   const result = await checkAuth(type, token);
+    //   if (!result) {
+    //     navigate('/login', { state: { from: location.pathname, pageState: location.state } });
+    //   }
+    // };
+    // check();
     // Simulate API request for cabs
     setLoading(true);
     setTimeout(() => {
@@ -553,17 +554,7 @@ export default function Cabs() {
       <header className="bg-gradient-to-r from-green-600 to-green-700 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="text-2xl font-bold text-white">Select Your Cab</div>
-          <button
-            className="bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors"
-            onClick={() => navigate('/')}
-          >
-            <div className='flex gap-1'>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Back</span>
-            </div>
-          </button>
+          <UserAvatar/>
         </div>
       </header>
       {/* Booking Form Section */}
@@ -688,7 +679,7 @@ export default function Cabs() {
         type="submit"
         className="w-full mt-4 p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
       >
-        Check Price & Book
+        Search Cab
       </button>
     </form>
   </div>

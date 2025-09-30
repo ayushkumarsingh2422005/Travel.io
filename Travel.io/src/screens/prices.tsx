@@ -34,33 +34,33 @@ export default function Prices() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-   useEffect(() => {
-        const check = async () => {
-          const token = localStorage.getItem('marcocabs_customer_token');
-          const type = 'customer';
+//    useEffect(() => {
+//         const check = async () => {
+//           const token = localStorage.getItem('marcocabs_customer_token');
+//           const type = 'customer';
           
-          if (!token) {
-            console.log('No token found, redirecting to login');
-            navigate('/login', {
-  state: {
-    from: location.pathname,
-  },
-});
-          }
+//           if (!token) {
+//             console.log('No token found, redirecting to login');
+//             navigate('/login', {
+//   state: {
+//     from: location.pathname,
+//   },
+// });
+//           }
           
-          const result = await checkAuth(type, token);
+//           const result = await checkAuth(type, token);
   
-          if (!result) {
-           navigate('/login', {
-  state: {
-    from: location.pathname,
-  },
-});
-          }
-        };
+//           if (!result) {
+//            navigate('/login', {
+//   state: {
+//     from: location.pathname,
+//   },
+// });
+//           }
+//         };
     
-        check();
-      }, [navigate]);
+//         check();
+//       }, [navigate]);
 
   useEffect(() => {
     const initMap = async () => {
@@ -200,15 +200,7 @@ export default function Prices() {
               </svg>
               <h1 className="text-2xl font-bold">Marco Cabs</h1>
             </div>
-            <button 
-              onClick={() => navigate('/')}
-              className="flex items-center px-4 py-2 text-sm bg-white text-black bg-opacity-10 hover:bg-opacity-20 rounded-full transition-all"
-            >
-              <svg className="w-4 h-4 mr-2 " fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Home
-            </button>
+          
           </div>
         </div>
       </header>
@@ -324,10 +316,10 @@ export default function Prices() {
                           </div>
                           <span className="ml-10 font-medium text-gray-800">Starting Point</span>
                         </div>
-                        <p className="ml-10 text-gray-600 break-words">{routeData.pickup}</p>
+                        <p className="ml-10 text-gray-600 break-words">{routeData?.pickup}</p>
                       </div>
                       
-                      {routeData.stops.map((stop, index) => (
+                      {routeData?.stops?.map((stop, index) => (
                         <div key={index} className="relative pl-8 pb-6">
                           <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-green-200"></div>
                           <div className="flex items-center mb-2">
