@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { signup, login, google, verifytoken } = require('../../controller/Auth/userAuthController');
-const { verify } = require('crypto');
 
 // Email/Password Signup
 router.post('/signup', signup);
