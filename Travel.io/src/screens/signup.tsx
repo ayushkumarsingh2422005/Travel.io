@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const carouselImages = [
   '/dummy/customer-1.jpg',
@@ -13,7 +14,6 @@ export default function Signup() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', gender: '', age: '', current_address: ''
   });
-  const [message, setMessage] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const navigate = useNavigate();
    const location = useLocation();
@@ -31,7 +31,6 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     try {
       const res = await axios.post('/auth/signup', form);
          localStorage.setItem('marcocabs_customer_token', res.data.token);
@@ -43,14 +42,13 @@ export default function Signup() {
 
     // Redirect to original page (with state if any)
     navigate(from, { state: pageState });
-      setMessage(`Signup successful! ${location}`);
+      toast.success(`Signup successful!`);
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Signup failed');
+      toast.error(err.response?.data?.message || 'Signup failed');
     }
   };
 
   const handleGoogle = async (credentialResponse: any) => {
-    setMessage('');
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
         localStorage.setItem('marcocabs_customer_token', res.data.token);
@@ -63,9 +61,9 @@ export default function Signup() {
 
     // Redirect to original page (with state if any)
     navigate(from, { state: pageState });
-      setMessage('Google signup successful!');
+      toast.success('Google signup successful!');
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Google signup failed');
+      toast.error(err.response?.data?.message || 'Google signup failed');
     }
   };
 
@@ -173,10 +171,9 @@ export default function Signup() {
           <div className="flex justify-center mb-2">
             <GoogleLogin
               onSuccess={handleGoogle}
-              onError={() => setMessage('Google signup failed')}
+              onError={() => toast.error('Google signup failed')}
             />
           </div>
-          {message && <div className="text-red-500 text-center mt-2">{message}</div>}
           <div className="text-center text-gray-500 mt-4">
             Already have an account?{' '}
             <Link to="/login" className="text-green-700 font-medium hover:underline">Log In</Link>

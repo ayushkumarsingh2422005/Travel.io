@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface ProfileData {
   name: string;
@@ -38,15 +39,18 @@ const Profile = () => {
   const handleVerifyEmail = () => {
     // Implement email verification logic
     console.log('Sending verification email...');
+    toast('Verification email sent!');
   };
 
   const handleVerifyPhone = () => {
     // Implement phone verification logic
     console.log('Sending OTP to phone...');
+    toast('OTP sent to your phone!');
   };
 
   const handleLogout = () => {
     // Implement logout logic
+    toast.success('Logged out successfully!');
     navigate('/login');
   };
 
@@ -159,4 +163,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

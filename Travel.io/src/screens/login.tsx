@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const carouselImages = [
   '/dummy/customer-1.jpg',
@@ -11,7 +12,6 @@ const carouselImages = [
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [message, setMessage] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
 
   const navigate = useNavigate();
@@ -30,12 +30,11 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     try {
       const res = await axios.post('/auth/login', form);
       console.log(res.data);
       localStorage.setItem('marcocabs_customer_token', res.data.token); // Store token in local storage
-      setMessage('Login successful!');
+      toast.success('Login successful!');
        // Extract redirect info
     const from = location.state?.from || '/';
     const pageState = location.state?.pageState;
@@ -46,16 +45,15 @@ export default function Login() {
     navigate(from, { state: pageState });
      
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Login failed');
     }
   };
 
   const handleGoogle = async (credentialResponse: any) => {
-    setMessage('');
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
       localStorage.setItem('marcocabs_customer_token', res.data.token);
-      setMessage(`Google login successful! ${location}`);
+      toast.success(`Google login successful!`);
         // Extract redirect info
     const from = location.state?.from || '/';
     const pageState = location.state?.pageState;
@@ -65,7 +63,7 @@ export default function Login() {
     // Redirect to original page (with state if any)
     navigate(from, { state: pageState });
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Google login failed');
+      toast.error(err.response?.data?.message || 'Google login failed');
     }
   };
 
@@ -125,10 +123,9 @@ export default function Login() {
           <div className="flex justify-center mb-2">
             <GoogleLogin
               onSuccess={handleGoogle}
-              onError={() => setMessage('Google login failed')}
+              onError={() => toast.error('Google login failed')}
             />
           </div>
-          {message && <div className="text-red-500 text-center mt-2">{message}</div>}
           <div className="text-center text-gray-500 mt-4">
             Don't have an account?{' '}
             <Link to="/signup" className="text-green-700 font-medium hover:underline">Sign Up</Link>

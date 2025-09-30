@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
+import toast from 'react-hot-toast';
 
 
 const cabOptions = ["Outstation", "Local", "Airport"]
@@ -346,6 +347,7 @@ export default function Cabs() {
       }
     } catch (error) {
       console.error('Error fetching location suggestions:', error);
+      toast.error('Error fetching location suggestions');
     }
   };
 
@@ -430,6 +432,7 @@ export default function Cabs() {
         }
       } catch (error) {
         console.error('Error fetching location suggestions:', error);
+        toast.error('Error fetching location suggestions');
       }
     }
   };
@@ -922,4 +925,4 @@ export default function Cabs() {
       </footer>
     </div>
   );
-} 
+}

@@ -44,6 +44,7 @@ interface VendorInfo {
   
   // KYC Status
   kycStatus: 'Verified' | 'Pending' | 'Incomplete';
+  description?: string;
 }
 
 
@@ -67,26 +68,57 @@ const VendorProfile: React.FC = () => {
 
 
   useEffect(() => {
-    // Simulate fetching vendor data
     const fetchVendorData = async () => {
       setLoading(true);
       try {
-        // Demo API request - in real app, this would be an actual API call
-        // const response = await axios.get('/vendor/profile', {
-        //   headers: {
-        //     Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
-        //   },
-        // });
-        // const data = await response.data;
+        const response = await axios.get('/profile', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
+          },
+        });
+
+        console.log(response.data);
         
-        // Using mock data for demonstration
-        setTimeout(() => {
-          setVendorInfo(mockVendorData);
-          setEditedInfo(mockVendorData);
-          setLoading(false);
-        }, 800);
+        if (response.data && response.data.vendor) {
+          const vendorData = response.data.vendor;
+          const formattedData: VendorInfo = {
+            id: vendorData.id,
+            fullName: vendorData.name,
+            email: vendorData.email,
+            mobile: vendorData.phone,
+            city: vendorData.city || '', // Assuming city might not be there
+            numberOfCars: vendorData.number_of_cars || 0,
+            panNumber: vendorData.pan_number || '',
+            aadhar_number: vendorData.aadhar_number || '',
+            businessName: vendorData.business_name || '',
+            businessType: vendorData.business_type || '',
+            gstNumber: vendorData.gst_number || '',
+            businessAddress: vendorData.business_address || '',
+            bankName: '', // Not in backend
+            accountNumber: '', // Not in backend
+            ifscCode: '', // Not in backend
+            accountHolderName: '', // Not in backend
+            profilePic: vendorData.profile_pic,
+            totalEarnings: vendorData.total_earnings,
+            walletBalance: vendorData.amount, // Mapping amount to walletBalance
+            starRating: vendorData.star_rating,
+            age: vendorData.age,
+            gender: vendorData.gender,
+            currentAddress: vendorData.current_address,
+            isPhoneVerified: !!vendorData.is_phone_verified,
+            isEmailVerified: !!vendorData.is_email_verified,
+            is_aadhar_verified: !!vendorData.is_aadhaar_verified,
+            is_pan_verified: !!vendorData.is_pan_verified,
+            joinDate: vendorData.created_at,
+            kycStatus: vendorData.kyc_status || 'Incomplete',
+          };
+          setVendorInfo(formattedData);
+          setEditedInfo(formattedData);
+        }
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching vendor data:', error);
+        setError('Failed to fetch vendor data. Please try again.');
         setLoading(false);
       }
     };
@@ -243,7 +275,7 @@ const VendorProfile: React.FC = () => {
       }
 
       const response = await axios.post(
-        '/auth//verify-email',
+        '/auth/verify-email',
         {
           otp: emailOtp,
         },
@@ -492,21 +524,46 @@ const VendorProfile: React.FC = () => {
 
 
 
-  const handleSaveProfile = () => {
-    // Demo API request to update profile
-    // const updateProfile = async () => {
-    //   const response = await axios.put('/vendor/profile', editedInfo, {
-    //     headers: {
-    //       Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
-    //     },
-    //   });
-    //   if (response.data) {
-    //     setVendorInfo(response.data);
-    //   }
-    // };
-    
-    setVendorInfo(prev => ({ ...prev, ...editedInfo } as VendorInfo));
-    setIsEditing(false);
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        setError('You must be logged in to update your profile.');
+        return;
+      }
+
+      // Only send fields that the backend can update
+      const updateData = {
+        name: editedInfo.fullName,
+        phone: editedInfo.mobile,
+        gender: editedInfo.gender,
+        age: editedInfo.age,
+        current_address: editedInfo.currentAddress,
+        description: editedInfo.description, // Assuming description can be edited
+      };
+
+      const response = await axios.put(
+        '/profile', 
+        updateData, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Optimistically update the UI, or refetch data
+        setVendorInfo(prev => ({ ...prev, ...editedInfo } as VendorInfo));
+        setSuccess('Profile updated successfully!');
+        setIsEditing(false);
+      } else {
+        setError(response.data.message || 'Failed to update profile.');
+      }
+    } catch (error) {
+      console.error('Error updating vendor profile:', error);
+      setError('Failed to update profile. Please try again.');
+    }
   };
 
   const getKycStatusClass = (status: string) => {
@@ -1111,39 +1168,6 @@ const VendorProfile: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Mock data for the vendor profile - updated to match registration form and backend structure
-const mockVendorData: VendorInfo = {
-  "id": "VEN123456",
-  "fullName": "Priya Transport Services",
-  "email": "satyamtiwari87090@gmail.com",
-  "mobile": "+91 9693240525",
-  "city": "Mumbai",
-  "numberOfCars": 5,
-  "panNumber": "GSPPR6328H",
-  "businessName": "Priya Transport Services",
-  "businessType": "Individual Proprietorship",
-  "gstNumber": "27ABCDE1234F1Z5",
-  "businessAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
-  "bankName": "HDFC Bank",
-  "accountNumber": "1234567890123456",
-  "ifscCode": "HDFC0001234",
-  "accountHolderName": "Priya Transport Services",
-  "profilePic": "",
-  "aadhar_number":"275365219277",
-  "totalEarnings": 356000,
-  "walletBalance": 45000,
-  "starRating": 4.5,
-  "age": 35,
-  "gender": "Male",
-  "currentAddress": "123, Main Street, Commercial Area, Mumbai - 400001",
-  "isPhoneVerified": true,
-  "isEmailVerified": true,
-  "is_aadhar_verified": false,
-  "is_pan_verified": false,
-  "joinDate": "2022-08-15",
-  "kycStatus": "Incomplete"
 };
 
 export default VendorProfile;

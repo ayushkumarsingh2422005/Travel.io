@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
+import toast from 'react-hot-toast';
 
 declare global {
   interface Window {
@@ -154,6 +155,7 @@ export default function Prices() {
         });
       } catch (error) {
         console.error('Error loading Google Maps:', error);
+        toast.error('Error loading Google Maps');
         setIsLoading(false);
       }
     };
