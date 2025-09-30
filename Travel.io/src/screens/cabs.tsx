@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { checkAuth } from '../utils/verifytoken';
 import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
 

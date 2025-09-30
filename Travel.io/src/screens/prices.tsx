@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
-import { checkAuth } from '../utils/verifytoken';
 
 declare global {
   interface Window {
