@@ -9,17 +9,20 @@ const createUsersTable = async () => {
             phone VARCHAR(15) UNIQUE,
             password_hash CHAR(60),
             profile_pic VARCHAR(500),
-            otp CHAR(6) , 
-            otpexpirationtime DATETIME,
+            phone_otp CHAR(6),
+            phone_otp_expiration DATETIME,
             is_phone_verified TINYINT(1) DEFAULT 0,
             is_profile_completed TINYINT(1) DEFAULT 0,
             gender ENUM('Male', 'Female', 'Other', 'Select Gender') NOT NULL DEFAULT('Select Gender'),
             age INT NOT NULL DEFAULT -1,
             current_address TEXT,
-            amount_spent BIGINT DEFAULT 0, 
+            amount_spent BIGINT DEFAULT 0,
+            reset_password_token VARCHAR(100),
+            reset_password_expiry DATETIME,
             google_id VARCHAR(64) UNIQUE, -- Google account ID
             auth_provider ENUM('local', 'google') DEFAULT 'local', -- Auth method
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX (email),  -- Indexing for faster lookups
             INDEX (phone)
         )
