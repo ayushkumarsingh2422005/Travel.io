@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import axiosInstance from '../api/axios';
 
 interface ProfileData {
   name: string;
   email: string;
   phone: string;
   profile_pic: string;
-  is_email_verified: boolean;
   is_phone_verified: boolean;
-  member_since: string;
+  created_at: string;
+  gender: 'Male' | 'Female' | 'Other' | 'Select Gender';
+  age: number;
+  current_address: string;
   shop_name?: string;
 }
 
@@ -17,41 +20,110 @@ const Profile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    gender: 'Select Gender',
+    age: '',
+    current_address: '',
+    phone: '',
+  });
 
   useEffect(() => {
-    setLoading(true);
-    // Simulate API request
-    setTimeout(() => {
-      setProfile({
-        name: 'Ayush Kumar Singh',
-        email: 'ayush2422005@gmail.com',
-        phone: '8299797516',
-        profile_pic: 'https://ui-avatars.com/api/?name=Ayush+Kumar+Singh&background=6366f1&color=fff',
-        is_email_verified: true,
-        is_phone_verified: true,
-        member_since: 'July 5, 2025',
-        shop_name: 'Ayush Kumar'
-      });
-      setLoading(false);
-    }, 1500);
+    const fetchProfile = async () => {
+      try {
+        const response = await axiosInstance.get('/profile', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
+          },
+        });
+        setProfile(response.data.user);
+        setFormData({
+          name: response.data.user.name,
+          gender: response.data.user.gender,
+          age: response.data.user.age.toString(),
+          current_address: response.data.user.current_address,
+          phone: response.data.user.phone,
+        });
+      } catch (error) {
+        toast.error('Failed to fetch profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, []);
 
-  const handleVerifyEmail = () => {
-    // Implement email verification logic
-    console.log('Sending verification email...');
-    toast('Verification email sent!');
-  };
-
-  const handleVerifyPhone = () => {
-    // Implement phone verification logic
-    console.log('Sending OTP to phone...');
-    toast('OTP sent to your phone!');
+  const handleVerifyPhone = async () => {
+    try {
+      await axiosInstance.post('/auth/send-phone-otp', {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
+        },
+      });
+      toast.success('OTP sent to your phone!');
+      setIsOtpModalOpen(true);
+    } catch (error) {
+      toast.error('Failed to send OTP');
+    }
   };
 
   const handleLogout = () => {
-    // Implement logout logic
+    localStorage.removeItem('marcocabs_customer_token');
     toast.success('Logged out successfully!');
     navigate('/login');
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      if (formData.phone !== profile?.phone) {
+        await axiosInstance.post('/auth/add-phone', { phone: formData.phone }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
+          },
+        });
+      }
+      const response = await axiosInstance.put('/profile', formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
+        },
+      });
+      setProfile(response.data.user);
+      toast.success('Profile updated successfully!');
+      setIsEditModalOpen(false);
+    } catch (error) {
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      await axiosInstance.post('/auth/verify-phone-otp', { otp }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
+        },
+      });
+      setProfile((prevProfile) => ({
+        ...prevProfile!,
+        is_phone_verified: true,
+      }));
+      toast.success('Phone verified successfully!');
+      setIsOtpModalOpen(false);
+    } catch (error) {
+      toast.error('Invalid or expired OTP');
+    }
   };
 
   if (loading) {
@@ -104,16 +176,7 @@ const Profile = () => {
           <div className="bg-gray-50 rounded-xl p-6">
             <div className="flex justify-between items-start mb-4">
               <span className="text-gray-600">Email</span>
-              {profile?.is_email_verified ? (
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Verified</span>
-              ) : (
-                <button 
-                  onClick={handleVerifyEmail}
-                  className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full hover:bg-indigo-200"
-                >
-                  Verify Now
-                </button>
-              )}
+              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Verified</span>
             </div>
             <p className="text-gray-800 break-all">{profile?.email}</p>
           </div>
@@ -142,13 +205,16 @@ const Profile = () => {
               <span className="text-gray-600">Account</span>
               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Approved</span>
             </div>
-            <p className="text-gray-800">Member since {profile?.member_since}</p>
+            <p className="text-gray-800">Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : ''}</p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-4">
-          <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
             Edit Profile
           </button>
           <button 
@@ -159,6 +225,126 @@ const Profile = () => {
           </button>
         </div>
       </div>
+
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-8 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
+            <form onSubmit={handleFormSubmit}>
+              <div className="mb-4">
+                <label htmlFor="name" className="block text-gray-700">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="phone" className="block text-gray-700">Phone</label>
+                <input
+                  type="text"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="gender" className="block text-gray-700">Gender</label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option>Select Gender</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="age" className="block text-gray-700">Age</label>
+                <input
+                  type="number"
+                  id="age"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="current_address" className="block text-gray-700">Current Address</label>
+                <input
+                  type="text"
+                  id="current_address"
+                  name="current_address"
+                  value={formData.current_address}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-8 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Verify Phone</h2>
+            <form onSubmit={handleOtpSubmit}>
+              <div className="mb-4">
+                <label htmlFor="otp" className="block text-gray-700">OTP</label>
+                <input
+                  type="text"
+                  id="otp"
+                  name="otp"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsOtpModalOpen(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+                >
+                  Verify
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

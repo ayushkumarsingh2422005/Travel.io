@@ -46,7 +46,7 @@ const updateUserProfile = async (req, res) => {
             name, 
             gender, 
             age, 
-            current_address 
+            current_address,
         } = req.body;
         
         // Check if user exists
