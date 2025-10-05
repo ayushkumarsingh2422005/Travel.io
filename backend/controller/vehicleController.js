@@ -9,7 +9,7 @@ const generateUniqueId = () => crypto.randomBytes(32).toString('hex');
 const addVehicle = async (req, res) => {
     try {
         console.log(req.body);
-        const { model, registration_no, no_of_seats, image } = req.body;
+        const { model, registration_no, no_of_seats, image, per_km_charge } = req.body;
         const vendor_id = req.user.id; // From auth middleware
         
         // Validate required fields
@@ -38,9 +38,9 @@ const addVehicle = async (req, res) => {
         
         // Insert new vehicle with required fields
         await db.execute(
-            `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, is_active) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [id, vendor_id, model, registration_no, no_of_seats, image || null, 0]
+            `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, per_km_charge, is_active) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, vendor_id, model, registration_no, no_of_seats, image || null, per_km_charge || 0.00, 0]
         );
         
         res.status(201).json({
@@ -52,6 +52,7 @@ const addVehicle = async (req, res) => {
                 registration_no, 
                 no_of_seats,
                 image: image || null,
+                per_km_charge: per_km_charge || 0.00,
                 is_active: 0
             }
         });
@@ -69,7 +70,7 @@ const addVehicle = async (req, res) => {
 const updateVehicle = async (req, res) => {
     try {
         const { id } = req.params;
-        const { model, registration_no, no_of_seats, is_active, image, rc_data } = req.body;
+        const { model, registration_no, no_of_seats, is_active, image, per_km_charge, rc_data } = req.body;
         const vendor_id = req.user.id; // From auth middleware
         
         // Check if vehicle exists and belongs to this vendor
@@ -127,6 +128,11 @@ const updateVehicle = async (req, res) => {
         if (image !== undefined) {
             updateFields.push('image = ?');
             queryParams.push(image);
+        }
+        
+        if (per_km_charge !== undefined) {
+            updateFields.push('per_km_charge = ?');
+            queryParams.push(per_km_charge);
         }
         
         if (rc_data) {
@@ -466,7 +472,7 @@ const verifyVehicleRC = async (req, res) => {
 // Create vehicle with RC data storage
 const createVehicleWithRC = async (req, res) => {
     try {
-        const { model, registration_no, no_of_seats, image, rc_data } = req.body;
+        const { model, registration_no, no_of_seats, image, per_km_charge, rc_data } = req.body;
         const vendor_id = req.user.id; // From auth middleware
 
         // console.log(req.body);
@@ -603,9 +609,9 @@ const createVehicleWithRC = async (req, res) => {
         // Insert new vehicle with basic fields and RC fields
         if (Object.keys(rcFields).length > 0) {
             // Insert with RC fields
-            const insertFields = ['id', 'vendor_id', 'model', 'registration_no', 'no_of_seats', 'image', 'is_active'];
-            const insertValues = [id, vendor_id, model, registration_no, no_of_seats, image || null, 0];
-            const placeholders = ['?', '?', '?', '?', '?', '?', '?'];
+            const insertFields = ['id', 'vendor_id', 'model', 'registration_no', 'no_of_seats', 'image', 'per_km_charge', 'is_active'];
+            const insertValues = [id, vendor_id, model, registration_no, no_of_seats, image || null, per_km_charge || 0.00, 0];
+            const placeholders = ['?', '?', '?', '?', '?', '?', '?', '?'];
             
             // Add RC fields
             Object.keys(rcFields).forEach(field => {
@@ -623,9 +629,9 @@ const createVehicleWithRC = async (req, res) => {
         } else {
             // Insert without RC fields
             await db.execute(
-                `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, is_active) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [id, vendor_id, model, registration_no, no_of_seats, image || null, 0]
+                `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, per_km_charge, is_active) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [id, vendor_id, model, registration_no, no_of_seats, image || null, per_km_charge || 0.00, 0]
             );
         }
         
@@ -649,6 +655,7 @@ const createVehicleWithRC = async (req, res) => {
                 registration_no, 
                 no_of_seats,
                 image: image || null,
+                per_km_charge: per_km_charge || 0.00,
                 is_active: 0,
                 ...rcFields
             }

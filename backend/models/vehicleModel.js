@@ -74,7 +74,8 @@ const createVehiclesTable = async () => {
             registration_no VARCHAR(50) UNIQUE NOT NULL,
             image TEXT,
             no_of_seats INT NOT NULL,
-            is_active TINYINT(1) DEFAULT 0, 
+            per_km_charge DECIMAL(10,2) DEFAULT 0.00,
+            is_active TINYINT(1) DEFAULT 0,
 
             -- RC Details fields
             rc_verification_id VARCHAR(50),

@@ -17,6 +17,9 @@ const transactiontrigger=require('./utils/transactionTrigger');
 const createvendorbanktale=require('./models/vendorbankModel')
 const makeid=require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
+const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
+const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
+const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -42,9 +45,12 @@ app.use(cors());
 
 const createTables = async () => {
     await createUsersTable();
+    await addResetFieldsToUsers(); // Add reset password fields to existing users table
     await createVendorsTable();
     await createVendorBankTable();
     await createVehiclesTable();
+    await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
+    await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
     await createDriversTable();
     await createPartnerTables();
     await createBookingsTable();

@@ -5,7 +5,10 @@ const {
     updateUserProfile, 
     updateUserPassword,
     setUserPassword,
-    deleteUserAccount
+    deleteUserAccount,
+    searchVehicles,
+    getVehicleDetails,
+    getVehicleTypes
 } = require('../controller/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -18,5 +21,10 @@ router.put('/profile', updateUserProfile);
 router.put('/password', updateUserPassword);
 router.post('/set-password', setUserPassword);
 router.delete('/account', deleteUserAccount);
+
+// Vehicle search and details routes
+router.get('/vehicles/search', searchVehicles);
+router.get('/vehicles/types', getVehicleTypes);
+router.get('/vehicles/:vehicleId', getVehicleDetails);
 
 module.exports = router;

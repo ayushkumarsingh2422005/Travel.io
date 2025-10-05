@@ -82,11 +82,24 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(email,password);
         if (!email || !password) return res.status(400).json({ message: 'Email and password required.' });
         const [users] = await db.execute('SELECT * FROM users WHERE email = ? AND auth_provider = "local"', [email]);
-        if (users.length === 0) return res.status(401).json({ message: 'Invalid credentials.' });
+        console.log(`Found ${users.length} users with email ${email} and auth_provider = "local"`);
+        
+        if (users.length === 0) {
+            // Check if user exists with different auth_provider
+            const [allUsers] = await db.execute('SELECT id, email, auth_provider, password_hash FROM users WHERE email = ?', [email]);
+            console.log(`All users with email ${email}:`, allUsers);
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+        
         const user = users[0];
+        console.log(`User found: ${user.email}, auth_provider: ${user.auth_provider}, has_password: ${!!user.password_hash}`);
+        
         const valid = await bcrypt.compare(password, user.password_hash);
+        console.log(`Password comparison result: ${valid}`);
+        
         if (!valid) return res.status(401).json({ message: 'Invalid credentials.' });
         const token = generateToken(user);
         res.json({ token });
@@ -296,12 +309,22 @@ const forgotPassword = async (req, res) => {
         const reset_password_expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         
         // Update user with reset token
-        await db.execute(
+        const updateResult = await db.execute(
             'UPDATE users SET reset_password_token = ?, reset_password_expiry = ? WHERE id = ?',
             [reset_password_token, reset_password_expiry, user.id]
         );
         
         console.log(`Reset token generated for user: ${user.id}`);
+        console.log(`Update result:`, updateResult);
+        console.log(`Reset token: ${reset_password_token}`);
+        console.log(`Reset expiry: ${reset_password_expiry}`);
+        
+        // Verify the token was saved
+        const [verifyResult] = await db.execute(
+            'SELECT reset_password_token, reset_password_expiry FROM users WHERE id = ?',
+            [user.id]
+        );
+        console.log(`Token verification:`, verifyResult[0]);
         
         // Send password reset email
         const emailResult = await sendPasswordResetEmail(email, reset_password_token, 'user');
@@ -335,6 +358,14 @@ const resetPassword = async (req, res) => {
         );
 
         console.log("Resetting password with token:", token);
+        console.log("Found users with token:", users.length);
+        
+        // Also check if token exists without expiry check for debugging
+        const [allUsersWithToken] = await db.execute(
+            'SELECT id, reset_password_token, reset_password_expiry FROM users WHERE reset_password_token = ?',
+            [token]
+        );
+        console.log("All users with this token (including expired):", allUsersWithToken);
         
         if (users.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired reset token.' });
@@ -345,9 +376,9 @@ const resetPassword = async (req, res) => {
         // Hash new password
         const password_hash = await bcrypt.hash(password, 10);
         
-        // Update password and clear token
+        // Update password, clear token, and ensure auth_provider is local
         await db.execute(
-            'UPDATE users SET password_hash = ?, reset_password_token = NULL, reset_password_expiry = NULL WHERE id = ?',
+            'UPDATE users SET password_hash = ?, reset_password_token = NULL, reset_password_expiry = NULL, auth_provider = "local" WHERE id = ?',
             [password_hash, user.id]
         );
         
