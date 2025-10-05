@@ -1,98 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
 import toast from 'react-hot-toast';
+import axios from '../api/axios';
 
-
-const cabOptions = ["Outstation", "Local", "Airport"]
-
-const dummyCabData = [
-  {
-    id: 1,
-    type: 'Hatchback',
-    models: 'Wagon R, Swift, Alto, Similar',
-    registration_no: 'KA01AB1234',
-    price: 2000,
-    includedKms: 135,
-    extraFare: '10/KMs',
-    driverAllowance: 'Included',
-    fuelCharges: 'Included',
-    tollTax: 'Not Included',
-    image: 'https://via.placeholder.com/180x80?text=Hatchback',
-    seats: 4,
-    ac: true,
-    luggageCapacity: '2 bags',
-    year: 2021,
-    rating: 4.5,
-    amenities: ['AC', 'USB Charging', 'Tracking'],
-    vehicleCondition: 'Excellent',
-    fuelType: 'Petrol'
-  },
-  {
-    id: 2,
-    type: 'Sedan',
-    models: 'Dzire, Etios, Tigor, Similar',
-    registration_no: 'KA01CD5678',
-    price: 2500,
-    includedKms: 135,
-    extraFare: '10/KMs',
-    driverAllowance: 'Included',
-    fuelCharges: 'Included',
-    tollTax: 'Not Included',
-    image: 'https://via.placeholder.com/180x80?text=Sedan',
-    seats: 5,
-    ac: true,
-    luggageCapacity: '3 bags',
-    year: 2022,
-    rating: 4.7,
-    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking'],
-    vehicleCondition: 'Excellent',
-    fuelType: 'CNG'
-  },
-  {
-    id: 3,
-    type: 'SUV',
-    models: 'Innova, Ertiga, Marazzo, Similar',
-    registration_no: 'KA01EF9012',
-    price: 3500,
-    includedKms: 135,
-    extraFare: '13/KMs',
-    driverAllowance: 'Included',
-    fuelCharges: 'Included',
-    tollTax: 'Not Included',
-    image: 'https://via.placeholder.com/180x80?text=SUV',
-    seats: 7,
-    ac: true,
-    luggageCapacity: '4 bags',
-    year: 2022,
-    rating: 4.6,
-    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking', 'Entertainment'],
-    vehicleCondition: 'Good',
-    fuelType: 'Diesel'
-  },
-  {
-    id: 4,
-    type: 'Premium SUV',
-    models: 'Innova Crysta, Kia Carnes, Scorpio',
-    registration_no: 'KA01GH3456',
-    price: 5800,
-    includedKms: 135,
-    extraFare: '18/KMs',
-    driverAllowance: 'Included',
-    fuelCharges: 'Included',
-    tollTax: 'Not Included',
-    image: 'https://via.placeholder.com/180x80?text=Premium+SUV',
-    seats: 7,
-    ac: true,
-    luggageCapacity: '5 bags',
-    year: 2023,
-    rating: 4.8,
-    amenities: ['AC', 'USB Charging', 'WiFi', 'Tracking', 'Entertainment', 'Premium Leather Seats'],
-    vehicleCondition: 'Excellent',
-    fuelType: 'Diesel'
-  },
-];
+const cabOptions = ["Outstation", "Local", "Airport"];
 
 const faqs = [
   {
@@ -180,9 +93,9 @@ export default function Cabs() {
   const location = useLocation();
   const routeData = location.state || {};
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [cabData, setCabData] = useState<any[]>([]);
-  const data=cabOptions;
+  const data = cabOptions;
   // State to hold data that would come from API
   
   // Form states
@@ -308,25 +221,6 @@ export default function Cabs() {
   // };
   
 
-  
-  // Form submission: Booking
-  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("Booking form submitted:", bookingForm);
-
-    // Prepare basic route data for navigation
-    // const routeData = {
-    //   pickup: bookingForm.pickupLocation,
-    //   destination: bookingForm.destination,
-    //   stops: additionalStops.map(stop => stop.location),
-    //   tripType: bookingForm.tripType
-    // };
-
-
-    // search logic here
-    
-
-  };
 
   // Function to get location suggestions
   const getLocationSuggestions = async (input: string, setSuggestions: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -453,102 +347,73 @@ export default function Cabs() {
   //   );
   // };
 
-  const [filteredCabData, setFilteredCabData] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     minPrice: '',
     maxPrice: '',
     minSeats: '',
+    maxSeats: '',
     searchTerm: '',
     ac: false,
-    sortBy: 'price', // 'price' | 'rating' | 'seats'
+    sortBy: 'per_km_charge', // 'per_km_charge' | 'no_of_seats' | 'model'
     fuelType: 'all' // 'all' | 'Petrol' | 'Diesel' | 'CNG'
   });
 
-  const handleBook = (cab: typeof dummyCabData[0]) => {
-    navigate('/prices', { state: { ...routeData, cabType: cab.type } });
+  
+  
+  const searchCabs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        min_seats: filters.minSeats || 0,
+        max_seats: filters.maxSeats || 50,
+        min_price_per_km: filters.minPrice || 0,
+        max_price_per_km: filters.maxPrice || 200000,
+        sort_by: filters.sortBy,
+        location: bookingForm.pickupLocation || '',
+        ac: filters.ac,
+        fuel_type: filters.fuelType === 'all' ? '' : filters.fuelType,
+        search_term: filters.searchTerm,
+      };
+
+      const response = await axios.get('/vehicles/search', { params });
+
+      console.log(response);
+
+      if (response.data.success) {
+        setCabData(response.data.data.vehicles);
+      } else {
+        toast.error(response.data.message || 'Failed to fetch cabs');
+      }
+    } catch (error) {
+      console.error('Error searching for cabs:', error);
+      toast.error('An error occurred while searching for cabs.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, bookingForm.pickupLocation]);
+
+  // Form submission: Booking
+  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    searchCabs();
+  };
+
+  const handleBook = (cab: any) => {
+    navigate('/prices', { state: { ...routeData, cabType: cab.model } });
   };
 
   const handleFaqClick = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
 
-  const applyFilters = () => {
-    let filtered = [...cabData];
-
-    // Apply search term filter
-    if (filters.searchTerm) {
-      const searchLower = filters.searchTerm.toLowerCase();
-      filtered = filtered.filter(cab => 
-        cab.type.toLowerCase().includes(searchLower) ||
-        cab.models.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply price range filter
-    if (filters.minPrice) {
-      filtered = filtered.filter(cab => cab.price >= parseInt(filters.minPrice));
-    }
-    if (filters.maxPrice) {
-      filtered = filtered.filter(cab => cab.price <= parseInt(filters.maxPrice));
-    }
-
-    // Apply seats filter
-    if (filters.minSeats) {
-      filtered = filtered.filter(cab => cab.seats >= parseInt(filters.minSeats));
-    }
-
-    // Apply AC filter
-    if (filters.ac) {
-      filtered = filtered.filter(cab => cab.ac);
-    }
-
-    // Apply fuel type filter
-    if (filters.fuelType !== 'all') {
-      filtered = filtered.filter(cab => cab.fuelType === filters.fuelType);
-    }
-
-    // Apply sorting
-    switch (filters.sortBy) {
-      case 'price':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'seats':
-        filtered.sort((a, b) => b.seats - a.seats);
-        break;
-    }
-
-    setFilteredCabData(filtered);
-  };
-
   useEffect(() => {
-    applyFilters();
-  }, [filters, cabData]);
-
-  useEffect(() => {
-    // const check = async () => {
-    //   const token = localStorage.getItem('marcocabs_customer_token');
-    //   const type = 'customer';
-    //   if (!token) {
-    //     navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-    //     return;
-    //   }
-    //   const result = await checkAuth(type, token);
-    //   if (!result) {
-    //     navigate('/login', { state: { from: location.pathname, pageState: location.state } });
-    //   }
-    // };
-    // check();
-    // Simulate API request for cabs
-    setLoading(true);
-    setTimeout(() => {
-      setCabData(dummyCabData);
-      setFilteredCabData(dummyCabData);
-      setLoading(false);
-    }, 1500);
-  }, [navigate, location]);
+    const identifier = setTimeout(() => {
+      searchCabs();
+    }, 500);
+    return () => {
+      clearTimeout(identifier);
+    };
+  }, [searchCabs]);
 
 
   return (
@@ -730,14 +595,24 @@ export default function Cabs() {
               />
             </div>
             <div>
+              <input
+                type="number"
+                placeholder="Max Seats"
+                className="w-full p-2 border rounded-lg"
+                value={filters.maxSeats}
+                onChange={(e) => setFilters(prev => ({ ...prev, maxSeats: e.target.value }))}
+              />
+            </div>
+            <div>
               <select
                 className="w-full p-2 border rounded-lg"
                 value={filters.sortBy}
                 onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
               >
-                <option value="price">Sort by Price</option>
-                <option value="rating">Sort by Rating</option>
-                <option value="seats">Sort by Seats</option>
+                <option value="per_km_charge">Sort by Price</option>
+                {/* <option value="rating">Sort by Rating</option> */}
+                <option value="no_of_seats">Sort by Seats</option>
+                <option value="model">Sort by Model</option>
               </select>
             </div>
             <div>
@@ -785,53 +660,43 @@ export default function Cabs() {
                   <div className="w-full h-10 bg-gray-200 rounded" />
                 </div>
               ))
-            : filteredCabData.map((cab) => (
+            : cabData.map((cab) => (
                 <div key={cab.id} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
-                  <img src={cab.image} alt={cab.type} className="w-44 h-20 object-contain mb-4" />
-                  <div className="text-xl font-bold mb-1">{cab.type}</div>
-                  <div className="text-gray-600 mb-2 text-center">{cab.models}</div>
+                  <img src={cab.image || 'https://via.placeholder.com/180x80?text=No+Image'} alt={cab.model} className="w-44 h-20 object-contain mb-4" />
+                  <div className="text-xl font-bold mb-1">{cab.model}</div>
+                  <div className="text-gray-600 mb-2 text-center">{cab.rc_vehicle_manufacturer_name}</div>
                   <div className="flex items-center mb-2">
-                    <div className="text-2xl font-bold text-green-700">₹{cab.price}</div>
+                    <div className="text-2xl font-bold text-green-700">₹{cab.per_km_charge}/km</div>
                     <div className="ml-2 flex items-center text-yellow-500">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      <span className="ml-1">{cab.rating}</span>
+                      <span className="ml-1">{cab.vendor_rating}</span>
                     </div>
                   </div>
                   <div className="w-full space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Seats:</span>
-                      <span className="font-semibold">{cab.seats}</span>
+                      <span className="font-semibold">{cab.no_of_seats}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Fuel Type:</span>
-                      <span className="font-semibold">{cab.fuelType}</span>
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-semibold">{cab.rc_body_type}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Included KMs:</span>
-                      <span className="font-semibold">{cab.includedKms}</span>
+                      <span className="text-gray-500">Category:</span>
+                      <span className="font-semibold">{cab.rc_vehicle_category}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Extra fare/KM:</span>
-                      <span className="font-semibold">{cab.extraFare}</span>
+                      <span className="text-gray-500">Color:</span>
+                      <span className="font-semibold">{cab.rc_vehicle_colour}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Luggage:</span>
-                      <span className="font-semibold">{cab.luggageCapacity}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Vehicle Year:</span>
-                      <span className="font-semibold">{cab.year}</span>
+                      <span className="text-gray-500">Year:</span>
+                      <span className="font-semibold">{cab.rc_vehicle_manufacturing_month_year}</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {cab.amenities.map((amenity: string, idx: number) => (
-                      <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                        {amenity}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Amenities can be added here later if available from the API */}
                   <button
                     className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors mt-auto"
                     onClick={() => handleBook(cab)}
@@ -841,7 +706,7 @@ export default function Cabs() {
                 </div>
               ))}
         </div>
-        {filteredCabData.length === 0 && !loading && (
+        {cabData.length === 0 && !loading && (
           <div className="text-center py-8">
             <div className="text-xl text-gray-600">No cabs found matching your criteria</div>
           </div>

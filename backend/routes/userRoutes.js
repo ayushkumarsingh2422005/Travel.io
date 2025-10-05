@@ -12,6 +12,11 @@ const {
 } = require('../controller/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 
+// Vehicle search and details routes
+router.get('/vehicles/search', searchVehicles);
+router.get('/vehicles/types', getVehicleTypes);
+router.get('/vehicles/:vehicleId', getVehicleDetails);
+
 // Apply middleware to all routes
 router.use(authMiddleware);
 
@@ -22,9 +27,5 @@ router.put('/password', updateUserPassword);
 router.post('/set-password', setUserPassword);
 router.delete('/account', deleteUserAccount);
 
-// Vehicle search and details routes
-router.get('/vehicles/search', searchVehicles);
-router.get('/vehicles/types', getVehicleTypes);
-router.get('/vehicles/:vehicleId', getVehicleDetails);
 
 module.exports = router;
