@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -151,6 +151,10 @@ export default function MarcoCabService() {
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
 
+  const pickupRef = useRef<HTMLDivElement>(null);
+  const destinationRef = useRef<HTMLDivElement>(null);
+  const stopRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
   // Add state for additional stops and their suggestions
   const [additionalStops, setAdditionalStops] = useState<Array<{ 
     id: number; 
@@ -184,7 +188,7 @@ export default function MarcoCabService() {
     const loader = new Loader({
       apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
       version: "weekly",
-      libraries: ["places"]
+      libraries: ["places", "geometry", "routes"]
     });
 
     loader.load().then((google) => {
@@ -302,16 +306,26 @@ export default function MarcoCabService() {
   const handlePickupLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setBookingForm(prev => ({ ...prev, pickupLocation: value }));
-    setShowPickupSuggestions(true);
-    await getLocationSuggestions(value, setPickupSuggestions);
+    if (value.trim() === "") {
+      setShowPickupSuggestions(false);
+      setPickupSuggestions([]);
+    } else {
+      setShowPickupSuggestions(true);
+      await getLocationSuggestions(value, setPickupSuggestions);
+    }
   };
 
   // Handle destination input change
   const handleDestinationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setBookingForm(prev => ({ ...prev, destination: value }));
-    setShowDestinationSuggestions(true);
-    await getLocationSuggestions(value, setDestinationSuggestions);
+    if (value.trim() === "") {
+      setShowDestinationSuggestions(false);
+      setDestinationSuggestions([]);
+    } else {
+      setShowDestinationSuggestions(true);
+      await getLocationSuggestions(value, setDestinationSuggestions);
+    }
   };
 
   // Handle suggestion selection
@@ -349,14 +363,15 @@ export default function MarcoCabService() {
           return { 
             ...stop, 
             location: value,
-            showSuggestions: true
+            showSuggestions: value.trim() !== "", // Hide suggestions if input is empty
+            suggestions: value.trim() === "" ? [] : stop.suggestions // Clear suggestions if input is empty
           };
         }
         return stop;
       })
     );
 
-    if (autocompleteService && value) {
+    if (autocompleteService && value.trim() !== "") { // Only fetch suggestions if input is not empty
       try {
         const response = await autocompleteService.getPlacePredictions({
           input: value,
@@ -383,6 +398,8 @@ export default function MarcoCabService() {
     }
   };
 
+  // use cline 
+
   // Handle stop suggestion selection
   const handleStopSuggestionSelect = (id: number, location: string) => {
     setAdditionalStops(prev => 
@@ -398,6 +415,31 @@ export default function MarcoCabService() {
       })
     );
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Hide pickup suggestions
+      if (pickupRef.current && !pickupRef.current.contains(event.target as Node)) {
+        setShowPickupSuggestions(false);
+      }
+      // Hide destination suggestions
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinationSuggestions(false);
+      }
+      // Hide additional stop suggestions
+      additionalStops.forEach(stop => {
+        const ref = stopRefs.current[stop.id];
+        if (ref && !ref.contains(event.target as Node)) {
+          setAdditionalStops(prev => prev.map(s => s.id === stop.id ? { ...s, showSuggestions: false } : s));
+        }
+      });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [additionalStops]); // Depend on additionalStops to re-attach listeners for new/removed stops
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -502,7 +544,7 @@ export default function MarcoCabService() {
                       </button>
                     </div>
                     
-                    <div className="mb-4 relative">
+                    <div className="mb-4 relative" ref={pickupRef}>
                       <div className="absolute left-3 top-3 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -534,7 +576,7 @@ export default function MarcoCabService() {
 
                     {/* Additional Stops */}
                     {additionalStops.map((stop) => (
-                      <div key={stop.id} className="mb-4 relative flex items-center">
+                      <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
                         <div className="absolute left-3 top-3 text-gray-400">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -546,15 +588,19 @@ export default function MarcoCabService() {
                             value={stop.location}
                             onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
                             placeholder="Stop location" 
-                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:focus:border-green-500" 
                           />
                           {stop.showSuggestions && stop.suggestions.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
                               {stop.suggestions.map((suggestion, index) => (
                                 <div
                                   key={index}
                                   className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                  onClick={() => handleStopSuggestionSelect(stop.id, suggestion)}
+                                  onClick={() => {
+                                    setAdditionalStops(prev => 
+                                      prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                                    );
+                                  }}
                                 >
                                   {suggestion}
                                 </div>
@@ -574,7 +620,7 @@ export default function MarcoCabService() {
                       </div>
                     ))}
                     
-                    <div className="mb-4 relative">
+                    <div className="mb-4 relative" ref={destinationRef}>
                       <div className="absolute left-3 top-3 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

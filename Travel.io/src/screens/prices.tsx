@@ -62,6 +62,15 @@ export default function Prices() {
 //         check();
 //       }, [navigate]);
 
+
+
+// ISSUE
+
+// hook.js:608 Error loading Google Maps: InvalidValueError: Map: Expected mapDiv of type HTMLElement but was passed null. at _.Hm (main.js:171:445) at new _.Yr (main.js:246:278) at initMap (prices.tsx:76:21) whats this error ?
+
+
+
+
   useEffect(() => {
     const initMap = async () => {
       setIsLoading(false);
