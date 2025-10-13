@@ -13,16 +13,16 @@ CREATE TRIGGER move_completed_booking
 AFTER UPDATE ON bookings  
 FOR EACH ROW  
 BEGIN  
-    IF NEW.status IN ('completed', 'cancelled') AND (OLD.status IS NULL OR OLD.status != 'completed') THEN  
+    IF NEW.status IN ('completed', 'cancelled') AND (OLD.status IS NULL OR OLD.status NOT IN ('completed', 'cancelled')) THEN  
         INSERT INTO prevbookings (  
-            booking_id, customer_id, driver_id, vehicle_id,   
+            id, customer_id, driver_id, vehicle_id, vendor_id, partner_id,
             pickup_location, dropoff_location,
-            pickup_date, drop_date, path, distance, status  
+            pickup_date, drop_date, price, path, distance, status  
         )  
         VALUES (  
-            NEW.id, NEW.customer_id, NEW.driver_id, NEW.vehicle_id,  
+            NEW.id, NEW.customer_id, NEW.driver_id, NEW.vehicle_id, NEW.vendor_id, NEW.partner_id,
             NEW.pickup_location, NEW.dropoff_location,  
-            NEW.pickup_date, NEW.drop_date, NEW.path, NEW.distance, NEW.status  
+            NEW.pickup_date, NEW.drop_date, NEW.price, NEW.path, NEW.distance, NEW.status  
         );  
         -- Do not delete from bookings here  
     END IF;  
