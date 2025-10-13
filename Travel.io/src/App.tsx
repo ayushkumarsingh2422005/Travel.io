@@ -9,6 +9,7 @@ import PreviousBookings from './screens/PreviousBookings';
 import Dashboard from './screens/Dashboard';
 import Layout from './components/Layout';
 import Profile from './screens/Profile';
+import Booking from './screens/booking';
 import CancellationPolicy from './screens/CancellationPolicy';
 import TermsOfUse from './screens/TermsOfUse';
 import PrivacyPolicy from './screens/PrivacyPolicy';
@@ -32,6 +33,7 @@ function App() {
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/booking" element={<Booking />} />
       </Routes>
     </Router>
   );
