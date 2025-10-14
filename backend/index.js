@@ -14,12 +14,12 @@ const transactionModel=require('./models/transactionModel');
 const AdminTrigger=require('./utils/admintrigger');
 const BookingTrigger=require('./utils/BookingTrigger');
 const transactiontrigger=require('./utils/transactionTrigger');
-const createvendorbanktale=require('./models/vendorbankModel')
+// const createvendorbanktale=require('./models/vendorbankModel')
 const makeid=require('./utils/createidtrigger')
-const { moveCompletedBooking } = require("./utils/BookingTransaction");
-const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
-const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
-const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
+// const { moveCompletedBooking } = require("./utils/BookingTransaction");
+// const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
+// const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
+// const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -28,6 +28,7 @@ const driverRoutes = require('./routes/driverRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const cors = require("cors")
 require('dotenv').config();
 
@@ -76,6 +77,7 @@ app.use('/vendor/driver', driverRoutes);
 app.use('/vendor/vehicle', vehicleRoutes);
 app.use('/vendor', vendorRoutes);
 app.use('/booking', bookingRoutes);
+app.use('/payment', paymentRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, Express!");
