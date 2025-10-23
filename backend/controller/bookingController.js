@@ -9,116 +9,10 @@ const generateBookingId = () => {
 
 // Create a new booking (DEPRECATED - Use payment flow instead)
 const createBooking = async (req, res) => {
-    try {
-        const userId = req.user.id; // From auth middleware
-        const {
-            vehicle_id,
-            partner_id, // Optional - if booking is referred by a partner
-            pickup_location,
-            dropoff_location,
-            pickup_date,
-            drop_date,
-            path,
-            distance
-        } = req.body;
-
-        // Validate required fields
-        if (!vehicle_id || !pickup_location || !dropoff_location || !pickup_date || !drop_date || !path || !distance) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields: vehicle_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance'
-            });
-        }
-
-        // Check if vehicle exists and is available
-        const [vehicles] = await db.execute(`
-            SELECT v.*, ven.id as vendor_id, ven.name as vendor_name
-            FROM vehicles v
-            INNER JOIN vendors ven ON v.vendor_id = ven.id
-            WHERE v.id = ? AND v.is_active = 1
-        `, [vehicle_id]);
-
-        if (vehicles.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Vehicle not found or not available'
-            });
-        }
-
-        const vehicle = vehicles[0];
-
-        // Check if vehicle is already booked for the requested time
-        const [existingBookings] = await db.execute(`
-            SELECT COUNT(*) as count
-            FROM bookings
-            WHERE vehicle_id = ? AND status IN ('waiting', 'approved', 'preongoing', 'ongoing')
-            AND (
-                (pickup_date <= ? AND drop_date >= ?) OR
-                (pickup_date <= ? AND drop_date >= ?) OR
-                (pickup_date >= ? AND drop_date <= ?)
-            )
-        `, [vehicle_id, pickup_date, pickup_date, drop_date, drop_date, pickup_date, drop_date]);
-
-        if (existingBookings[0].count > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Vehicle is already booked for the requested time period'
-            });
-        }
-
-        // Calculate price based on distance and per_km_charge
-        const price = Math.round(parseFloat(distance) * parseFloat(vehicle.per_km_charge));
-
-        // Generate booking ID
-        const bookingId = generateBookingId();
-
-        // Create booking
-        await db.execute(`
-            INSERT INTO bookings (
-                id, customer_id, vehicle_id, vendor_id, partner_id,
-                pickup_location, dropoff_location, pickup_date, drop_date,
-                price, path, distance, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
-        `, [
-            bookingId, userId, vehicle_id, vehicle.vendor_id, partner_id || null,
-            pickup_location, dropoff_location, pickup_date, drop_date,
-            price, path, distance
-        ]);
-
-        // Get the created booking with related data
-        const [newBookings] = await db.execute(`
-            SELECT 
-                b.*,
-                u.name as customer_name,
-                u.phone as customer_phone,
-                v.model as vehicle_model,
-                v.registration_no as vehicle_registration,
-                v.no_of_seats,
-                ven.name as vendor_name,
-                ven.phone as vendor_phone,
-                p.name as partner_name
-            FROM bookings b
-            LEFT JOIN users u ON b.customer_id = u.id
-            LEFT JOIN vehicles v ON b.vehicle_id = v.id
-            LEFT JOIN vendors ven ON b.vendor_id = ven.id
-            LEFT JOIN users p ON b.partner_id = p.id
-            WHERE b.id = ?
-        `, [bookingId]);
-
-        res.status(201).json({
-            success: true,
-            message: 'Booking created successfully',
-            data: newBookings[0]
-        });
-
-    } catch (error) {
-        console.error('Error creating booking:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to create booking',
-            error: error.message
-        });
-    }
+    res.status(400).json({
+        success: false,
+        message: 'Direct booking creation is not allowed. Please use the payment flow: POST /payment/create-order followed by POST /payment/verify'
+    });
 };
 
 // Get user's bookings
@@ -388,7 +282,7 @@ const updateBookingStatus = async (req, res) => {
             const [drivers] = await db.execute(`
                 SELECT * FROM drivers 
                 WHERE id = ? AND vendor_id = ? AND is_active = 1
-            `, [driver_id, vendorId]);     
+            `, [driver_id, vendorId]);
 
             if (drivers.length === 0) {
                 return res.status(400).json({
