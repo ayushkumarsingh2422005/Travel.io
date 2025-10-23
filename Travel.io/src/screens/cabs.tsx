@@ -91,7 +91,7 @@ interface AutocompleteService {
 export default function Cabs() {
   const navigate = useNavigate();
   const location = useLocation();
-  const routeData = location.state || {};
+  // const routeData = location.state || {};
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [cabData, setCabData] = useState<any[]>([]);
@@ -104,7 +104,9 @@ export default function Cabs() {
     pickupLocation: "",
     destination: "",
     stops: [],
-    cabType: "Outstation"
+    cabType: "Outstation",
+    pickupDate: "",
+    dropDate: ""
   });
 
   useEffect(() => {
@@ -115,15 +117,23 @@ export default function Cabs() {
         tripType: state.tripType || '',
         pickupLocation: state.pickup || '',
         destination: state.destination || '',
-        stops: state.stops || []
+        stops: state.stops || [],
+        pickupDate: state.pickupDate || '',
+        dropDate: state.dropDate || ''
       }));
-      setAdditionalStops(state.stops.map((stop: string) => ({
-        id: nextStopId,
-        location: stop,
-        suggestions: [],
-        showSuggestions: false
-      })));
-      setNextStopId(nextStopId + 1);
+      let maxId = 0;
+      const newAdditionalStops = (state.stops || []).map((stop: string, index: number) => {
+        const id = index + 1;
+        if (id > maxId) maxId = id;
+        return {
+          id: id,
+          location: stop,
+          suggestions: [],
+          showSuggestions: false
+        };
+      });
+      setAdditionalStops(newAdditionalStops);
+      setNextStopId(maxId + 1);
     }
   }, [location]);
   
@@ -197,6 +207,8 @@ export default function Cabs() {
       destination: string;
       stops: never[];
       cabType: string;
+      pickupDate: string;
+      dropDate: string;
     }>>
   ) => {
     const { name, value } = e.target;
@@ -409,11 +421,74 @@ export default function Cabs() {
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validate required fields
+    const errors = [];
+    
+    if (!bookingForm.pickupLocation.trim()) {
+      errors.push('Pickup location is required');
+    }
+    
+    if (!bookingForm.destination.trim()) {
+      errors.push('Destination is required');
+    }
+    
+    if (!bookingForm.pickupDate) {
+      errors.push('Pickup date and time is required');
+    }
+    
+    if (bookingForm.tripType === 'Round Trip' && !bookingForm.dropDate) {
+      errors.push('Return date and time is required for round trips');
+    }
+    
+    // Validate additional stops
+    const emptyStops = additionalStops.filter(stop => !stop.location.trim());
+    if (emptyStops.length > 0) {
+      errors.push('Please fill in all stop locations or remove empty stops');
+    }
+    
+    // Check if pickup date is in the past
+    if (bookingForm.pickupDate) {
+      const pickupDateTime = new Date(bookingForm.pickupDate);
+      const now = new Date();
+      if (pickupDateTime <= now) {
+        errors.push('Pickup date and time must be in the future');
+      }
+    }
+    
+    // Check if return date is after pickup date for round trips
+    if (bookingForm.tripType === 'Round Trip' && bookingForm.pickupDate && bookingForm.dropDate) {
+      const pickupDateTime = new Date(bookingForm.pickupDate);
+      const dropDateTime = new Date(bookingForm.dropDate);
+      if (dropDateTime <= pickupDateTime) {
+        errors.push('Return date must be after pickup date');
+      }
+    }
+    
+    if (errors.length > 0) {
+      // Show validation errors
+      errors.forEach(error => toast.error(error));
+      return;
+    }
+    
+    // If all validations pass, proceed with search
     searchCabs();
   };
 
   const handleBook = (cab: any) => {
-    navigate('/prices', { state: { ...routeData, cabType: cab.model } });
+    const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+    navigate('/prices', { 
+      state: { 
+        pickup: bookingForm.pickupLocation,
+        destination: bookingForm.destination,
+        tripType: bookingForm.tripType,
+        pickupDate: bookingForm.pickupDate,
+        dropDate: bookingForm.dropDate,
+        stops: currentStops,
+        cabType: cab.model,
+        vehicle_id: cab.id,
+      } 
+    });
   };
 
   const handleFaqClick = (idx: number) => {
@@ -467,6 +542,11 @@ export default function Cabs() {
 {/* Booking Section */}
 <div className="container mx-auto px-4 pt-6">
   <div className="bg-white shadow-md rounded-xl p-6">
+    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <p className="text-sm text-blue-800">
+        <span className="text-red-500">*</span> Fields marked with red asterisk are required for booking
+      </p>
+    </div>
     <form onSubmit={handleBookingSubmit}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Cab Type */}
@@ -501,13 +581,18 @@ export default function Cabs() {
 
         {/* Pickup Location */}
         <div className="relative" ref={pickupRef}>
+          <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+            Pickup Location <span className="text-red-500">*</span>
+          </label>
           <input 
             type="text" 
+            id="pickupLocation"
             name="pickupLocation"
             value={bookingForm.pickupLocation}
             onChange={handlePickupLocationChange}
             placeholder="Pickup location" 
             className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+            required
           />
           {/* Suggestions */}
           {showPickupSuggestions && pickupSuggestions.length > 0 && (
@@ -527,13 +612,18 @@ export default function Cabs() {
 
         {/* Destination */}
         <div className="relative" ref={destinationRef}>
+          <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+            Destination <span className="text-red-500">*</span>
+          </label>
           <input 
             type="text" 
+            id="destination"
             name="destination"
             value={bookingForm.destination}
             onChange={handleDestinationChange}
             placeholder="Destination" 
             className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+            required
           />
           {showDestinationSuggestions && destinationSuggestions.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
@@ -597,12 +687,47 @@ export default function Cabs() {
         + Add Stop
       </button>
 
+      {/* Date and Time Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Pickup Date & Time <span className="text-red-500">*</span>
+          </label>
+          <input 
+            type="datetime-local" 
+            id="pickupDate"
+            name="pickupDate"
+            value={bookingForm.pickupDate}
+            onChange={handleBookingChange}
+            className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+            required
+          />
+        </div>
+
+        {bookingForm.tripType === "Round Trip" && (
+          <div>
+            <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Return Date & Time <span className="text-red-500">*</span>
+            </label>
+            <input 
+              type="datetime-local" 
+              id="dropDate"
+              name="dropDate"
+              value={bookingForm.dropDate}
+              onChange={handleBookingChange}
+              className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+              required
+            />
+          </div>
+        )}
+      </div>
+
       {/* Submit Button */}
       <button 
         type="submit"
         className="w-full mt-4 p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
       >
-        Search Cab
+        Search Available Cabs
       </button>
     </form>
   </div>

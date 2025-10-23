@@ -1,68 +1,134 @@
 import React, { useState, useEffect } from 'react';
+import { getVendorTrips, BookingData } from '../utils/bookingService';
 
-interface Trip {
-  bookingId: string;
-  tripType: string;
-  carType?: string;
-  tripItinerary: string;
-  amount: number;
-  penalty?: number;
-  customerReview?: string;
-  paymentStatus: string;
-}
-
-// Trip summary data for cards
+// Trip summary data for cards - will be dynamically calculated or fetched
 const tripSummaryData = {
   upcoming: {
-    totalTrips: "28",
-    nextTrip: "Tomorrow",
-    expectedEarnings: "4,800"
+    totalTrips: "0",
+    nextTrip: "N/A",
+    expectedEarnings: "0"
   },
   completed: {
-    totalTrips: "142",
-    recentTrip: "Yesterday",
-    totalEarnings: "35,250"
+    totalTrips: "0",
+    recentTrip: "N/A",
+    totalEarnings: "0"
   }
 };
 
-// Trip type classification data
+// Trip type classification data (using vehicle model for now)
 const tripTypeClasses = [
-  { type: "airport", class: "bg-blue-100 text-blue-700" },
-  { type: "outstation", class: "bg-purple-100 text-purple-700" },
-  { type: "local", class: "bg-yellow-100 text-yellow-700" },
+  { type: "Sedan", class: "bg-blue-100 text-blue-700" },
+  { type: "SUV", class: "bg-purple-100 text-purple-700" },
+  { type: "Hatchback", class: "bg-yellow-100 text-yellow-700" },
   { type: "default", class: "bg-gray-100 text-gray-700" }
 ];
 
-// Payment status classification data
+// Payment status classification data (using booking status)
 const paymentStatusClasses = [
-  { status: "paid", class: "bg-green-100 text-green-800" },
+  { status: "paid", class: "bg-green-100 text-green-800" }, // Assuming 'paid' is a status
   { status: "confirmed", class: "bg-green-100 text-green-800" },
   { status: "pending", class: "bg-yellow-100 text-yellow-800" },
-  { status: "default", class: "bg-blue-100 text-blue-800" }
+  { status: "waiting", class: "bg-yellow-100 text-yellow-800" },
+  { status: "approved", class: "bg-blue-100 text-blue-800" },
+  { status: "preongoing", class: "bg-indigo-100 text-indigo-800" },
+  { status: "ongoing", class: "bg-teal-100 text-teal-800" },
+  { status: "completed", class: "bg-green-100 text-green-800" },
+  { status: "cancelled", class: "bg-red-100 text-red-800" },
+  { status: "default", class: "bg-gray-100 text-gray-700" }
 ];
 
 export const TripsComponent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const limit = 10; // Number of items per page
 
-  // Use mock data instead of API for demo with simulated delay
   useEffect(() => {
-    // Clear previous data and show loading spinner
-    setLoading(true);
-    setTrips([]); // Clear previous trips while loading
-    
-    // Simulate network delay with setTimeout
-    const timer = setTimeout(() => {
-      setTrips(activeTab === 'upcoming' ? mockUpcomingTrips : mockCompletedTrips);
-      setLoading(false);
-    }, 2000); // 2 second delay to show loading state
-    
-    // Clean up timer on component unmount or when activeTab changes
-    return () => {
-      clearTimeout(timer);
+    const fetchTrips = async () => {
+      setLoading(true);
+      setError(null);
+      setTrips([]); // Clear previous trips while loading
+
+      try {
+        const response = await getVendorTrips(activeTab, currentPage, limit);
+        console.log(response)
+        if (response.success) {
+          setTrips(response.data.bookings);
+          setTotalPages(response.data.pagination.total_pages);
+
+          // Calculate trip summary data
+          const totalTrips = response.data.bookings.length.toString();
+          let nextTrip = "N/A";
+          let recentTrip = "N/A";
+          let expectedEarnings = "0";
+          let totalEarnings = "0";
+
+          if (response.data.bookings.length > 0) {
+            if (activeTab === 'upcoming') {
+              // Sort by pickup_date to find the next trip
+              const sortedUpcoming = [...response.data.bookings].sort((a, b) => new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime());
+              const nextBooking = sortedUpcoming[0];
+              const today = new Date();
+              const nextTripDate = new Date(nextBooking.pickup_date);
+              const diffTime = Math.abs(nextTripDate.getTime() - today.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 0) {
+                nextTrip = "Today";
+              } else if (diffDays === 1) {
+                nextTrip = "Tomorrow";
+              } else {
+                nextTrip = `${diffDays} days`;
+              }
+              expectedEarnings = response.data.bookings.reduce((sum, trip) => sum + trip.price, 0).toLocaleString();
+            } else { // completed
+              // Sort by drop_date to find the most recent trip
+              const sortedCompleted = [...response.data.bookings].sort((a, b) => new Date(b.drop_date).getTime() - new Date(a.drop_date).getTime());
+              const recentBooking = sortedCompleted[0];
+              const today = new Date();
+              const recentTripDate = new Date(recentBooking.drop_date);
+              const diffTime = Math.abs(today.getTime() - recentTripDate.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 0) {
+                recentTrip = "Today";
+              } else if (diffDays === 1) {
+                recentTrip = "Yesterday";
+              } else {
+                recentTrip = `${diffDays} days ago`;
+              }
+              totalEarnings = response.data.bookings.reduce((sum, trip) => sum + trip.price, 0).toLocaleString();
+            }
+          }
+
+          // Update the static tripSummaryData object (this is not ideal for React state, but for simplicity)
+          // A better approach would be to use separate state variables for these summary values.
+          if (activeTab === 'upcoming') {
+            tripSummaryData.upcoming.totalTrips = totalTrips;
+            tripSummaryData.upcoming.nextTrip = nextTrip;
+            tripSummaryData.upcoming.expectedEarnings = expectedEarnings;
+          } else {
+            tripSummaryData.completed.totalTrips = totalTrips;
+            tripSummaryData.completed.recentTrip = recentTrip;
+            tripSummaryData.completed.totalEarnings = totalEarnings;
+          }
+
+        } else {
+          setError(response.message || 'Failed to fetch trips');
+        }
+      } catch (err) {
+        console.error('Error fetching trips:', err);
+        setError('An error occurred while fetching trips.');
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [activeTab]);
+
+    fetchTrips();
+  }, [activeTab, currentPage]);
 
   const getTripTypeClass = (type: string) => {
     const found = tripTypeClasses.find(item => item.type.toLowerCase() === type.toLowerCase());
@@ -85,7 +151,7 @@ export const TripsComponent: React.FC = () => {
                 ? 'bg-green-600 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
-            onClick={() => setActiveTab('upcoming')}
+            onClick={() => { setActiveTab('upcoming'); setCurrentPage(1); }}
             disabled={loading}
           >
             Upcoming Trips
@@ -96,7 +162,7 @@ export const TripsComponent: React.FC = () => {
                 ? 'bg-green-600 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
-            onClick={() => setActiveTab('completed')}
+            onClick={() => { setActiveTab('completed'); setCurrentPage(1); }}
             disabled={loading}
           >
             Completed Trips
@@ -167,6 +233,12 @@ export const TripsComponent: React.FC = () => {
                     ))}
                   </tr>
                 ))
+              ) : error ? (
+                <tr>
+                  <td colSpan={activeTab === 'upcoming' ? 6 : 7} className="p-4 text-center text-red-500">
+                    Error: {error}
+                  </td>
+                </tr>
               ) : trips.length === 0 ? (
                 <tr>
                   <td colSpan={activeTab === 'upcoming' ? 6 : 7} className="p-4 text-center text-gray-500">
@@ -175,33 +247,27 @@ export const TripsComponent: React.FC = () => {
                 </tr>
               ) : (
                 trips.map((trip) => (
-                  <tr key={trip.bookingId} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.bookingId}</td>
+                  <tr key={trip.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.id}</td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTripTypeClass(trip.tripType)}`}>
-                        {trip.tripType}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTripTypeClass(trip.vehicle_model)}`}>
+                        {trip.vehicle_model}
                       </span>
                     </td>
                     {activeTab === 'upcoming' && (
-                      <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.carType}</td>
+                      <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.vehicle_model}</td>
                     )}
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.tripItinerary}</td>
-                    <td className="p-4 text-sm font-medium text-gray-900 border-b border-gray-100">₹{trip.amount}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{`${trip.pickup_location} → ${trip.dropoff_location}`}</td>
+                    <td className="p-4 text-sm font-medium text-gray-900 border-b border-gray-100">₹{trip.price}</td>
                     {activeTab === 'completed' && (
                       <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                        {trip.customerReview ? (
-                          <div className="flex items-center">
-                            <span className="text-amber-500 mr-1">★</span>
-                            <span>{trip.customerReview}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
+                        {/* Assuming customerReview is not directly available in BookingData, or needs to be fetched separately */}
+                        <span className="text-gray-400">N/A</span>
                       </td>
                     )}
                     <td className="p-4 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(trip.paymentStatus)}`}>
-                        {trip.paymentStatus}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(trip.status)}`}>
+                        {trip.status}
                       </span>
                     </td>
                   </tr>
@@ -210,56 +276,31 @@ export const TripsComponent: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {/* Pagination Controls */}
+        {!loading && trips.length > 0 && (
+          <div className="flex justify-center items-center p-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 mx-1 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm font-medium text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 mx-1 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-// JSON formatted data for upcoming trips - ready for API replacement
-const mockUpcomingTrips = [
-  {
-    id: 1,
-    bookingId: "BK-1001",
-    tripType: "Airport",
-    carType: "Sedan",
-    tripItinerary: "City Center → Airport",
-    amount: 350,
-    paymentStatus: "Pending"
-  },
-  {
-    id: 2,
-    bookingId: "BK-1002",
-    tripType: "Outstation",
-    carType: "SUV",
-    tripItinerary: "City → Hill Station",
-    amount: 1200,
-    paymentStatus: "Confirmed"
-  }
-];
-
-// JSON formatted data for completed trips - ready for API replacement  
-const mockCompletedTrips = [
-  {
-    id: 1,
-    bookingId: "BK-0998",
-    tripType: "Local",
-    carType: "Hatchback",
-    tripItinerary: "Mall → Residence",
-    amount: 250,
-    customerReview: "4.8",
-    paymentStatus: "Paid"
-  },
-  {
-    id: 2,
-    bookingId: "BK-0999",
-    tripType: "Airport",
-    carType: "Sedan",
-    tripItinerary: "Airport → Hotel",
-    amount: 450,
-    penalty: 50,
-    customerReview: "4.5",
-    paymentStatus: "Paid"
-  }
-];
 
 export default TripsComponent;

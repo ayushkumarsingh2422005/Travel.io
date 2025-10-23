@@ -9,10 +9,11 @@ import PreviousBookings from './screens/PreviousBookings';
 import Dashboard from './screens/Dashboard';
 import Layout from './components/Layout';
 import Profile from './screens/Profile';
-import Booking from './screens/booking';
 import CancellationPolicy from './screens/CancellationPolicy';
 import TermsOfUse from './screens/TermsOfUse';
 import PrivacyPolicy from './screens/PrivacyPolicy';
+import BookingPage from './screens/BookingPage';
+import BookingDetails from './screens/BookingDetails'; // Import the new component
 
 function App() {
   return (
@@ -26,14 +27,15 @@ function App() {
           <Route path="/profile" element={<Profile />} />
            <Route path="/previous-bookings" element={<PreviousBookings/>} />
         </Route>
+           <Route path="/booking-details/:bookingId" element={<BookingDetails />} /> {/* Add new route */}
         <Route path="/prices" element={<Prices />} />
         <Route path="/cabs" element={<Cabs />} />
+        <Route path="/booking" element={<BookingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/booking" element={<Booking />} />
       </Routes>
     </Router>
   );

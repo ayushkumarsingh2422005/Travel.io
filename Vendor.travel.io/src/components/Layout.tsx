@@ -1,25 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import  { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './SideBar';
 import Header from './Header';
 import { checkAuth } from '../utils/verifytoken';
+import { getVendorProfileData } from '../utils/bookingService'; // Import getVendorProfileData
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [kycCompleted, setKycCompleted] = useState(false); // New state for KYC status
   const location = useLocation();
   const navigate = useNavigate();
 
   const handleMenuClick = (menuItem: string) => {
     // Map menu items to routes
     const routeMap: { [key: string]: string } = {
+      'dashboard': '/dashboard',
       'booking': '/booking',
-      'Wallet': '/wallet',
-      'Trips': '/trips',
-      'Add Drivers': '/driver',
-      'Add Cabs': '/car',
-      'Restricted Inventory': '/inventory',
-      'Driver Rewards': '/driver-rewards',
-      'Penalty': '/penalty'
+      'trips': '/trips',
+      'wallet': '/wallet',
+      'driver': '/driver',
+      'car': '/car',
+      'inventory': '/inventory',
+      'driver-rewards': '/driver-rewards',
+      'penalty': '/penalty',
+      'profile': '/profile'
     };
 
     if (routeMap[menuItem]) {
@@ -28,23 +32,37 @@ const Layout = () => {
   };
 
   useEffect(() => {
-    const check = async () => {
+    const checkAndFetchKyc = async () => {
       const token = localStorage.getItem('marcocabs_vendor_token');
       const type = 'vendor';
   
       if (!token) {
-       
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
   
-      const result = await checkAuth(type, token);
-      if (!result) {
+      const authResult = await checkAuth(type, token);
+      if (!authResult) {
         navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      // Fetch vendor profile data to check KYC status
+      try {
+        const profileData = await getVendorProfileData();
+        if (profileData.success && profileData.vendor) {
+          // Assuming is_profile_completed is 1 for completed, 0 for not
+          setKycCompleted(profileData.vendor.is_profile_completed === 1);
+        } else {
+          setKycCompleted(false); // Default to false if profile data fetch fails
+        }
+      } catch (error) {
+        console.error("Error fetching vendor profile for KYC:", error);
+        setKycCompleted(false); // Default to false on error
       }
     };
   
-    check();
+    checkAndFetchKyc();
   }, [navigate, location]);
 
   const toggleSidebar = () => {
@@ -59,7 +77,7 @@ const Layout = () => {
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:relative lg:translate-x-0 transition duration-200 ease-in-out z-30`}
       >
-        <Sidebar onMenuClick={handleMenuClick} />
+        <Sidebar onMenuClick={handleMenuClick} kycCompleted={kycCompleted} />
       </div>
 
       {/* Main Content */}
@@ -87,4 +105,4 @@ const Layout = () => {
   );
 };
 
-export default Layout; 
+export default Layout;

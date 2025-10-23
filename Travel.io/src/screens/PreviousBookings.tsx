@@ -1,76 +1,109 @@
-import  { useEffect, useState } from 'react';
-
-interface Booking {
-  id: string;
-  pickup: string;
-  dropoff: string;
-  date: string;
-  time: string;
-  cabType: string;
-  amount: number;
-  status: 'Completed' | 'Cancelled' | 'In Progress';
-  driverName?: string;
-  driverPhone?: string;
-}
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { getUserBookings, cancelBooking, BookingResponse } from '../api/bookingService';
+import toast from 'react-hot-toast';
 
 const PreviousBookings = () => {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<BookingResponse['data'][]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>(''); // For filtering bookings
 
   useEffect(() => {
-    setLoading(true);
-    // Simulate API request
-    setTimeout(() => {
-      setBookings([
-        {
-          id: 'BOOK123',
-          pickup: 'Sector 62, Noida',
-          dropoff: 'IGI Airport, Delhi',
-          date: '12 May 2024',
-          time: '10:30 AM',
-          cabType: 'SUV',
-          amount: 2500,
-          status: 'Completed',
-          driverName: 'Rajesh Kumar',
-          driverPhone: '9876543210'
-        },
-        {
-          id: 'BOOK124',
-          pickup: 'Connaught Place, Delhi',
-          dropoff: 'Sector 18, Noida',
-          date: '10 May 2024',
-          time: '2:15 PM',
-          cabType: 'Sedan',
-          amount: 1200,
-          status: 'Cancelled'
-        },
-        {
-          id: 'BOOK125',
-          pickup: 'Greater Noida',
-          dropoff: 'Gurgaon',
-          date: '8 May 2024',
-          time: '9:00 AM',
-          cabType: 'Premium SUV',
-          amount: 3500,
-          status: 'Completed',
-          driverName: 'Amit Singh',
-          driverPhone: '9876543211'
+    const fetchBookings = async () => {
+      setLoading(true);
+      try {
+        const response = await getUserBookings({ page: currentPage, status: statusFilter || undefined });
+        if (response.success) {
+          setBookings(response.data.bookings);
+          setTotalPages(response.data.pagination.total_pages);
+        } else {
+          toast.error(response.message || 'Failed to fetch bookings');
         }
-      ]);
-      setLoading(false);
-    }, 1500);
-  }, []);
+      } catch (error: any) {
+        console.error('Error fetching user bookings:', error);
+        toast.error(error.response?.data?.message || 'Failed to fetch bookings');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const getStatusColor = (status: Booking['status']) => {
+    fetchBookings();
+
+    const intervalId = setInterval(fetchBookings, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [currentPage, statusFilter]); // Re-fetch when page or filter changes
+
+  const getStatusColor = (status: BookingResponse['data']['status']) => {
     switch (status) {
-      case 'Completed':
+      case 'completed':
         return 'bg-green-100 text-green-700';
-      case 'Cancelled':
+      case 'cancelled':
         return 'bg-red-100 text-red-700';
-      case 'In Progress':
+      case 'ongoing':
+      case 'preongoing':
+      case 'approved':
         return 'bg-yellow-100 text-yellow-700';
+      case 'waiting':
+        return 'bg-blue-100 text-blue-700';
       default:
         return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  // Function to fetch bookings (memoized to avoid re-creating on every render)
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getUserBookings({ page: currentPage, status: statusFilter || undefined });
+      if (response.success) {
+        setBookings(response.data.bookings);
+        setTotalPages(response.data.pagination.total_pages);
+      } else {
+        toast.error(response.message || 'Failed to fetch bookings');
+      }
+    } catch (error: any) {
+      console.error('Error fetching user bookings:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch bookings');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, statusFilter]);
+
+  useEffect(() => {
+    fetchBookings();
+
+    const intervalId = setInterval(fetchBookings, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [fetchBookings]); // Depend on memoized fetchBookings
+
+  // Helper to format date and time
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return {
+      date: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      try {
+        const response = await cancelBooking(bookingId);
+        if (response.success) {
+          toast.success(response.message || 'Booking cancelled successfully!');
+          fetchBookings(); // Re-fetch bookings to update the list
+        } else {
+          toast.error(response.message || 'Failed to cancel booking');
+        }
+      } catch (error: any) {
+        console.error('Error cancelling booking:', error);
+        toast.error(error.response?.data?.message || 'Failed to cancel booking');
+      }
     }
   };
 
@@ -105,56 +138,108 @@ const PreviousBookings = () => {
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-8 text-gray-800">Previous Bookings</h1>
       <div className="space-y-4">
-        {bookings.map((booking) => (
-          <div key={booking.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">Booking #{booking.id}</h3>
-                <p className="text-gray-500">{booking.date} at {booking.time}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(booking.status)}`}>
-                {booking.status}
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Pickup Location</p>
-                <p className="text-gray-800">{booking.pickup}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Drop Location</p>
-                <p className="text-gray-800">{booking.dropoff}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Cab Type</p>
-                <p className="text-gray-800">{booking.cabType}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Amount</p>
-                <p className="text-gray-800 font-semibold">₹{booking.amount.toLocaleString()}</p>
-              </div>
-              {booking.driverName && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Driver Details</p>
-                  <p className="text-gray-800">{booking.driverName} - {booking.driverPhone}</p>
+        {bookings.length === 0 && !loading ? (
+          <div className="text-center py-8 text-gray-600">No previous bookings found.</div>
+        ) : (
+          bookings.map((booking) => {
+            const { date, time } = formatDateTime(booking.pickup_date);
+            return (
+              <div 
+                key={booking.id} 
+                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/booking-details/${booking.id}`)} // Add onClick to navigate to details
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Booking #{booking.id.substring(0, 8)}</h3>
+                    <p className="text-gray-500">{date} at {time}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(booking.status)}`}>
+                    {booking.status}
+                  </span>
                 </div>
-              )}
-            </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Pickup Location</p>
+                    <p className="text-gray-800">{booking.pickup_location}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Drop Location</p>
+                    <p className="text-gray-800">{booking.dropoff_location}</p>
+                  </div>
+                </div>
 
-            {booking.status === 'Completed' && (
-              <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                Download Invoice
-              </button>
-            )}
-          </div>
-        ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Vehicle Model</p>
+                    <p className="text-gray-800">{booking.vehicle_model}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Amount</p>
+                    <p className="text-gray-800 font-semibold">₹{booking.price.toLocaleString()}</p>
+                  </div>
+                  {booking.driver_name && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Driver Details</p>
+                      <p className="text-gray-800">{booking.driver_name} - {booking.driver_phone}</p>
+                    </div>
+                  )}
+                </div>
+
+                {booking.status === 'completed' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); /* Prevent navigation */ }}
+                    className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mr-4"
+                  >
+                    Download Invoice
+                  </button>
+                )}
+                {(booking.status === 'waiting' || booking.status === 'approved') && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }} // Prevent navigation on cancel click
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Cancel Booking
+                  </button>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8 space-x-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentPage(index + 1)}
+              className={`px-4 py-2 border rounded-lg ${
+                currentPage === index + 1 ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-export default PreviousBookings; 
+export default PreviousBookings;

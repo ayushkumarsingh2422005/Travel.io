@@ -1,6 +1,8 @@
 // src/components/AddCar.tsx
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+// import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import CarDetailsModal from '../components/CarDetailsModal'; // Import CarDetailsModal
 
 interface Car {
   id: string; // Changed to string to match backend CHAR(64)
@@ -58,6 +60,7 @@ const API_ENDPOINTS = {
 };
 
 const AddCarForm: React.FC = () => {
+  // const navigate = useNavigate(); // Initialize useNavigate hook
   const [showAddCarForm, setShowAddCarForm] = useState(false);
   const [formStep, setFormStep] = useState<'auto-fetch' | 'add-car'>('auto-fetch');
   const [cars, setCars] = useState<Car[]>([]);
@@ -92,6 +95,10 @@ const AddCarForm: React.FC = () => {
     luggage: '',
     sourcing: '',
   });
+
+  // State for Car Details Modal
+  const [showCarDetailsModal, setShowCarDetailsModal] = useState(false);
+  const [selectedCarDetails, setSelectedCarDetails] = useState<Car | null>(null);
 
 
   const handleAddCar = async () => {
@@ -207,14 +214,14 @@ setCars(mappedCars);
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeClass = (status: string): string => {
     const found = carStatusClasses.find(item => item.status.toLowerCase() === status.toLowerCase());
-    return found ? found.class : carStatusClasses.find(item => item.status === 'default')?.class;
+    return found ? found.class : carStatusClasses.find(item => item.status === 'default')?.class || '';
   };
 
-  const getPermitBadgeClass = (permit: string) => {
+  const getPermitBadgeClass = (permit: string): string => {
     const found = permitStatusClasses.find(item => item.status.toLowerCase() === permit.toLowerCase());
-    return found ? found.class : permitStatusClasses.find(item => item.status === 'default')?.class;
+    return found ? found.class : permitStatusClasses.find(item => item.status === 'default')?.class || '';
   };
 
   // Filter cars based on search term
@@ -457,11 +464,14 @@ setCars(mappedCars);
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
+                        <button 
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                          onClick={() => {
+                            setSelectedCarDetails(car);
+                            setShowCarDetailsModal(true);
+                          }}
+                        >
                           View
-                        </button>
-                        <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
-                          Bookings
                         </button>
                       </div>
                     </td>
@@ -945,6 +955,16 @@ setCars(mappedCars);
             )}
           </div>
         </div>
+      )}
+
+      {/* Car Details Modal */}
+      {showCarDetailsModal && selectedCarDetails && (
+        <CarDetailsModal
+          car={selectedCarDetails}
+          onClose={() => setShowCarDetailsModal(false)}
+          getStatusBadgeClass={getStatusBadgeClass}
+          getPermitBadgeClass={getPermitBadgeClass}
+        />
       )}
     </div>
   );

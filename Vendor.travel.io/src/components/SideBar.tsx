@@ -4,9 +4,10 @@ import { Link, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   onMenuClick: (menuItem: string) => void;
+  kycCompleted: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onMenuClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, kycCompleted }) => {
   const location = useLocation();
   
   const menuItems = [
@@ -33,8 +34,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-1">
+      <nav className="flex-1 overflow-y-auto p-4 relative">
+        {!kycCompleted && (
+          <div className="absolute inset-0 bg-white bg-opacity-70 backdrop-filter backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+            <p className="text-center text-gray-700 font-semibold p-4">
+              Complete KYC to access all features.
+              <Link to="/profile" className="text-green-600 hover:underline block mt-2">
+                Go to Profile
+              </Link>
+            </p>
+          </div>
+        )}
+        <div className={`space-y-1 ${!kycCompleted ? 'pointer-events-none opacity-50' : ''}`}>
         {menuItems.map((item) => (
             <Link
             key={item.id} 

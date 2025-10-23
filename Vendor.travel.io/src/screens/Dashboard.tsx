@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import  { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getVendorBookings, getVendorDrivers } from '../utils/bookingService';
 
 interface BookingSummary {
   total: number;
@@ -38,55 +39,70 @@ const Dashboard = () => {
     active: 0,
     onTrip: 0
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setBookingSummary({
-        total: 156,
-        completed: 142,
-        cancelled: 8,
-        ongoing: 6
-      });
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      setDriverSummary({
-        total: 25,
-        active: 18,
-        onTrip: 12
-      });
+        console.log(error);
 
-      setRecentBookings([
-        {
-          id: 'BOOK789',
-          customerName: 'Rahul Sharma',
-          pickup: 'Sector 62, Noida',
-          dropoff: 'IGI Airport, Delhi',
-          date: '15 May 2024',
-          amount: 2500,
-          status: 'In Progress'
-        },
-        {
-          id: 'BOOK788',
-          customerName: 'Priya Singh',
-          pickup: 'Greater Noida',
-          dropoff: 'Gurgaon',
-          date: '15 May 2024',
-          amount: 3500,
-          status: 'Completed'
-        },
-        {
-          id: 'BOOK787',
-          customerName: 'Amit Kumar',
-          pickup: 'Connaught Place',
-          dropoff: 'Noida',
-          date: '14 May 2024',
-          amount: 1200,
-          status: 'Cancelled'
+        // Fetch bookings
+        const bookingsResponse = await getVendorBookings({ limit: 1000 }); // Fetch all to process locally
+        if (bookingsResponse.success) {
+          const allBookings = bookingsResponse.data.bookings;
+
+          const total = allBookings.length;
+          const completed = allBookings.filter(b => b.status === 'completed').length;
+          const cancelled = allBookings.filter(b => b.status === 'cancelled').length;
+          const ongoing = allBookings.filter(b => ['waiting', 'approved', 'preongoing', 'ongoing'].includes(b.status)).length;
+
+          setBookingSummary({ total, completed, cancelled, ongoing });
+
+          const mappedRecentBookings: RecentBooking[] = allBookings
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Sort by most recent
+            .slice(0, 3) // Take top 3
+            .map(b => ({
+              id: b.id,
+              customerName: b.customer_name,
+              pickup: b.pickup_location,
+              dropoff: b.dropoff_location,
+              date: new Date(b.pickup_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+              amount: b.price,
+              status: b.status === 'completed' ? 'Completed' : b.status === 'cancelled' ? 'Cancelled' : 'In Progress',
+            }));
+          setRecentBookings(mappedRecentBookings);
+        } else {
+          setError(bookingsResponse.message || 'Failed to fetch bookings.');
         }
-      ]);
 
-      setLoading(false);
-    }, 1500);
+        // Fetch drivers
+        const driversResponse = await getVendorDrivers();
+        if (driversResponse.data && driversResponse.data.drivers) {
+          const allDrivers = driversResponse.data.drivers;
+          const totalDrivers = allDrivers.length;
+          // Assuming 'active' and 'onTrip' status would come from a more detailed driver API or local state
+          // For now, we'll just use total.
+          setDriverSummary({
+            total: totalDrivers,
+            active: allDrivers.length, // Placeholder: assuming all fetched drivers are active
+            onTrip: 0 // Placeholder: no direct 'onTrip' status from current API
+          });
+        } else {
+          setError('Failed to fetch drivers.');
+        }
+
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   if (loading) {
@@ -216,4 +232,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

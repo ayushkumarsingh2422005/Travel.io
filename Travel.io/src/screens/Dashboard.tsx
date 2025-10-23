@@ -1,74 +1,64 @@
-import  { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface ActiveBooking {
-  id: string;
-  pickup: string;
-  dropoff: string;
-  date: string;
-  time: string;
-  cabType: string;
-  amount: number;
-  status: 'In Progress';
-  driverName: string;
-  driverPhone: string;
-  estimatedArrival: string;
-}
-
-interface RecentBooking {
-  id: string;
-  pickup: string;
-  dropoff: string;
-  date: string;
-  status: 'Completed' | 'Cancelled';
-  amount: number;
-}
+import { getUserBookings, BookingResponse } from '../api/bookingService';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null);
-  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [activeBooking, setActiveBooking] = useState<BookingResponse['data'] & { estimatedArrival?: string } | null>(null);
+  const [recentBookings, setRecentBookings] = useState<BookingResponse['data'][]>([]);
+
+  // Helper to format date and time
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return {
+      date: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+  };
 
   useEffect(() => {
-    setLoading(true);
-    // Simulate API request
-    setTimeout(() => {
-      // Simulate active booking (could be null if no active booking)
-      setActiveBooking({
-        id: 'BOOK126',
-        pickup: 'Sector 62, Noida',
-        dropoff: 'IGI Airport, Delhi',
-        date: '15 May 2024',
-        time: '11:30 AM',
-        cabType: 'SUV',
-        amount: 2500,
-        status: 'In Progress',
-        driverName: 'Rajesh Kumar',
-        driverPhone: '9876543210',
-        estimatedArrival: '10 mins'
-      });
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        // Fetch active bookings (ongoing, preongoing, approved, waiting)
+        const activeResponse = await getUserBookings({
+          status: 'ongoing,preongoing,approved,waiting', // Combine relevant statuses
+          limit: 1, // Only need one active booking for the dashboard
+        });
 
-      // Recent bookings
-      setRecentBookings([
-        {
-          id: 'BOOK125',
-          pickup: 'Greater Noida',
-          dropoff: 'Gurgaon',
-          date: '12 May 2024',
-          status: 'Completed',
-          amount: 3500
-        },
-        {
-          id: 'BOOK124',
-          pickup: 'Connaught Place',
-          dropoff: 'Noida',
-          date: '10 May 2024',
-          status: 'Cancelled',
-          amount: 1200
+        if (activeResponse.success && activeResponse.data.bookings.length > 0) {
+          const latestActiveBooking = activeResponse.data.bookings[0];
+          setActiveBooking({ ...latestActiveBooking, estimatedArrival: 'Calculating...' });
+        } else {
+          setActiveBooking(null);
         }
-      ]);
-      setLoading(false);
-    }, 1500);
+
+        // Fetch recent bookings (completed, cancelled)
+        const recentResponse = await getUserBookings({
+          status: 'completed,cancelled',
+          limit: 2, // Display 2 recent bookings
+        });
+
+        if (recentResponse.success) {
+          setRecentBookings(recentResponse.data.bookings);
+        } else {
+          toast.error(recentResponse.message || 'Failed to fetch recent bookings');
+        }
+
+      } catch (error: any) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error(error.response?.data?.message || 'Failed to fetch dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+
+    const intervalId = setInterval(fetchDashboardData, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
   }, []);
 
   if (loading) {
@@ -112,30 +102,32 @@ const Dashboard = () => {
               <div>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-1">Pickup</p>
-                  <p className="text-gray-800">{activeBooking.pickup}</p>
+                  <p className="text-gray-800">{activeBooking.pickup_location}</p>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-1">Drop</p>
-                  <p className="text-gray-800">{activeBooking.dropoff}</p>
+                  <p className="text-gray-800">{activeBooking.dropoff_location}</p>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-1">Date & Time</p>
-                  <p className="text-gray-800">{activeBooking.date} at {activeBooking.time}</p>
+                  <p className="text-gray-800">
+                    {formatDateTime(activeBooking.pickup_date).date} at {formatDateTime(activeBooking.pickup_date).time}
+                  </p>
                 </div>
               </div>
               <div>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-1">Driver Details</p>
-                  <p className="text-gray-800">{activeBooking.driverName}</p>
-                  <p className="text-gray-600">{activeBooking.driverPhone}</p>
+                  <p className="text-gray-800">{activeBooking.driver_name || 'N/A'}</p>
+                  <p className="text-gray-600">{activeBooking.driver_phone || 'N/A'}</p>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-1">Estimated Arrival</p>
-                  <p className="text-green-600 font-semibold">{activeBooking.estimatedArrival}</p>
+                  <p className="text-green-600 font-semibold">{activeBooking.estimatedArrival || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Amount</p>
-                  <p className="text-gray-800 font-semibold">₹{activeBooking.amount.toLocaleString()}</p>
+                  <p className="text-gray-800 font-semibold">₹{activeBooking.price.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -166,33 +158,40 @@ const Dashboard = () => {
           </Link>
         </div>
         <div className="space-y-4">
-          {recentBookings.map(booking => (
-            <div 
-              key={booking.id}
-              className="p-4 rounded-lg bg-gray-50 flex justify-between items-center"
-            >
-              <div>
-                <p className="font-medium text-gray-800">
-                  {booking.pickup} → {booking.dropoff}
-                </p>
-                <p className="text-sm text-gray-600">{booking.date}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-800">₹{booking.amount.toLocaleString()}</p>
-                <span className={`text-sm ${
-                  booking.status === 'Completed' 
-                    ? 'text-green-600' 
-                    : 'text-red-600'
-                }`}>
-                  {booking.status}
-                </span>
-              </div>
-            </div>
-          ))}
+          {recentBookings.length === 0 && !loading ? (
+            <div className="text-center py-4 text-gray-600">No recent bookings found.</div>
+          ) : (
+            recentBookings.map(booking => {
+              const { date } = formatDateTime(booking.pickup_date);
+              return (
+                <div 
+                  key={booking.id}
+                  className="p-4 rounded-lg bg-gray-50 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      {booking.pickup_location} → {booking.dropoff_location}
+                    </p>
+                    <p className="text-sm text-gray-600">{date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-800">₹{booking.price.toLocaleString()}</p>
+                    <span className={`text-sm ${
+                      booking.status === 'completed' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {booking.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

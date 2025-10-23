@@ -1,94 +1,114 @@
 import React, { useState, useEffect } from 'react';
-
-// Define TypeScript interfaces
-interface Trip {
-  id: number;
-  bookingId: string;
-  tripType: string;
-  carType: string;
-  tripItinerary: string;
-  startDate: string;
-  reportingTime: string;
-  pickupAddress: string;
-  dropAddress: string;
-  mandatoryRequirement: string;
-  additionalInfo: string;
-  status: string;
-}
-
-// City data for dropdown
-const cityData = [
-  { id: 1, name: "Lucknow", value: "lucknow" },
-  { id: 2, name: "Varanasi", value: "varanasi" },
-  { id: 3, name: "Ayodhya", value: "ayodhya" },
-  { id: 4, name: "Delhi", value: "delhi" }
-];
-
-// Car type data for dropdown
-const carTypeData = [
-  { id: 1, name: "Sedan", value: "sedan" },
-  { id: 2, name: "SUV", value: "suv" },
-  { id: 3, name: "Hatchback", value: "hatchback" },
-  { id: 4, name: "Luxury", value: "luxury" }
-];
+import {
+  BookingData,
+  Driver,
+  getVendorBookings,
+  updateBookingStatus,
+  getVendorDrivers,
+} from '../utils/bookingService'; // Import from the new service file
 
 const Booking: React.FC = () => {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [bookings, setBookings] = useState<BookingData[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchText, setSearchText] = useState<string>('');
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const [selectedCarType, setSelectedCarType] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<BookingData['status'] | ''>('waiting'); // Default to 'waiting'
   const [loading, setLoading] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  
-  useEffect(() => {
-    // Simulate loading trips data with setTimeout
-    setLoading(true);
-    
-    // Simulate API fetch with setTimeout
-    const timer = setTimeout(() => {
-      setTrips(dummyTrips);
-      setLoading(false);
-    }, 2000);
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder filter function with loading simulation
-  const handleSearch = () => {
-    console.log("Searching with filters:", { searchText, selectedCity, selectedCarType });
-    
-    // Show loading state
+  const [showApproveModal, setShowApproveModal] = useState<boolean>(false);
+  const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<BookingData | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<string>('');
+  const [updateLoading, setUpdateLoading] = useState<boolean>(false);
+
+  const fetchBookings = async (statusFilter: BookingData['status'] | '' = '') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: { status?: BookingData['status'], bookingId?: string } = {};
+      if (statusFilter) {
+        params.status = statusFilter as BookingData['status'];
+      }
+      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
+      const response = await getVendorBookings(params);
+      setBookings(response.data.bookings);
+    } catch (err) {
+      console.error('Error fetching vendor bookings:', err);
+      setError('Failed to fetch bookings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDrivers = async () => {
+    try {
+      const response = await getVendorDrivers();
+      console.log('Fetched drivers:', response);
+      setDrivers(response.data.drivers);
+    } catch (err) {
+      console.error('Error fetching drivers:', err);
+      // Optionally set an error state for drivers
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings(selectedStatus);
+    fetchDrivers();
+  }, [selectedStatus]); // Refetch bookings when selectedStatus changes, fetch drivers once
+
+  const handleSearch = async () => {
     setSearchLoading(true);
-    
-    // Simulate search delay
-    setTimeout(() => {
-      // Filter based on search criteria
-      let filteredTrips = [...dummyTrips];
-      
-      if (searchText) {
-        filteredTrips = filteredTrips.filter(trip => 
-          trip.bookingId.toLowerCase().includes(searchText.toLowerCase())
-        );
+    setError(null);
+    try {
+      const params: { status?: BookingData['status'], bookingId?: string } = {};
+      if (selectedStatus) {
+        params.status = selectedStatus as BookingData['status'];
       }
-      
-      if (selectedCity) {
-        filteredTrips = filteredTrips.filter(trip => 
-          trip.pickupAddress.toLowerCase().includes(selectedCity.toLowerCase()) ||
-          trip.dropAddress.toLowerCase().includes(selectedCity.toLowerCase())
-        );
-      }
-      
-      if (selectedCarType) {
-        filteredTrips = filteredTrips.filter(trip => 
-          trip.carType.toLowerCase() === selectedCarType.toLowerCase()
-        );
-      }
-      
-      setTrips(filteredTrips);
+      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
+      const response = await getVendorBookings(params);
+      setBookings(response.data.bookings);
+    } catch (err) {
+      console.error('Error searching vendor bookings:', err);
+      setError('Failed to search bookings. Please try again.');
+    } finally {
       setSearchLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleUpdateStatus = async (bookingId: string, newStatus: BookingData['status'], driverId: string | null = null) => {
+    setUpdateLoading(true);
+    setError(null);
+    try {
+      await updateBookingStatus(bookingId, newStatus, driverId);
+      setShowApproveModal(false);
+      setSelectedBookingForApproval(null);
+      setSelectedDriver('');
+      fetchBookings(selectedStatus); // Re-fetch bookings to update the list
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+      setError('Failed to update booking status. Please try again.');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const openApproveModal = (booking: BookingData) => {
+    setSelectedBookingForApproval(booking);
+    setShowApproveModal(true);
+  };
+
+  const closeApproveModal = () => {
+    setShowApproveModal(false);
+    setSelectedBookingForApproval(null);
+    setSelectedDriver('');
+  };
+
+  const confirmApproval = () => {
+    if (selectedBookingForApproval && selectedDriver) {
+      handleUpdateStatus(selectedBookingForApproval.id, 'approved', selectedDriver);
+    } else {
+      setError('Please select a driver to approve the booking.');
+    }
   };
 
   // Function to render skeleton loading rows
@@ -130,6 +150,8 @@ const Booking: React.FC = () => {
     ));
   };
 
+  const bookingStatuses: BookingData['status'][] = ['waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'];
+
   return (
     <div className="bg-gradient-to-b from-white to-gray-50 min-h-screen p-6 rounded-lg shadow-sm">
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Bookings Dashboard</h1>
@@ -141,27 +163,13 @@ const Booking: React.FC = () => {
           <div className="w-full md:w-auto">
             <select 
               className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-6 py-3 rounded-lg w-full md:w-60 transition-all duration-200"
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value as BookingData['status'])}
               disabled={searchLoading}
             >
-              <option value="">Select City</option>
-              {cityData.map(city => (
-                <option key={city.id} value={city.value}>{city.name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="w-full md:w-auto">
-            <select 
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-6 py-3 rounded-lg w-full md:w-60 transition-all duration-200"
-              value={selectedCarType}
-              onChange={(e) => setSelectedCarType(e.target.value)}
-              disabled={searchLoading}
-            >
-              <option value="">Select Car type</option>
-              {carTypeData.map(carType => (
-                <option key={carType.id} value={carType.value}>{carType.name}</option>
+              <option value="">All Statuses</option>
+              {bookingStatuses.map(status => (
+                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
               ))}
             </select>
           </div>
@@ -204,70 +212,116 @@ const Booking: React.FC = () => {
         </div>
       </div>
 
-      {/* Trips Table */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      )}
+
+      {/* Bookings Table */}
       <div className="bg-white p-6 rounded-xl shadow-md overflow-hidden">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Available Trips</h2>
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">Available Bookings</h2>
         <div className="overflow-x-auto max-w-full">
           <table className="w-full min-w-max table-fixed">
             <thead>
               <tr className="bg-gray-50">
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-24">Booking ID</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-28">Trip type</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-24">Car type</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-60">Trip Itinerary</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-28">Start Date</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-32">Reporting time</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-48">Pickup Address</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-48">Drop Address</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-56">Mandatory requirement</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-36">Actions</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Booking ID</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Customer Name</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Vehicle Model</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[180px]">Pickup/Dropoff</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Dates</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[80px]">Price</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Driver</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Status</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[200px]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading || searchLoading ? (
                 // Show skeleton loading animation
                 renderSkeletonRows()
-              ) : trips.length === 0 ? (
+              ) : bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-4 text-center text-gray-500">
-                    No trips found matching your search criteria.
+                  <td colSpan={9} className="p-4 text-center text-gray-500">
+                    No bookings found matching your search criteria.
                   </td>
                 </tr>
               ) : (
-                // Show actual trip data
-                trips.map((trip) => (
-                  <tr key={trip.id} className="hover:bg-gray-50 transition-colors duration-150">
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{trip.bookingId}</td>
+                // Show actual booking data
+                bookings.map((booking) => (
+                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-all">{booking.id}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.customer_name}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.vehicle_model}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 whitespace-pre-line break-words">
+                      {booking.pickup_location} to {booking.dropoff_location}
+                    </td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
+                      {new Date(booking.pickup_date).toLocaleDateString()} - {new Date(booking.drop_date).toLocaleDateString()}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">₹{booking.price}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
+                      {booking.driver_name || 'N/A'}
+                      {booking.driver_phone && ` (${booking.driver_phone})`}
+                    </td>
+                    <td className="p-3 text-sm border-b border-gray-100">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        trip.tripType === 'One Way' ? 'bg-blue-100 text-blue-700' : 
-                        trip.tripType === 'Round Trip' ? 'bg-purple-100 text-purple-700' : 
-                        'bg-yellow-100 text-yellow-700'
+                        booking.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' : 
+                        booking.status === 'approved' ? 'bg-blue-100 text-blue-700' : 
+                        booking.status === 'preongoing' ? 'bg-indigo-100 text-indigo-700' :
+                        booking.status === 'ongoing' ? 'bg-purple-100 text-purple-700' :
+                        booking.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
                       }`}>
-                        {trip.tripType}
+                        {booking.status}
                       </span>
                     </td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{trip.carType}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 whitespace-pre-line break-words">{trip.tripItinerary}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{trip.startDate}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{trip.reportingTime}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-words">{trip.pickupAddress}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-words">{trip.dropAddress}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-words">{trip.mandatoryRequirement}</td>
                     <td className="p-3 text-sm border-b border-gray-100">
-                      {trip.additionalInfo && (
-                        <div className="text-xs mb-2 bg-gray-50 p-2 rounded text-gray-600 break-words">
-                          {trip.additionalInfo}
-                        </div>
-                      )}
-                      {trip.status === 'pending' ? (
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150">
-                          Confirm
+                      {booking.status === 'waiting' && (
+                        <button
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
+                          onClick={() => openApproveModal(booking)}
+                          disabled={updateLoading}
+                        >
+                          Approve
                         </button>
-                      ) : (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                          Confirmed
-                        </span>
+                      )}
+                      {booking.status === 'approved' && (
+                        <button
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
+                          onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
+                          disabled={updateLoading}
+                        >
+                          Mark Pre-Ongoing
+                        </button>
+                      )}
+                      {booking.status === 'preongoing' && (
+                        <button
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
+                          onClick={() => handleUpdateStatus(booking.id, 'ongoing')}
+                          disabled={updateLoading}
+                        >
+                          Mark Ongoing
+                        </button>
+                      )}
+                      {booking.status === 'ongoing' && (
+                        <button
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
+                          onClick={() => handleUpdateStatus(booking.id, 'completed')}
+                          disabled={updateLoading}
+                        >
+                          Mark Completed
+                        </button>
+                      )}
+                      {(booking.status === 'waiting' || booking.status === 'approved') && (
+                        <button
+                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
+                          onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                          disabled={updateLoading}
+                        >
+                          Cancel
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -277,68 +331,58 @@ const Booking: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {showApproveModal && selectedBookingForApproval && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full"> {/* Increased max-w-md to max-w-lg */}
+            <h3 className="text-lg font-bold mb-4">
+              Approve Booking <span className="break-all">{selectedBookingForApproval.id}</span> {/* Added break-all */}
+            </h3>
+            <div className="mb-4">
+              <label htmlFor="driver-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Driver:
+              </label>
+              <select
+                id="driver-select"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+                value={selectedDriver}
+                onChange={(e) => setSelectedDriver(e.target.value)}
+                disabled={updateLoading}
+              >
+                <option value="">-- Select a Driver --</option>
+                {drivers.map((driver) => (
+                  <option key={driver.id} value={driver.id}>
+                    {driver.name} ({driver.phone})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
+                {error}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={closeApproveModal}
+                disabled={updateLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
+                onClick={confirmApproval}
+                disabled={updateLoading}
+              >
+                {updateLoading ? 'Approving...' : 'Approve Booking'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-// JSON dummyTrips data for API replacement
-const dummyTrips = [
-  {
-    id: 1,
-    bookingId: "12345",
-    tripType: "One Way",
-    carType: "Sedan",
-    tripItinerary: "Lucknow - Ayodhya - Varanasi\n3 days 750 kms limit",
-    startDate: "13/04/24",
-    reportingTime: "05:30 AM",
-    pickupAddress: "Lucknow Airport",
-    dropAddress: "Varanasi Airport",
-    mandatoryRequirement: "Luggage Carrier Model 2022 or above",
-    additionalInfo: "6750\\- Toll + Parking + Night",
-    status: "pending"
-  },
-  {
-    id: 2,
-    bookingId: "12346",
-    tripType: "Round Trip",
-    carType: "SUV",
-    tripItinerary: "Delhi - Agra - Delhi\n2 days 500 kms limit",
-    startDate: "15/04/24",
-    reportingTime: "06:00 AM",
-    pickupAddress: "Delhi Hotel Taj",
-    dropAddress: "Delhi Hotel Taj",
-    mandatoryRequirement: "Child Seat Required",
-    additionalInfo: "",
-    status: "confirmed"
-  },
-  {
-    id: 3,
-    bookingId: "12347",
-    tripType: "Local",
-    carType: "Hatchback",
-    tripItinerary: "Lucknow City Tour\n1 day 100 kms limit",
-    startDate: "18/04/24",
-    reportingTime: "09:00 AM",
-    pickupAddress: "Lucknow Railway Station",
-    dropAddress: "Lucknow Railway Station",
-    mandatoryRequirement: "None",
-    additionalInfo: "2500\\- All inclusive",
-    status: "pending"
-  },
-  {
-    id: 4,
-    bookingId: "12348",
-    tripType: "One Way",
-    carType: "Luxury",
-    tripItinerary: "Varanasi - Prayagraj\n1 day 200 kms limit",
-    startDate: "20/04/24",
-    reportingTime: "10:00 AM",
-    pickupAddress: "Varanasi BHU Gate",
-    dropAddress: "Prayagraj Sangam",
-    mandatoryRequirement: "English Speaking Driver",
-    additionalInfo: "4500\\- Toll + Parking",
-    status: "pending"
-  }
-];
 
 export default Booking;
