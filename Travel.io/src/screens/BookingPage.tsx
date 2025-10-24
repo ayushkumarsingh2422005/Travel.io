@@ -1,8 +1,15 @@
-import  { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { checkAuth } from '../utils/verifytoken';
-import { createBooking, BookingCreateRequest } from '../api/bookingService';
+import { checkAuth, getUserDetailsFromToken } from '../utils/verifytoken';
 import toast from 'react-hot-toast';
+import { createPaymentOrder, verifyPayment, CreateOrderRequest, VerifyPaymentRequest } from '../api/paymentService';
+
+// Declare Razorpay on the Window object
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface BookingData {
   pickup: string;
@@ -17,7 +24,14 @@ interface BookingData {
   price: number;
   path: string;
   distance_km: number;
-  isRouteLoading: boolean; // Add isRouteLoading to the interface
+  isRouteLoading: boolean;
+}
+
+interface UserDetails {
+  id: string;
+  name?: string;
+  email: string;
+  phone?: string;
 }
 
 export default function BookingPage() {
@@ -25,9 +39,22 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [partnerId, setPartnerId] = useState('');
+  const [userToken, setUserToken] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const bookingData = location.state as BookingData;
 
-  // Authentication check
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Authentication check and user details fetch
   useEffect(() => {
     const check = async () => {
       const token = localStorage.getItem('marcocabs_customer_token');
@@ -44,9 +71,9 @@ export default function BookingPage() {
         return;
       }
 
-      const result = await checkAuth(type, token);
+      const isAuthenticated = await checkAuth(type, token);
 
-      if (!result) {
+      if (!isAuthenticated) {
         navigate('/login', {
           state: {
             from: location.pathname,
@@ -54,6 +81,20 @@ export default function BookingPage() {
           },
         });
         return;
+      }
+      
+      setUserToken(token);
+      const details = await getUserDetailsFromToken(token);
+      if (details) {
+        setUserDetails(details);
+      } else {
+        toast.error('Failed to retrieve user details. Please log in again.');
+        navigate('/login', {
+          state: {
+            from: location.pathname,
+            bookingData: bookingData,
+          },
+        });
       }
     };
 
@@ -68,16 +109,14 @@ export default function BookingPage() {
   }, [bookingData, navigate]);
 
   const handleCreateBooking = async () => {
-    if (!bookingData) {
-      toast.error('No booking data available');
+    if (!bookingData || !userToken) {
+      toast.error('No booking data or user token available');
       return;
     }
 
-// Missing required fields: vehicle_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance
-
     setLoading(true);
     try {
-      const bookingRequest: BookingCreateRequest = {
+      const orderRequest: CreateOrderRequest = {
         vehicle_id: bookingData.vehicle_id,
         partner_id: partnerId || undefined,
         pickup_location: bookingData.pickup,
@@ -87,22 +126,13 @@ export default function BookingPage() {
         path: bookingData.path,
         distance: bookingData.distance_km,
       };
-      console.log('Booking Data in BookingPage:', bookingData);
-      console.log('Booking Request being sent:', bookingRequest);
 
-      const response = await createBooking(bookingRequest);
+      const orderResponse = await createPaymentOrder(orderRequest, userToken);
 
-      console.log('Create booking response:', response);
-
-      if (response.success) {
-        toast.success('Booking created successfully!');
-        navigate('/dashboard', { 
-          state: { 
-            message: 'Your booking has been created successfully. You will receive driver details shortly.' 
-          } 
-        });
+      if (orderResponse.success) {
+        initializeRazorpay(orderResponse.data);
       } else {
-        toast.error(response.message || 'Failed to create booking');
+        toast.error(orderResponse.message || 'Failed to create payment order');
       }
     } catch (error: any) {
       console.error('Error creating booking:', error);
@@ -112,7 +142,61 @@ export default function BookingPage() {
     }
   };
 
-  if (!bookingData) {
+  const initializeRazorpay = (orderData: any) => {
+    if (!userDetails || !userToken) {
+      toast.error('User details or token not available for payment. Please log in again.');
+      return;
+    }
+
+    console.log('order id ',orderData.order_id);
+
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use VITE_ for Vite projects
+      amount: orderData.amount * 100, // Convert to paise
+      currency: 'INR',
+      name: 'Travel.io',
+      description: `Booking for ${orderData.vehicle_details.model}`,
+      order_id: orderData.order_id,
+      handler: async function (response: any) {
+        const paymentVerificationRequest: VerifyPaymentRequest = {
+          payment_id: orderData.payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        };
+        const verificationResponse = await verifyPayment(paymentVerificationRequest, userToken);
+
+        if (verificationResponse.success) {
+          toast.success('Booking confirmed! Booking ID: ' + verificationResponse.data.booking.id);
+          navigate('/dashboard', {
+            state: {
+              message: 'Your booking has been created successfully. You will receive driver details shortly.',
+            },
+          });
+        } else {
+          toast.error(verificationResponse.message || 'Payment verification failed. Please try again.');
+        }
+      },
+      prefill: {
+        name: userDetails.name,
+        email: userDetails.email,
+        contact: userDetails.phone,
+      },
+      theme: {
+        color: '#3399cc',
+      },
+      modal: {
+        ondismiss: function () {
+          toast.error('Payment cancelled by user');
+        },
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
+  if (!bookingData || !userToken || !userDetails) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

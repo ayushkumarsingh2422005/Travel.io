@@ -374,10 +374,10 @@ export default function Cabs() {
   // };
 
   const [filters, setFilters] = useState({
-    minPrice: '',
-    maxPrice: '',
-    minSeats: '',
-    maxSeats: '',
+    minPrice: '0',
+    maxPrice: '2000',
+    minSeats: '1',
+    maxSeats: '20',
     searchTerm: '',
     ac: false,
     sortBy: 'per_km_charge', // 'per_km_charge' | 'no_of_seats' | 'model'
@@ -734,71 +734,97 @@ export default function Cabs() {
 </div>
 
        
-
       {/* Filters Section */}
       <div className="container mx-auto px-4 py-6">
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+          <h3 className="text-xl font-semibold text-gray-800 mb-5">Filter Cabs</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Search Term */}
             <div>
+              <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">Search</label>
               <input
                 type="text"
+                id="searchTerm"
                 placeholder="Search cabs..."
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
                 value={filters.searchTerm}
                 onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
               />
             </div>
-            <div>
-              <input
-                type="number"
-                placeholder="Min Price"
-                className="w-full p-2 border rounded-lg"
-                value={filters.minPrice}
-                onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
-              />
+
+            {/* Price Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">Min Price/km</label>
+                <input
+                  type="number"
+                  id="minPrice"
+                  placeholder="Min Price"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+                  value={filters.minPrice}
+                  onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">Max Price/km</label>
+                <input
+                  type="number"
+                  id="maxPrice"
+                  placeholder="Max Price"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                />
+              </div>
             </div>
-            <div>
-              <input
-                type="number"
-                placeholder="Max Price"
-                className="w-full p-2 border rounded-lg"
-                value={filters.maxPrice}
-                onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
-              />
+
+            {/* Seat Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="minSeats" className="block text-sm font-medium text-gray-700 mb-1">Min Seats</label>
+                <input
+                  type="number"
+                  id="minSeats"
+                  placeholder="Min Seats"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+                  value={filters.minSeats}
+                  onChange={(e) => setFilters(prev => ({ ...prev, minSeats: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label htmlFor="maxSeats" className="block text-sm font-medium text-gray-700 mb-1">Max Seats</label>
+                <input
+                  type="number"
+                  id="maxSeats"
+                  placeholder="Max Seats"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
+                  value={filters.maxSeats}
+                  onChange={(e) => setFilters(prev => ({ ...prev, maxSeats: e.target.value }))}
+                />
+              </div>
             </div>
+
+            {/* Sort By */}
             <div>
-              <input
-                type="number"
-                placeholder="Min Seats"
-                className="w-full p-2 border rounded-lg"
-                value={filters.minSeats}
-                onChange={(e) => setFilters(prev => ({ ...prev, minSeats: e.target.value }))}
-              />
-            </div>
-            <div>
-              <input
-                type="number"
-                placeholder="Max Seats"
-                className="w-full p-2 border rounded-lg"
-                value={filters.maxSeats}
-                onChange={(e) => setFilters(prev => ({ ...prev, maxSeats: e.target.value }))}
-              />
-            </div>
-            <div>
+              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
               <select
-                className="w-full p-2 border rounded-lg"
+                id="sortBy"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
                 value={filters.sortBy}
                 onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
               >
-                <option value="per_km_charge">Sort by Price</option>
-                {/* <option value="rating">Sort by Rating</option> */}
-                <option value="no_of_seats">Sort by Seats</option>
-                <option value="model">Sort by Model</option>
+                <option value="per_km_charge">Price per km</option>
+                <option value="no_of_seats">Number of Seats</option>
+                <option value="model">Model Name</option>
               </select>
             </div>
+
+            {/* Fuel Type */}
             <div>
+              <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
               <select
-                className="w-full p-2 border rounded-lg"
+                id="fuelType"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
                 value={filters.fuelType}
                 onChange={(e) => setFilters(prev => ({ ...prev, fuelType: e.target.value }))}
               >
@@ -808,13 +834,16 @@ export default function Cabs() {
                 <option value="CNG">CNG</option>
               </select>
             </div>
-            <div className="flex items-center">
-              <label className="flex items-center space-x-2 cursor-pointer">
+
+            {/* AC Only Checkbox */}
+            <div className="flex items-end pb-1"> {/* Align with other inputs */}
+              <label htmlFor="acOnly" className="flex items-center space-x-2 cursor-pointer text-gray-700">
                 <input
                   type="checkbox"
+                  id="acOnly"
                   checked={filters.ac}
                   onChange={(e) => setFilters(prev => ({ ...prev, ac: e.target.checked }))}
-                  className="form-checkbox h-5 w-5 text-green-600"
+                  className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500"
                 />
                 <span>AC Only</span>
               </label>

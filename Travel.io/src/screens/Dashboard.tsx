@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [activeBooking, setActiveBooking] = useState<BookingResponse['data'] & { estimatedArrival?: string } | null>(null);
+  const [activeBooking, setActiveBooking] = useState<BookingResponse['data'] | null>(null);
   const [recentBookings, setRecentBookings] = useState<BookingResponse['data'][]>([]);
 
   // Helper to format date and time
@@ -21,29 +21,49 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // Fetch active bookings (ongoing, preongoing, approved, waiting)
-        const activeResponse = await getUserBookings({
-          status: 'ongoing,preongoing,approved,waiting', // Combine relevant statuses
-          limit: 1, // Only need one active booking for the dashboard
-        });
+        // Fetch active bookings for each status individually
+        const statusesToFetch = ['ongoing', 'preongoing', 'approved', 'waiting'];
+        let allActiveBookings: BookingResponse['data'][] = [];
 
-        if (activeResponse.success && activeResponse.data.bookings.length > 0) {
-          const latestActiveBooking = activeResponse.data.bookings[0];
-          setActiveBooking({ ...latestActiveBooking, estimatedArrival: 'Calculating...' });
+        for (const status of statusesToFetch) {
+          const response = await getUserBookings({
+            status: status,
+            limit: 1, // Fetch one for each status, then combine and pick the latest
+          });
+          if (response.success && response.data.bookings.length > 0) {
+            allActiveBookings.push(response.data.bookings[0]);
+          }
+        }
+
+        // Sort all active bookings by creation date to get the latest one
+        if (allActiveBookings.length > 0) {
+          allActiveBookings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          const latestActiveBooking = allActiveBookings[0];
+          setActiveBooking(latestActiveBooking);
         } else {
           setActiveBooking(null);
         }
 
-        // Fetch recent bookings (completed, cancelled)
-        const recentResponse = await getUserBookings({
-          status: 'completed,cancelled',
-          limit: 2, // Display 2 recent bookings
-        });
+        // Fetch recent bookings for each status individually
+        const recentStatusesToFetch = ['completed', 'cancelled'];
+        let allRecentBookings: BookingResponse['data'][] = [];
 
-        if (recentResponse.success) {
-          setRecentBookings(recentResponse.data.bookings);
+        for (const status of recentStatusesToFetch) {
+          const response = await getUserBookings({
+            status: status,
+            limit: 2, // Fetch up to 2 for each status, then combine and pick the latest
+          });
+          if (response.success && response.data.bookings.length > 0) {
+            allRecentBookings.push(...response.data.bookings);
+          }
+        }
+
+        // Sort all recent bookings by creation date and take the top 2
+        if (allRecentBookings.length > 0) {
+          allRecentBookings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          setRecentBookings(allRecentBookings.slice(0, 2)); // Limit to 2 recent bookings
         } else {
-          toast.error(recentResponse.message || 'Failed to fetch recent bookings');
+          setRecentBookings([]);
         }
 
       } catch (error: any) {
@@ -120,10 +140,6 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-600 mb-1">Driver Details</p>
                   <p className="text-gray-800">{activeBooking.driver_name || 'N/A'}</p>
                   <p className="text-gray-600">{activeBooking.driver_phone || 'N/A'}</p>
-                </div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Estimated Arrival</p>
-                  <p className="text-green-600 font-semibold">{activeBooking.estimatedArrival || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Amount</p>

@@ -175,7 +175,7 @@ export const getVendorTrips = async (type: 'upcoming' | 'completed', page: numbe
   const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
   let statusFilter: BookingData['status'][] = [];
-  let dateFilter: 'before' | 'after' = 'after';
+  let dateFilter: 'before' | 'after' = 'after'; // Uncommented this line
 
   if (type === 'upcoming') {
     statusFilter = ['waiting', 'approved', 'preongoing', 'ongoing'];
@@ -184,6 +184,8 @@ export const getVendorTrips = async (type: 'upcoming' | 'completed', page: numbe
     statusFilter = ['completed', 'cancelled'];
     dateFilter = 'before'; // Pickup date before or on today
   }
+
+  console.log(dateFilter);
 
   // The backend getVendorBookings API doesn't directly support date filtering or multiple statuses.
   // Since backend changes are not allowed, we will make multiple API calls for each status

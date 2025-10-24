@@ -17,7 +17,7 @@ const generatePaymentId = () => {
 const createPaymentOrder = async (req, res) => {
     try {
         const userId = req.user.id;
-        const {
+        let {
             vehicle_id,
             partner_id,
             pickup_location,
@@ -28,8 +28,12 @@ const createPaymentOrder = async (req, res) => {
             distance
         } = req.body;
 
+        if(!drop_date){
+            drop_date=pickup_date;
+        }
+
         // Validate required fields
-        if (!vehicle_id || !pickup_location || !dropoff_location || !pickup_date || !drop_date || !path || !distance) {
+        if (!vehicle_id || !pickup_location || !dropoff_location || !drop_date || !pickup_date  || !path || !distance) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: vehicle_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance'
@@ -83,7 +87,7 @@ const createPaymentOrder = async (req, res) => {
         const orderOptions = {
             amount: amountInPaise,
             currency: 'INR',
-            receipt: `booking_${paymentId}`,
+            receipt: `booking_${paymentId.substring(0, 32)}`,
             notes: {
                 customer_id: userId,
                 vendor_id: vehicle.vendor_id,

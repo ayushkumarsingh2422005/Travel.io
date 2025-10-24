@@ -32,3 +32,34 @@ export const checkAuth = async (type:string ,token:string | null): Promise<boole
     return false;
   }
 };
+
+interface DecodedUser {
+  id: string;
+  email: string;
+  name?: string;
+  phone?: string;
+}
+
+export const getUserDetailsFromToken = async (token: string | null): Promise<DecodedUser | null> => {
+  if (!token) {
+    console.log('No token found for user details');
+    return null;
+  }
+
+  try {
+    const response = await axios.get(`/auth/verifytoken`, { // Note: Using /user/auth/verifytoken as per backend routes
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    if (response.data.success) {
+      return response.data.customer as DecodedUser;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Failed to get user details from token:', error);
+    return null;
+  }
+};
