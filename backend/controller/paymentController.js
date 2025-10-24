@@ -117,7 +117,7 @@ const createPaymentOrder = async (req, res) => {
             vehicle.vendor_id,
             null, // booking_id will be set after successful payment
             partner_id || null,
-            razorpayOrder.id,
+            razorpayOrder.id, // Reverting this to razorpayOrder.id as payment_id cannot be null
             amount,
             razorpayOrder.id,
             JSON.stringify({
@@ -169,11 +169,14 @@ const createPaymentOrder = async (req, res) => {
 
 // Verify payment and create booking
 const verifyPaymentAndCreateBooking = async (req, res) => {
+    console.log('--- verifyPaymentAndCreateBooking: START ---');
     try {
         const userId = req.user.id;
         const { payment_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        console.log('verifyPaymentAndCreateBooking: Request Body:', { payment_id, razorpay_order_id, razorpay_payment_id, razorpay_signature });
 
         if (!payment_id || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            console.log('verifyPaymentAndCreateBooking: Missing payment verification details.');
             return res.status(400).json({
                 success: false,
                 message: 'Missing payment verification details'
@@ -185,8 +188,10 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             SELECT * FROM transactions 
             WHERE id = ? AND customer_id = ? AND status = 'pending'
         `, [payment_id, userId]);
+        console.log('verifyPaymentAndCreateBooking: Fetched transaction:', transactions[0]);
 
         if (transactions.length === 0) {
+            console.log('verifyPaymentAndCreateBooking: Transaction not found or already processed.');
             return res.status(404).json({
                 success: false,
                 message: 'Payment order not found or already processed'
@@ -195,23 +200,32 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
 
         const transaction = transactions[0];
         const paymentData = JSON.parse(transaction.payment_data);
+        console.log('verifyPaymentAndCreateBooking: Payment Data:', paymentData);
 
         // Verify Razorpay signature
         const body = razorpay_order_id + "|" + razorpay_payment_id;
+        console.log('verifyPaymentAndCreateBooking: Verifying signature...');
         const expectedSignature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
             .update(body.toString())
             .digest('hex');
+        console.log('verifyPaymentAndCreateBooking: Expected Signature:', expectedSignature);
+        console.log('verifyPaymentAndCreateBooking: Received Signature:', razorpay_signature);
+
 
         if (expectedSignature !== razorpay_signature) {
+            console.log('verifyPaymentAndCreateBooking: Invalid payment signature!');
             return res.status(400).json({
                 success: false,
                 message: 'Invalid payment signature'
             });
         }
+        console.log('verifyPaymentAndCreateBooking: Signature verified successfully.');
 
         // Start database transaction
+        console.log('verifyPaymentAndCreateBooking: Starting database transaction...');
         await db.beginTransaction();
+        console.log('verifyPaymentAndCreateBooking: Database transaction started.');
 
         try {
             // Update transaction status
@@ -220,9 +234,11 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 SET status = 'success', razorpay_payment_id = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [razorpay_payment_id, payment_id]);
+            console.log('verifyPaymentAndCreateBooking: Transaction status updated to success.');
 
             // Create booking
             const bookingId = generatePaymentId(); // Reuse the function for booking ID
+            console.log('verifyPaymentAndCreateBooking: Creating booking with ID:', bookingId);
             await db.execute(`
                 INSERT INTO bookings (
                     id, customer_id, vehicle_id, vendor_id, partner_id,
@@ -243,6 +259,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 paymentData.path,
                 paymentData.distance
             ]);
+            console.log('verifyPaymentAndCreateBooking: Booking created successfully.');
 
             // Update transaction with booking_id
             await db.execute(`
@@ -250,9 +267,11 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 SET booking_id = ? 
                 WHERE id = ?
             `, [bookingId, payment_id]);
+            console.log('verifyPaymentAndCreateBooking: Transaction updated with booking_id.');
 
             // If partner is involved, create partner transaction
             if (transaction.partner_id) {
+                console.log('verifyPaymentAndCreateBooking: Partner ID found, creating partner transaction.');
                 const commissionRate = 5.00; // 5% commission
                 const commissionAmount = Math.round((transaction.amount * commissionRate) / 100);
                 
@@ -261,9 +280,11 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                         id, partner_id, booking_id, commission_amount, status
                     ) VALUES (?, ?, ?, ?, 'pending')
                 `, [generatePaymentId(), transaction.partner_id, bookingId, commissionAmount]);
+                console.log('verifyPaymentAndCreateBooking: Partner transaction created.');
             }
 
             await db.commit();
+            console.log('verifyPaymentAndCreateBooking: Database transaction committed.');
 
             // Get the created booking with related data
             const [newBookings] = await db.execute(`
@@ -284,6 +305,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 LEFT JOIN users p ON b.partner_id = p.id
                 WHERE b.id = ?
             `, [bookingId]);
+            console.log('verifyPaymentAndCreateBooking: Fetched new booking details:', newBookings[0]);
 
             res.status(201).json({
                 success: true,
@@ -298,9 +320,11 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                     }
                 }
             });
+            console.log('--- verifyPaymentAndCreateBooking: END (Success) ---');
 
         } catch (error) {
             await db.rollback();
+            console.error('verifyPaymentAndCreateBooking: Database transaction rolled back due to error:', error);
             throw error;
         }
 
@@ -311,6 +335,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             message: 'Failed to verify payment',
             error: error.message
         });
+        console.log('--- verifyPaymentAndCreateBooking: END (Failure) ---');
     }
 };
 
@@ -450,44 +475,60 @@ const getUserPaymentHistory = async (req, res) => {
 
 // Razorpay webhook handler
 const handleRazorpayWebhook = async (req, res) => {
+    console.log('--- handleRazorpayWebhook: START ---');
     try {
         const signature = req.headers['x-razorpay-signature'];
         const body = JSON.stringify(req.body);
+        console.log('handleRazorpayWebhook: Received webhook. Event:', req.body.event);
+        console.log('handleRazorpayWebhook: Signature:', signature);
+        console.log('handleRazorpayWebhook: Body:', body);
 
         // Verify webhook signature
         const expectedSignature = crypto
             .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
             .update(body)
             .digest('hex');
+        console.log('handleRazorpayWebhook: Expected Signature:', expectedSignature);
+
 
         if (signature !== expectedSignature) {
+            console.log('handleRazorpayWebhook: Invalid signature!');
             return res.status(400).json({ error: 'Invalid signature' });
         }
+        console.log('handleRazorpayWebhook: Signature verified successfully.');
 
         const event = req.body.event;
         const payment = req.body.payload.payment.entity;
 
         if (event === 'payment.captured') {
+            console.log('handleRazorpayWebhook: Payment captured event. Updating transaction status.');
             // Update transaction status
             await db.execute(`
                 UPDATE transactions 
                 SET status = 'success', razorpay_payment_id = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE razorpay_order_id = ?
             `, [payment.id, payment.order_id]);
+            console.log('handleRazorpayWebhook: Transaction status updated to success for order:', payment.order_id);
         } else if (event === 'payment.failed') {
+            console.log('handleRazorpayWebhook: Payment failed event. Updating transaction status.');
             // Update transaction status to failed
             await db.execute(`
                 UPDATE transactions 
                 SET status = 'failed', updated_at = CURRENT_TIMESTAMP
                 WHERE razorpay_order_id = ?
             `, [payment.order_id]);
+            console.log('handleRazorpayWebhook: Transaction status updated to failed for order:', payment.order_id);
+        } else {
+            console.log('handleRazorpayWebhook: Unhandled event type:', event);
         }
 
         res.status(200).json({ success: true });
+        console.log('--- handleRazorpayWebhook: END (Success) ---');
 
     } catch (error) {
         console.error('Webhook processing error:', error);
         res.status(500).json({ error: 'Internal server error' });
+        console.log('--- handleRazorpayWebhook: END (Failure) ---');
     }
 };
 
