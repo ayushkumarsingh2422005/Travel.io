@@ -27,6 +27,8 @@ const userRoutes = require('./routes/userRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
+const partnerRoutes = require('./routes/partnerRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const cors = require("cors")
@@ -73,9 +75,11 @@ app.use('/user/auth', userAuthRoutes);
 app.use('/vendor/auth', vendorAuthRoutes);
 app.use('/admin/auth', adminAuthRoutes);
 app.use('/user', userRoutes);
+app.use('/vendor', vendorRoutes);
+app.use('/partner', partnerRoutes);
+app.use('/admin', adminRoutes);
 app.use('/vendor/driver', driverRoutes);
 app.use('/vendor/vehicle', vehicleRoutes);
-app.use('/vendor', vendorRoutes);
 app.use('/booking', bookingRoutes);
 app.use('/payment', paymentRoutes);
 

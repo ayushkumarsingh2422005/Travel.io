@@ -8,6 +8,7 @@ const createPaymentsTable = async () => {
                 id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
                 vendor_id CHAR(64) ,
                 partner_id CHAR(64) ,
+                booking_id CHAR(64) ,
                 amount BIGINT NOT NULL,  
                 status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
                 type ENUM('withdrawal', 'penalty') NOT NULL,
@@ -15,9 +16,11 @@ const createPaymentsTable = async () => {
 
                 FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL,
                 FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE SET NULL,
-              
+                FOREIGN KEY (booking_id) REFERENCES prevbookings(id) ON DELETE SET NULL,
 
                 INDEX (vendor_id), 
+                INDEX (partner_id),
+                INDEX (booking_id),
                 INDEX (status) 
             )
         `);

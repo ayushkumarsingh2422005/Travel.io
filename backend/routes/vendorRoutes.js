@@ -5,7 +5,11 @@ const {
     updateVendorProfile, 
     updateVendorPassword,
     uploadVendorProfilePic,
-    deleteVendorAccount
+    deleteVendorAccount,
+    getVendorDashboard,
+    getVendorOngoingBookings,
+    getVendorCompletedRides,
+    getVendorEarnings
 } = require('../controller/vendorController');
 
 // Middleware to protect routes
@@ -34,5 +38,11 @@ router.put('/profile', updateVendorProfile);
 router.put('/password', updateVendorPassword);
 router.put('/profile-pic', uploadVendorProfilePic);
 router.delete('/account', deleteVendorAccount);
+
+// Vendor dashboard and analytics routes
+router.get('/dashboard', getVendorDashboard);
+router.get('/ongoing-bookings', getVendorOngoingBookings);
+router.get('/completed-rides', getVendorCompletedRides);
+router.get('/earnings', getVendorEarnings);
 
 module.exports = router;
