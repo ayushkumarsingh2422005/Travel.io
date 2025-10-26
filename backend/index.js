@@ -50,6 +50,7 @@ app.use(cors());
 const createTables = async () => {
     await createUsersTable();
     await addResetFieldsToUsers(); // Add reset password fields to existing users table
+    await createvendorbanktale();
     await createVendorsTable();
     await createVendorBankTable();
     await createVehiclesTable();

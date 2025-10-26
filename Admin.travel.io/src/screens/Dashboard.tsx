@@ -1,14 +1,30 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getAdminDashboardData, getAllPayments } from '../api/adminService'; // Import the API service
 
 interface SummaryCard {
   title: string;
   value: number;
-  change: number;
+  change?: number; // Change is optional as it might not always be available from backend
   icon: string;
   path: string;
 }
 
+interface DashboardData {
+  total_revenue: number;
+  admin_commission: number;
+  total_vendor_payments: number;
+  total_partner_payments: number;
+  pending_vendor_payments: number;
+  pending_partner_payments: number;
+  remaining_amount_to_pay: number;
+  total_bookings: number;
+  completed_bookings: number;
+  active_vendors: number;
+  active_partners: number;
+}
+
+// Keeping RecentActivity for now, as there's no direct backend equivalent in adminController.js
 interface RecentActivity {
   id: string;
   type: 'booking' | 'user' | 'vendor' | 'payment';
@@ -21,81 +37,99 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [summaryCards, setSummaryCards] = useState<SummaryCard[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setSummaryCards([
-        {
-          title: 'Total Users',
-          value: 15423,
-          change: 12.5,
-          icon: '👥',
-          path: '/users'
-        },
-        {
-          title: 'Active Bookings',
-          value: 284,
-          change: 8.2,
-          icon: '📅',
-          path: '/bookings'
-        },
-        {
-          title: 'Total Revenue',
-          value: 842560,
-          change: 15.8,
-          icon: '💰',
-          path: '/payments'
-        },
-        {
-          title: 'Active Vendors',
-          value: 126,
-          change: 4.3,
-          icon: '🏢',
-          path: '/vendors'
+    const fetchDashboardData = async () => {
+      try {
+        // TODO: Replace with actual token from authentication context
+        const token = localStorage.getItem('marcocabs_admin_token'); 
+        if(!token){
+          throw new Error('No authentication token found');
         }
-      ]);
+        const data: DashboardData = await getAdminDashboardData(token);
 
-      setRecentActivity([
-        {
-          id: '1',
-          type: 'booking',
-          description: 'New booking from John Doe',
-          time: '5 minutes ago',
-          status: 'success'
-        },
-        {
-          id: '2',
-          type: 'payment',
-          description: 'Payment received for booking #12345',
-          time: '10 minutes ago',
-          status: 'success'
-        },
-        {
-          id: '3',
-          type: 'vendor',
-          description: 'New vendor registration: ABC Cabs',
-          time: '15 minutes ago',
-          status: 'pending'
-        },
-        {
-          id: '4',
-          type: 'user',
-          description: 'New user registration: Jane Smith',
-          time: '20 minutes ago',
-          status: 'success'
-        },
-        {
-          id: '5',
-          type: 'booking',
-          description: 'Booking #12344 cancelled',
-          time: '25 minutes ago',
-          status: 'failed'
-        }
-      ]);
+        setSummaryCards([
+          {
+            title: 'Total Revenue',
+            value: data.total_revenue,
+            icon: '💰',
+            path: '/payments'
+          },
+          {
+            title: 'Admin Commission',
+            value: data.admin_commission,
+            icon: '💼',
+            path: '/payments'
+          },
+          {
+            title: 'Total Bookings',
+            value: data.total_bookings,
+            icon: '📅',
+            path: '/bookings'
+          },
+          {
+            title: 'Completed Bookings',
+            value: data.completed_bookings,
+            icon: '✅',
+            path: '/bookings'
+          },
+          {
+            title: 'Active Vendors',
+            value: data.active_vendors,
+            icon: '🏢',
+            path: '/vendors'
+          },
+          {
+            title: 'Active Partners',
+            value: data.active_partners,
+            icon: '🤝',
+            path: '/partners'
+          },
+          {
+            title: 'Pending Vendor Payments',
+            value: data.pending_vendor_payments,
+            icon: '💸',
+            path: '/payments/pending-vendor'
+          },
+          {
+            title: 'Pending Partner Payments',
+            value: data.pending_partner_payments,
+            icon: '💳',
+            path: '/payments/pending-partner'
+          },
+          {
+            title: 'Remaining Amount to Pay',
+            value: data.remaining_amount_to_pay,
+            icon: '💲',
+            path: '/payments'
+          },
+        ]);
 
-      setLoading(false);
-    }, 1000);
+        // Fetch recent payments for activity feed
+        const paymentsData = await getAllPayments(token, 1, 5); // Get latest 5 payments
+        const mappedRecentActivity: RecentActivity[] = paymentsData.payments.map((payment: any) => ({
+          id: payment.id,
+          type: payment.vendor_id ? 'payment' : 'payment', // Could be more specific if booking info is available
+          description: payment.vendor_name 
+            ? `Payment to vendor ${payment.vendor_name} for ₹${payment.amount.toLocaleString()}`
+            : payment.partner_name
+            ? `Payment to partner ${payment.partner_name} for ₹${payment.amount.toLocaleString()}`
+            : `Payment of ₹${payment.amount.toLocaleString()}`,
+          time: new Date(payment.created_at).toLocaleString(), // Format date nicely
+          status: payment.status === 'completed' ? 'success' : 'pending', // Assuming 'completed' is success
+        }));
+        setRecentActivity(mappedRecentActivity);
+
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch dashboard data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -115,7 +149,7 @@ const Dashboard = () => {
     return (
       <div className="animate-pulse">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(9)].map((_, i) => ( // Adjusted to 9 cards
             <div key={i} className="bg-white rounded-lg p-6 shadow-sm">
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
               <div className="h-8 bg-gray-300 rounded mb-2"></div>
@@ -141,10 +175,14 @@ const Dashboard = () => {
     );
   }
 
+  if (error) {
+    return <div className="text-red-600 p-4 bg-red-100 rounded-lg">Error: {error}</div>;
+  }
+
   return (
     <div>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6"> {/* Adjusted grid layout */}
         {summaryCards.map((card, index) => (
           <Link
             key={index}
@@ -153,15 +191,17 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <span className="text-2xl">{card.icon}</span>
-              <span className={`text-sm font-medium ${
-                card.change >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {card.change >= 0 ? '+' : ''}{card.change}%
-              </span>
+              {card.change !== undefined && ( // Only show change if available
+                <span className={`text-sm font-medium ${
+                  card.change >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {card.change >= 0 ? '+' : ''}{card.change}%
+                </span>
+              )}
             </div>
             <h3 className="text-gray-500 text-sm font-medium">{card.title}</h3>
             <p className="text-2xl font-bold text-gray-900 mt-1">
-              {card.title.includes('Revenue') ? '₹' : ''}{card.value.toLocaleString()}
+              {card.title.includes('Revenue') || card.title.includes('Amount') || card.title.includes('Payments') ? '₹' : ''}{card.value.toLocaleString()}
             </p>
           </Link>
         ))}
@@ -195,4 +235,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
