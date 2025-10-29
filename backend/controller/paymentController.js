@@ -133,6 +133,12 @@ const createPaymentOrder = async (req, res) => {
             })
         ]);
 
+           await db.execute(`
+            UPDATE transactions
+            SET id = ?
+            WHERE payment_id = ?
+        `, [paymentId, razorpayOrder.id]);
+
         res.status(200).json({
             success: true,
             message: 'Payment order created successfully',
@@ -224,7 +230,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
 
         // Start database transaction
         console.log('verifyPaymentAndCreateBooking: Starting database transaction...');
-        await db.beginTransaction();
+        // await db.beginTransaction();
         console.log('verifyPaymentAndCreateBooking: Database transaction started.');
 
         try {
@@ -241,10 +247,10 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             console.log('verifyPaymentAndCreateBooking: Creating booking with ID:', bookingId);
             await db.execute(`
                 INSERT INTO bookings (
-                    id, customer_id, vehicle_id, vendor_id, partner_id,
+                     id,customer_id, vehicle_id, vendor_id, partner_id,
                     pickup_location, dropoff_location, pickup_date, drop_date,
                     price, path, distance, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
+                ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
             `, [
                 bookingId,
                 userId,
@@ -323,7 +329,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             console.log('--- verifyPaymentAndCreateBooking: END (Success) ---');
 
         } catch (error) {
-            await db.rollback();
+            // await db.rollback();
             console.error('verifyPaymentAndCreateBooking: Database transaction rolled back due to error:', error);
             throw error;
         }

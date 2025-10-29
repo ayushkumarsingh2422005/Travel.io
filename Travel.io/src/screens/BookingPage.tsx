@@ -255,6 +255,8 @@ export default function BookingPage() {
 
       const orderResponse = await createPaymentOrder(orderRequest, userToken);
 
+      console.log('Order Response:', orderResponse);
+
       if (orderResponse.success) {
         initializeRazorpay(orderResponse.data);
       } else {
