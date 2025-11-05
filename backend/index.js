@@ -14,7 +14,8 @@ const transactionModel=require('./models/transactionModel');
 const AdminTrigger=require('./utils/admintrigger');
 const BookingTrigger=require('./utils/BookingTrigger');
 const transactiontrigger=require('./utils/transactionTrigger');
-const createvendorbanktale=require('./models/vendorbankModel')
+const createvendorbanktale=require('./models/vendorbankModel');
+const createCabCategoriesTable=require('./models/cabCategoryModel');
 const makeid=require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
@@ -69,6 +70,7 @@ const createTables = async () => {
     await AdminTrigger();
     await BookingTrigger();
     await makeid();
+    await createCabCategoriesTable();
 };
 createTables();
 

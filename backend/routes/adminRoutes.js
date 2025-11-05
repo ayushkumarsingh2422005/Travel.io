@@ -9,6 +9,13 @@ const {
     getAllPayments,
     getFinancialAnalytics
 } = require('../controller/adminController');
+const { 
+    addCabCategory, 
+    updateCabCategory,
+    deleteCabCategory,
+    getCabCategories,
+    getCabCategory
+} = require('../controller/cabCategoryController');
 
 // Middleware to protect routes (admin only)
 const adminAuthMiddleware = (req, res, next) => {
@@ -48,5 +55,12 @@ router.get('/all-payments', getAllPayments);
 // Payment processing routes
 router.post('/pay-vendor', payVendor);
 router.post('/pay-partner', payPartner);
+
+// Cab Categories CRUD routes (ADMIN)
+router.post('/cab-categories', addCabCategory);
+router.get('/cab-categories', getCabCategories);
+router.get('/cab-categories/:id', getCabCategory);
+router.put('/cab-categories/:id', updateCabCategory);
+router.delete('/cab-categories/:id', deleteCabCategory);
 
 module.exports = router;
