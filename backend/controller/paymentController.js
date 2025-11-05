@@ -250,7 +250,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                      id,customer_id, vehicle_id, vendor_id, partner_id,
                     pickup_location, dropoff_location, pickup_date, drop_date,
                     price, path, distance, status
-                ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
+                ) VALUES ( ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
             `, [
                 bookingId,
                 userId,
@@ -289,7 +289,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 console.log('verifyPaymentAndCreateBooking: Partner transaction created.');
             }
 
-            await db.commit();
+            // await db.commit();
             console.log('verifyPaymentAndCreateBooking: Database transaction committed.');
 
             // Get the created booking with related data

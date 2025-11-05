@@ -12,17 +12,17 @@ const triggerDefinitions = [
       END;
     `
   },
-  {
-    name: "before_insert_prevbookings",
-    query: `
-      CREATE TRIGGER before_insert_prevbookings
-      BEFORE INSERT ON prevbookings
-      FOR EACH ROW
-      BEGIN
-        SET NEW.id = SUBSTRING(SHA2(CONCAT('pvb_', UUID()), 256), 1, 64);
-      END;
-    `
-  },
+  // {
+  //   name: "before_insert_prevbookings",
+  //   query: `
+  //     CREATE TRIGGER before_insert_prevbookings
+  //     BEFORE INSERT ON prevbookings
+  //     FOR EACH ROW
+  //     BEGIN
+  //       SET NEW.id = SUBSTRING(SHA2(CONCAT('pvb_', UUID()), 256), 1, 64);
+  //     END;
+  //   `
+  // },
   {
     name: "before_insert_promocodes",
     query: `
@@ -45,17 +45,17 @@ const triggerDefinitions = [
       END;
     `
   },
-  {
-    name: "before_insert_bookings",
-    query: `
-      CREATE TRIGGER before_insert_bookings
-      BEFORE INSERT ON bookings
-      FOR EACH ROW
-      BEGIN
-        SET NEW.id = SUBSTRING(SHA2(CONCAT('bkg_', UUID()), 256), 1, 64);
-      END;
-    `
-  },
+  // {
+  //   name: "before_insert_bookings",
+  //   query: `
+  //     CREATE TRIGGER before_insert_bookings
+  //     BEFORE INSERT ON bookings
+  //     FOR EACH ROW
+  //     BEGIN
+  //       SET NEW.id = SUBSTRING(SHA2(CONCAT('bkg_', UUID()), 256), 1, 64);
+  //     END;
+  //   `
+  // },
   {
     name: "before_insert_payments",
     query: `
