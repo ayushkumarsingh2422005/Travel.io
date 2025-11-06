@@ -137,9 +137,24 @@ const PreviousBookings = () => {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-8 text-gray-800">Previous Bookings</h1>
+      <div className="mb-6 flex flex-wrap gap-3">
+        {['', 'waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'].map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              statusFilter === status
+                ? 'bg-green-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {status === '' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+          </button>
+        ))}
+      </div>
       <div className="space-y-4">
         {bookings.length === 0 && !loading ? (
-          <div className="text-center py-8 text-gray-600">No previous bookings found.</div>
+          <div className="text-center py-8 text-gray-600">No previous bookings found for this status.</div>
         ) : (
           bookings.map((booking) => {
             const { date, time } = formatDateTime(booking.pickup_date);
@@ -147,7 +162,7 @@ const PreviousBookings = () => {
               <div 
                 key={booking.id} 
                 className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/booking-details/${booking.id}`)} // Add onClick to navigate to details
+                onClick={() => navigate(`/booking-details/${booking.id}`)}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -172,17 +187,38 @@ const PreviousBookings = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Vehicle Model</p>
-                    <p className="text-gray-800">{booking.vehicle_model}</p>
+                    <p className="text-sm text-gray-600 mb-1">Cab Category</p>
+                    <p className="text-gray-800">{booking.cab_category_name}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Amount</p>
                     <p className="text-gray-800 font-semibold">₹{booking.price.toLocaleString()}</p>
                   </div>
-                  {booking.driver_name && (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Driver Details</p>
-                      <p className="text-gray-800">{booking.driver_name} - {booking.driver_phone}</p>
+                  {booking.status !== 'waiting' && (
+                    <>
+                      {booking.vehicle_model && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Vehicle</p>
+                          <p className="text-gray-800">{booking.vehicle_model} ({booking.vehicle_registration})</p>
+                        </div>
+                      )}
+                      {booking.driver_name && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Driver</p>
+                          <p className="text-gray-800">{booking.driver_name} - {booking.driver_phone}</p>
+                        </div>
+                      )}
+                      {booking.vendor_name && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Vendor</p>
+                          <p className="text-gray-800">{booking.vendor_name} - {booking.vendor_phone}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {booking.status === 'waiting' && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-blue-600 font-medium">Waiting for vendor to accept...</p>
                     </div>
                   )}
                 </div>
@@ -197,7 +233,7 @@ const PreviousBookings = () => {
                 )}
                 {(booking.status === 'waiting' || booking.status === 'approved') && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }} // Prevent navigation on cancel click
+                    onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
                     Cancel Booking

@@ -4,8 +4,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
 import toast from 'react-hot-toast';
 import axios from '../api/axios';
-
-const cabOptions = ["Outstation", "Local", "Airport"];
+import { API_ENDPOINTS } from '../api/apiEndpoints';
 
 const faqs = [
   {
@@ -94,17 +93,16 @@ export default function Cabs() {
   // const routeData = location.state || {};
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cabData, setCabData] = useState<any[]>([]);
-  const data = cabOptions;
-  // State to hold data that would come from API
-  
+  const [cabCategories, setCabCategories] = useState<any[]>([]); // New state for cab categories
+  const [selectedCabCategory, setSelectedCabCategory] = useState<string | null>(null); // To store selected category ID
+ 
+
   // Form states
   const [bookingForm, setBookingForm] = useState({
     tripType: "Round Trip",
     pickupLocation: "",
     destination: "",
     stops: [],
-    cabType: "Outstation",
     pickupDate: "",
     dropDate: ""
   });
@@ -160,22 +158,30 @@ export default function Cabs() {
   }>>([]);
   const [nextStopId, setNextStopId] = useState(1);
 
-  // Effect to simulate API data fetch
+  console.log('dummy data ',loading);
+
+  // Fetch cab categories on component mount
   useEffect(() => {
-    // This is where you would fetch data from your API
-    // For example:
-    // const fetchData = async () => {
-    //   try {
-    //     const response = await fetch('https://api.example.com/data');
-    //     const jsonData = await response.json();
-    //     setData(jsonData);
-    //   } catch (error) {
-    //     console.error("Error fetching data:", error);
-    //   }
-    // };
-    // fetchData();
-    
-    // For now, we'll just use the initial data
+    const fetchCategories = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(API_ENDPOINTS.CAB_CATEGORIES);
+        if (response.data.success) {
+          setCabCategories(response.data.cab_categories);
+          if (response.data.cab_categories.length > 0) {
+            setSelectedCabCategory(response.data.cab_categories[0].id); // Select first category by default
+          }
+        } else {
+          toast.error(response.data.message || 'Failed to fetch cab categories');
+        }
+      } catch (error) {
+        console.error('Error fetching cab categories:', error);
+        toast.error('An error occurred while fetching cab categories.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
   }, []);
   
   // Initialize Google Maps services
@@ -191,14 +197,6 @@ export default function Cabs() {
     });
   }, []);
 
-  // type FormState = Record<string, string>;
-
-  // The issue is a type mismatch: handleInputChange expects a formSetter for a generic FormState (Record<string, string>),
-  // but setBookingForm is typed for a more specific shape (with fields like tripType, pickupLocation, etc).
-  // The types are not compatible because the booking form state is not just Record<string, string>.
-
-  // Solution: Remove the generic and just type handleInputChange for the actual booking form state shape.
-
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
     formSetter: React.Dispatch<React.SetStateAction<{
@@ -206,7 +204,6 @@ export default function Cabs() {
       pickupLocation: string;
       destination: string;
       stops: never[];
-      cabType: string;
       pickupDate: string;
       dropDate: string;
     }>>
@@ -373,50 +370,6 @@ export default function Cabs() {
   //   );
   // };
 
-  const [filters, setFilters] = useState({
-    minPrice: '0',
-    maxPrice: '2000',
-    minSeats: '1',
-    maxSeats: '20',
-    searchTerm: '',
-    ac: false,
-    sortBy: 'per_km_charge', // 'per_km_charge' | 'no_of_seats' | 'model'
-    fuelType: 'all' // 'all' | 'Petrol' | 'Diesel' | 'CNG'
-  });
-
-  
-  
-  const searchCabs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {
-        min_seats: filters.minSeats || 0,
-        max_seats: filters.maxSeats || 50,
-        min_price_per_km: filters.minPrice || 0,
-        max_price_per_km: filters.maxPrice || 200000,
-        sort_by: filters.sortBy,
-        location: bookingForm.pickupLocation || '',
-        ac: filters.ac,
-        fuel_type: filters.fuelType === 'all' ? '' : filters.fuelType,
-        search_term: filters.searchTerm,
-      };
-
-      const response = await axios.get('/vehicles/search', { params });
-
-      console.log(response);
-
-      if (response.data.success) {
-        setCabData(response.data.data.vehicles);
-      } else {
-        toast.error(response.data.message || 'Failed to fetch cabs');
-      }
-    } catch (error) {
-      console.error('Error searching for cabs:', error);
-      toast.error('An error occurred while searching for cabs.');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, bookingForm.pickupLocation]);
 
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -465,18 +418,24 @@ export default function Cabs() {
       }
     }
     
+    if (!selectedCabCategory) {
+      errors.push('Please select a cab category');
+    }
+
     if (errors.length > 0) {
       // Show validation errors
       errors.forEach(error => toast.error(error));
       return;
     }
     
-    // If all validations pass, proceed with search
-    searchCabs();
+    // If all validations pass, proceed to prices page
+    handleBook();
   };
 
-  const handleBook = (cab: any) => {
+  const handleBook = () => {
     const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+    const selectedCategory = cabCategories.find(cat => cat.id === selectedCabCategory);
+
     navigate('/prices', { 
       state: { 
         pickup: bookingForm.pickupLocation,
@@ -485,8 +444,7 @@ export default function Cabs() {
         pickupDate: bookingForm.pickupDate,
         dropDate: bookingForm.dropDate,
         stops: currentStops,
-        cabType: cab.model,
-        vehicle_id: cab.id,
+        cabCategory: selectedCategory, // Pass the entire selected category object
       } 
     });
   };
@@ -494,15 +452,6 @@ export default function Cabs() {
   const handleFaqClick = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
-
-  useEffect(() => {
-    const identifier = setTimeout(() => {
-      searchCabs();
-    }, 500);
-    return () => {
-      clearTimeout(identifier);
-    };
-  }, [searchCabs]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -549,18 +498,6 @@ export default function Cabs() {
     </div>
     <form onSubmit={handleBookingSubmit}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Cab Type */}
-        <select 
-          name="cabType"
-          className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-          value={bookingForm.cabType}
-          onChange={handleBookingChange}
-        >
-          {data.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-
         {/* Trip Type */}
         <div className="flex gap-2">
           {["Round Trip", "One Way"].map(type => (
@@ -722,206 +659,87 @@ export default function Cabs() {
         )}
       </div>
 
-      {/* Submit Button */}
-      <button 
-        type="submit"
-        className="w-full mt-4 p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
-      >
-        Search Available Cabs
-      </button>
+    
+
     </form>
   </div>
 </div>
 
-       
-      {/* Filters Section */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h3 className="text-xl font-semibold text-gray-800 mb-5">Filter Cabs</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* Search Term */}
-            <div>
-              <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-              <input
-                type="text"
-                id="searchTerm"
-                placeholder="Search cabs..."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                value={filters.searchTerm}
-                onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              />
+{/* Cab Categories Display */}
+<div className="container mx-auto px-4 mt-6">
+  <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Your Cab Category</h3>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {cabCategories.map((category) => (
+      <div 
+        key={category.id} 
+        className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${
+          selectedCabCategory === category.id ? 'border-green-500' : 'border-gray-200'
+        } hover:shadow-xl transition-all duration-300 cursor-pointer`}
+        onClick={() => setSelectedCabCategory(category.id)}
+      >
+        <div className="relative h-40 bg-gray-100 flex items-center justify-center">
+          {category.category_image ? (
+            <img 
+              src={category.category_image} 
+              alt={category.category} 
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className="text-gray-400 text-sm">No Image</span>
+          )}
+          {category.base_discount > 0 && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+              {category.base_discount}% OFF
             </div>
-
-            {/* Price Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">Min Price/km</label>
-                <input
-                  type="number"
-                  id="minPrice"
-                  placeholder="Min Price"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">Max Price/km</label>
-                <input
-                  type="number"
-                  id="maxPrice"
-                  placeholder="Max Price"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            {/* Seat Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="minSeats" className="block text-sm font-medium text-gray-700 mb-1">Min Seats</label>
-                <input
-                  type="number"
-                  id="minSeats"
-                  placeholder="Min Seats"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                  value={filters.minSeats}
-                  onChange={(e) => setFilters(prev => ({ ...prev, minSeats: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label htmlFor="maxSeats" className="block text-sm font-medium text-gray-700 mb-1">Max Seats</label>
-                <input
-                  type="number"
-                  id="maxSeats"
-                  placeholder="Max Seats"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                  value={filters.maxSeats}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxSeats: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                id="sortBy"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                value={filters.sortBy}
-                onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-              >
-                <option value="per_km_charge">Price per km</option>
-                <option value="no_of_seats">Number of Seats</option>
-                <option value="model">Model Name</option>
-              </select>
-            </div>
-
-            {/* Fuel Type */}
-            <div>
-              <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
-              <select
-                id="fuelType"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-green-200 focus:border-green-500"
-                value={filters.fuelType}
-                onChange={(e) => setFilters(prev => ({ ...prev, fuelType: e.target.value }))}
-              >
-                <option value="all">All Fuel Types</option>
-                <option value="Petrol">Petrol</option>
-                <option value="Diesel">Diesel</option>
-                <option value="CNG">CNG</option>
-              </select>
-            </div>
-
-            {/* AC Only Checkbox */}
-            <div className="flex items-end pb-1"> {/* Align with other inputs */}
-              <label htmlFor="acOnly" className="flex items-center space-x-2 cursor-pointer text-gray-700">
-                <input
-                  type="checkbox"
-                  id="acOnly"
-                  checked={filters.ac}
-                  onChange={(e) => setFilters(prev => ({ ...prev, ac: e.target.checked }))}
-                  className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500"
-                />
-                <span>AC Only</span>
-              </label>
-            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <h4 className="text-xl font-bold text-gray-800 mb-1">{category.category}</h4>
+          <p className="text-gray-600 text-sm mb-3">
+            {category.min_no_of_seats || 0}+{category.max_no_of_seats || 0} Seater
+          </p>
+          <div className="flex items-baseline mb-3">
+            {/* <span className="text-sm text-gray-500 line-through mr-2">₹{category.original_price}</span> */}
+            <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
           </div>
+          <ul className="text-sm text-gray-700 space-y-1 mb-4">
+            <li>Included Km: <span className="font-medium">N/A</span></li> {/* Placeholder */}
+            <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
+            <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
+            <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
+            <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
+          </ul>
+          <button
+            type="button"
+            className="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+            onClick={() => {
+              setSelectedCabCategory(category.id);
+              // Trigger form submission which includes validation and navigation
+              // This will be handled by the form's onSubmit, so we just set the category here.
+              // The user will then click the main "Book Now" button or the form will submit if this button is part of the form.
+              // Since this button is outside the form, we need to simulate a form submission or call handleBookingSubmit directly.
+              // For now, let's assume the user will click the main submit button after selecting a category.
+              // If the "Select Cab" button itself should trigger the full validation and navigation,
+              // we need to adjust the logic to call handleBookingSubmit after setting the category.
+              // Let's make it call handleBookingSubmit directly after setting the category.
+              const event = new Event('submit', { cancelable: true, bubbles: true });
+              const form = document.querySelector('form'); // Assuming there's only one form
+              if (form) {
+                // Temporarily set the selected category and then trigger submit
+                setBookingForm(prev => ({ ...prev })); // Trigger re-render to ensure selectedCabCategory is updated
+                setTimeout(() => { // Use a timeout to ensure state update is processed
+                  handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+                }, 0);
+              }
+            }}
+          >
+            Select Cab
+          </button>
         </div>
       </div>
-
-      {/* Cabs Grid */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {loading
-            ? Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center animate-pulse">
-                  <div className="w-44 h-20 bg-gray-200 rounded mb-4" />
-                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-                  <div className="w-full h-10 bg-gray-200 rounded" />
-                </div>
-              ))
-            : cabData.map((cab) => (
-                <div key={cab.id} className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center">
-                  <img src={cab.image || 'https://via.placeholder.com/180x80?text=No+Image'} alt={cab.model} className="w-44 h-20 object-contain mb-4" />
-                  <div className="text-xl font-bold mb-1">{cab.model}</div>
-                  <div className="text-gray-600 mb-2 text-center">{cab.rc_vehicle_manufacturer_name}</div>
-                  <div className="flex items-center mb-2">
-                    <div className="text-2xl font-bold text-green-700">₹{cab.per_km_charge}/km</div>
-                    <div className="ml-2 flex items-center text-yellow-500">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="ml-1">{cab.vendor_rating}</span>
-                    </div>
-                  </div>
-                  <div className="w-full space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Seats:</span>
-                      <span className="font-semibold">{cab.no_of_seats}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Type:</span>
-                      <span className="font-semibold">{cab.rc_body_type}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Category:</span>
-                      <span className="font-semibold">{cab.rc_vehicle_category}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Color:</span>
-                      <span className="font-semibold">{cab.rc_vehicle_colour}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Year:</span>
-                      <span className="font-semibold">{cab.rc_vehicle_manufacturing_month_year}</span>
-                    </div>
-                  </div>
-                  {/* Amenities can be added here later if available from the API */}
-                  <button
-                    className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors mt-auto"
-                    onClick={() => handleBook(cab)}
-                  >
-                    Book Now
-                  </button>
-                </div>
-              ))}
-        </div>
-        {cabData.length === 0 && !loading && (
-          <div className="text-center py-8">
-            <div className="text-xl text-gray-600">No cabs found matching your criteria</div>
-          </div>
-        )}
-      </div>
+    ))}
+  </div>
+</div>
 
       {/* FAQ Section */}
       <div className="max-w-4xl mx-auto mt-12 mb-12">

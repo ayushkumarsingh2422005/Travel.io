@@ -1,7 +1,7 @@
 import customerAxios from './customerAxios';
 
 export interface CreateOrderRequest {
-  vehicle_id: string;
+  cab_category_id: string;
   partner_id?: string;
   pickup_location: string;
   dropoff_location: string;
@@ -19,10 +19,12 @@ export interface CreateOrderResponse {
     amount: number;
     currency: string;
     payment_id: string;
-    vehicle_details: {
-      model: string;
-      registration_no: string;
-      vendor_name: string;
+    cab_category_details: {
+      id: string;
+      category: string;
+      price_per_km: number;
+      min_seats: number;
+      max_seats: number;
     };
     booking_details: {
       pickup_location: string;

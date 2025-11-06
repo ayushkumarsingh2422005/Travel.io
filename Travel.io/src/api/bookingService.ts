@@ -7,7 +7,7 @@ const bookingAxios = axios.create({
 });
 
 export interface BookingCreateRequest {
-  vehicle_id: string;
+  cab_category_id: string;
   partner_id?: string;
   pickup_location: string;
   dropoff_location: string;
@@ -23,9 +23,11 @@ export interface BookingResponse {
   data: {
     id: string;
     customer_id: string;
-    vehicle_id: string;
-    vendor_id: string;
+    vehicle_id: string | null;
+    driver_id: string | null;
+    vendor_id: string | null;
     partner_id?: string;
+    cab_category_id: string;
     pickup_location: string;
     dropoff_location: string;
     pickup_date: string;
@@ -37,15 +39,23 @@ export interface BookingResponse {
     created_at: string;
     customer_name: string;
     customer_phone: string;
-    vehicle_model: string;
-    vehicle_registration: string;
-    no_of_seats: number;
-    vendor_name: string;
-    vendor_phone: string;
+    customer_email: string; // Added customer_email
+    vehicle_model: string | null;
+    vehicle_registration: string | null;
+    vehicle_image: string | null; // Added vehicle_image
+    no_of_seats: number | null;
+    vendor_name: string | null;
+    vendor_phone: string | null;
+    vendor_email: string | null; // Added vendor_email
     partner_name?: string;
-    driver_name?: string;
-    driver_phone?: string;
-    driver_id?: string;
+    driver_name?: string | null;
+    driver_phone?: string | null;
+    cab_category_name: string;
+    cab_category_price_per_km: number;
+    cab_category_image: string;
+    min_seats: number; // Added min_seats
+    max_seats: number; // Added max_seats
+    per_km_charge: number | null; // Added per_km_charge
   };
 }
 
@@ -66,12 +76,7 @@ export interface BookingListResponse {
 export interface BookingDetailsResponse {
   success: boolean;
   message: string;
-  data: BookingResponse['data'] & {
-    customer_email: string;
-    vehicle_image?: string;
-    per_km_charge: number;
-    vendor_email: string;
-  };
+  data: BookingResponse['data']; // Simplified as BookingResponse['data'] now contains all necessary fields
 }
 
 // Create a new booking

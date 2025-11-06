@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import {
   BookingData,
   Driver,
+  Vehicle, // New import
   getVendorBookings,
   updateBookingStatus,
   getVendorDrivers,
+  getVendorVehicles, // New import
+  getPendingBookingRequests, // New import
+  acceptBookingRequest, // New import
 } from '../utils/bookingService'; // Import from the new service file
 
 const Booking: React.FC = () => {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]); // New state
   const [searchText, setSearchText] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<BookingData['status'] | ''>('waiting'); // Default to 'waiting'
   const [loading, setLoading] = useState<boolean>(true);
@@ -19,22 +24,28 @@ const Booking: React.FC = () => {
   const [showApproveModal, setShowApproveModal] = useState<boolean>(false);
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<BookingData | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>('');
+  const [selectedVehicle, setSelectedVehicle] = useState<string>(''); // New state
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
 
   const fetchBookings = async (statusFilter: BookingData['status'] | '' = '') => {
     setLoading(true);
     setError(null);
     try {
-      const params: { status?: BookingData['status'], bookingId?: string } = {};
-      if (statusFilter) {
-        params.status = statusFilter as BookingData['status'];
+      let response;
+      if (statusFilter === 'waiting') { // Use 'waiting' for pending requests
+        response = await getPendingBookingRequests();
+      } else {
+        const params: { status?: BookingData['status'], bookingId?: string } = {};
+        if (statusFilter) {
+          params.status = statusFilter as BookingData['status'];
+        }
+        params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
+        response = await getVendorBookings(params);
       }
-      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-      const response = await getVendorBookings(params);
       setBookings(response.data.bookings);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
-      setError('Failed to fetch bookings. Please try again.');
+      setError(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -43,7 +54,6 @@ const Booking: React.FC = () => {
   const fetchDrivers = async () => {
     try {
       const response = await getVendorDrivers();
-      console.log('Fetched drivers:', response);
       setDrivers(response.data.drivers);
     } catch (err) {
       console.error('Error fetching drivers:', err);
@@ -51,25 +61,41 @@ const Booking: React.FC = () => {
     }
   };
 
+  const fetchVehicles = async () => {
+    try {
+      const response = await getVendorVehicles();
+      setAvailableVehicles(response.data.vehicles);
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+      // Optionally set an error state for vehicles
+    }
+  };
+
   useEffect(() => {
     fetchBookings(selectedStatus);
     fetchDrivers();
-  }, [selectedStatus]); // Refetch bookings when selectedStatus changes, fetch drivers once
+    fetchVehicles(); // Fetch vehicles on component mount
+  }, [selectedStatus]); // Refetch bookings when selectedStatus changes, fetch drivers and vehicles once
 
   const handleSearch = async () => {
     setSearchLoading(true);
     setError(null);
     try {
-      const params: { status?: BookingData['status'], bookingId?: string } = {};
-      if (selectedStatus) {
-        params.status = selectedStatus as BookingData['status'];
+      let response;
+      if (selectedStatus === 'waiting') { // Use 'waiting' for pending requests
+        response = await getPendingBookingRequests();
+      } else {
+        const params: { status?: BookingData['status'], bookingId?: string } = {};
+        if (selectedStatus) {
+          params.status = selectedStatus as BookingData['status'];
+        }
+        params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
+        response = await getVendorBookings(params);
       }
-      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-      const response = await getVendorBookings(params);
       setBookings(response.data.bookings);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error searching vendor bookings:', err);
-      setError('Failed to search bookings. Please try again.');
+      setError(err.response?.data?.message || 'Failed to search bookings. Please try again.');
     } finally {
       setSearchLoading(false);
     }
@@ -83,10 +109,34 @@ const Booking: React.FC = () => {
       setShowApproveModal(false);
       setSelectedBookingForApproval(null);
       setSelectedDriver('');
+      setSelectedVehicle(''); // Reset vehicle selection
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating booking status:', err);
-      setError('Failed to update booking status. Please try again.');
+      setError(err.response?.data?.message || 'Failed to update booking status. Please try again.');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleAcceptBooking = async () => {
+    if (!selectedBookingForApproval || !selectedDriver || !selectedVehicle) {
+      setError('Please select a driver and a vehicle to approve the booking.');
+      return;
+    }
+
+    setUpdateLoading(true);
+    setError(null);
+    try {
+      await acceptBookingRequest(selectedBookingForApproval.id, selectedDriver, selectedVehicle);
+      setShowApproveModal(false);
+      setSelectedBookingForApproval(null);
+      setSelectedDriver('');
+      setSelectedVehicle('');
+      fetchBookings(selectedStatus); // Re-fetch bookings to update the list
+    } catch (err: any) {
+      console.error('Error accepting booking request:', err);
+      setError(err.response?.data?.message || 'Failed to accept booking. Please try again.');
     } finally {
       setUpdateLoading(false);
     }
@@ -94,6 +144,9 @@ const Booking: React.FC = () => {
 
   const openApproveModal = (booking: BookingData) => {
     setSelectedBookingForApproval(booking);
+    setSelectedDriver(''); // Reset driver selection
+    setSelectedVehicle(''); // Reset vehicle selection
+    setError(null); // Clear previous errors
     setShowApproveModal(true);
   };
 
@@ -101,14 +154,8 @@ const Booking: React.FC = () => {
     setShowApproveModal(false);
     setSelectedBookingForApproval(null);
     setSelectedDriver('');
-  };
-
-  const confirmApproval = () => {
-    if (selectedBookingForApproval && selectedDriver) {
-      handleUpdateStatus(selectedBookingForApproval.id, 'approved', selectedDriver);
-    } else {
-      setError('Please select a driver to approve the booking.');
-    }
+    setSelectedVehicle(''); // Reset vehicle selection
+    setError(null);
   };
 
   // Function to render skeleton loading rows
@@ -228,7 +275,7 @@ const Booking: React.FC = () => {
               <tr className="bg-gray-50">
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Booking ID</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Customer Name</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Vehicle Model</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Cab Category / Vehicle Model</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[180px]">Pickup/Dropoff</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Dates</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[80px]">Price</th>
@@ -253,7 +300,10 @@ const Booking: React.FC = () => {
                   <tr key={booking.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-all">{booking.id}</td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.customer_name}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.vehicle_model}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
+                      {booking.cab_category_name || booking.vehicle_model || 'N/A'}
+                      {booking.vehicle_registration && ` (${booking.vehicle_registration})`}
+                    </td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100 whitespace-pre-line break-words">
                       {booking.pickup_location} to {booking.dropoff_location}
                     </td>
@@ -357,6 +407,30 @@ const Booking: React.FC = () => {
                 ))}
               </select>
             </div>
+            <div className="mb-4">
+              <label htmlFor="vehicle-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Vehicle:
+              </label>
+              <select
+                id="vehicle-select"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+                value={selectedVehicle}
+                onChange={(e) => setSelectedVehicle(e.target.value)}
+                disabled={updateLoading}
+              >
+                <option value="">-- Select a Vehicle --</option>
+                {availableVehicles
+                  .filter(v => 
+                    selectedBookingForApproval.min_seats && v.no_of_seats >= selectedBookingForApproval.min_seats &&
+                    selectedBookingForApproval.max_seats && v.no_of_seats <= selectedBookingForApproval.max_seats
+                  )
+                  .map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.model} ({vehicle.registration_no}) - {vehicle.no_of_seats} seats
+                    </option>
+                  ))}
+              </select>
+            </div>
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
                 {error}
@@ -372,7 +446,7 @@ const Booking: React.FC = () => {
               </button>
               <button
                 className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
-                onClick={confirmApproval}
+                onClick={handleAcceptBooking}
                 disabled={updateLoading}
               >
                 {updateLoading ? 'Approving...' : 'Approve Booking'}

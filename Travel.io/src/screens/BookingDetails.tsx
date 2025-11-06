@@ -155,10 +155,19 @@ const BookingDetails = () => {
                   {bookingDetails.drop_date && <DetailItem label="Drop Date & Time" value={`${dropDate} at ${dropTime}`} />}
                   <DetailItem label="Distance" value={`${bookingDetails.distance} km`} />
                   <DetailItem label="Price" value={`₹${bookingDetails.price.toLocaleString()}`} />
-                  <DetailItem label="Vehicle Model" value={bookingDetails.vehicle_model} />
-                  <DetailItem label="Vehicle Reg. No." value={bookingDetails.vehicle_registration} />
-                  <DetailItem label="Number of Seats" value={bookingDetails.no_of_seats.toString()} />
-                  <DetailItem label="Per KM Charge" value={`₹${typeof bookingDetails.per_km_charge === 'number' ? bookingDetails.per_km_charge.toFixed(2) : parseFloat(bookingDetails.per_km_charge as any).toFixed(2)}`} />
+                  <DetailItem label="Cab Category" value={bookingDetails.cab_category_name} />
+                  {bookingDetails.cab_category_image && (
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <span className="font-medium text-gray-700">Category Image</span>
+                      <img src={bookingDetails.cab_category_image} alt={bookingDetails.cab_category_name} className="h-12 w-12 object-contain rounded-md" />
+                    </div>
+                  )}
+                  <DetailItem label="Price per KM" value={`₹${bookingDetails.cab_category_price_per_km.toFixed(2)}`} />
+                  <DetailItem label="Min Seats" value={bookingDetails.min_seats.toString()} />
+                  <DetailItem label="Max Seats" value={bookingDetails.max_seats.toString()} />
+                  {bookingDetails.per_km_charge !== null && (
+                    <DetailItem label="Vehicle Per KM Charge" value={`₹${typeof bookingDetails.per_km_charge === 'number' ? bookingDetails.per_km_charge.toFixed(2) : parseFloat(bookingDetails.per_km_charge as any).toFixed(2)}`} />
+                  )}
                 </div>
               </div>
             </div>
@@ -194,12 +203,12 @@ const BookingDetails = () => {
                   </h2>
                 </div>
                 <div className="p-6 space-y-4">
-                  <DetailItem label="Customer Name" value={bookingDetails.customer_name} />
-                  <DetailItem label="Customer Phone" value={bookingDetails.customer_phone} />
-                  <DetailItem label="Customer Email" value={bookingDetails.customer_email} />
-                  <DetailItem label="Vendor Name" value={bookingDetails.vendor_name} />
-                  <DetailItem label="Vendor Phone" value={bookingDetails.vendor_phone} />
-                  <DetailItem label="Vendor Email" value={bookingDetails.vendor_email} />
+                  <DetailItem label="Customer Name" value={bookingDetails.customer_name || 'N/A'} />
+                  <DetailItem label="Customer Phone" value={bookingDetails.customer_phone || 'N/A'} />
+                  <DetailItem label="Customer Email" value={bookingDetails.customer_email || 'N/A'} />
+                  {bookingDetails.vendor_name && <DetailItem label="Vendor Name" value={bookingDetails.vendor_name} />}
+                  {bookingDetails.vendor_phone && <DetailItem label="Vendor Phone" value={bookingDetails.vendor_phone} />}
+                  {bookingDetails.vendor_email && <DetailItem label="Vendor Email" value={bookingDetails.vendor_email} />}
                   {bookingDetails.driver_name && <DetailItem label="Driver Name" value={bookingDetails.driver_name} />}
                   {bookingDetails.driver_phone && <DetailItem label="Driver Phone" value={bookingDetails.driver_phone} />}
                   {bookingDetails.partner_name && <DetailItem label="Partner Name" value={bookingDetails.partner_name} />}

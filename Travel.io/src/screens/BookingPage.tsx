@@ -17,7 +17,8 @@ interface BookingData {
   destination: string;
   stops: string[];
   tripType: string;
-  vehicle_id: string;
+  cab_category_id: string; // Add cab_category_id
+  cab_category_name: string; // Add cab_category_name
   pickupDate: string;
   dropDate: string;
   distance: string;
@@ -243,7 +244,7 @@ export default function BookingPage() {
     setLoading(true);
     try {
       const orderRequest: CreateOrderRequest = {
-        vehicle_id: bookingData.vehicle_id,
+        cab_category_id: bookingData.cab_category_id,
         partner_id: partnerId || undefined,
         pickup_location: bookingData.pickup,
         dropoff_location: bookingData.destination,
@@ -283,7 +284,7 @@ export default function BookingPage() {
       amount: orderData.amount * 100, // Convert to paise
       currency: 'INR',
       name: 'Travel.io',
-      description: `Booking for ${orderData.vehicle_details.model}`,
+      description: `Booking for ${bookingData.cab_category_name}`,
       order_id: orderData.order_id,
       handler: async function (response: any) {
         const paymentVerificationRequest: VerifyPaymentRequest = {
@@ -521,6 +522,18 @@ export default function BookingPage() {
                       </div>
                       <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                         {bookingData.tripType}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17.25V21.75A2.25 2.25 0 0011.25 24h1.5A2.25 2.25 0 0015 21.75V17.25m-3 0V14.25m0 3l-2.25-2.25m2.25 2.25l2.25-2.25m-2.25-10.5H12a2.25 2.25 0 00-2.25 2.25v1.5A2.25 2.25 0 0012 9h.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Cab Category</span>
+                      </div>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        {bookingData.cab_category_name}
                       </span>
                     </div>
 

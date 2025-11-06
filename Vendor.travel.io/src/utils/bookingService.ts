@@ -40,9 +40,9 @@ vendorBookingAxios.interceptors.response.use(
 export interface BookingData {
   id: string;
   customer_id: string;
-  vehicle_id: string;
+  vehicle_id: string | null; // Can be null for pending bookings
   driver_id: string | null;
-  vendor_id: string;
+  vendor_id: string | null; // Can be null for pending bookings
   partner_id: string | null;
   pickup_location: string;
   dropoff_location: string;
@@ -56,18 +56,34 @@ export interface BookingData {
   customer_name: string;
   customer_phone: string;
   customer_email: string;
-  vehicle_model: string;
-  vehicle_registration: string;
-  vehicle_image: string;
+  vehicle_model: string | null; // Can be null for pending bookings
+  vehicle_registration: string | null; // Can be null for pending bookings
+  vehicle_image: string | null; // Can be null for pending bookings
   driver_name: string | null;
   driver_phone: string | null;
   partner_name: string | null;
+  cab_category_id: string; // New field
+  cab_category_name: string; // New field
+  cab_category_price_per_km: number; // New field
+  cab_category_image: string; // New field
+  min_seats: number; // New field for cab category
+  max_seats: number; // New field for cab category
 }
 
 export interface Driver {
   id: string;
   name: string;
   phone: string;
+}
+
+export interface Vehicle {
+  id: string;
+  model: string;
+  registration_no: string;
+  no_of_seats: number;
+  is_active: number;
+  image: string | null;
+  per_km_charge: number;
 }
 
 export interface BookingListResponse {
@@ -89,9 +105,10 @@ export interface BookingDetailsResponse {
   message: string;
   data: BookingData & {
     customer_email: string;
-    vehicle_image?: string;
+    vehicle_image?: string | null;
     per_km_charge: number;
-    vendor_email: string;
+    vendor_email: string | null;
+    no_of_seats: number | null; // Add no_of_seats for booking details
   };
 }
 
@@ -159,8 +176,38 @@ export const updateBookingStatus = async (
 
 // Get vendor's drivers
 export const getVendorDrivers = async (): Promise<{  data: { drivers: Driver[] } }> => {
-  const response = await vendorBookingAxios.get('/vendor/driver'); // Corrected endpoint
+  const response = await vendorBookingAxios.get('/vendor/driver');
   return response;
+};
+
+// Get vendor's vehicles
+export const getVendorVehicles = async (): Promise<{ data: { vehicles: Vehicle[] } }> => {
+  const response = await vendorBookingAxios.get('/vendor/vehicle');
+  return response;
+};
+
+// Get pending booking requests (unassigned bookings)
+export const getPendingBookingRequests = async (params?: {
+  page?: number;
+  limit?: number;
+}): Promise<BookingListResponse> => {
+  const response = await vendorBookingAxios.get('/vendor/pending-requests', { params });
+  console.log('Pending Booking Requests Response:', response.data);
+  return response.data;
+};
+
+// Accept a booking request by assigning driver and vehicle
+export const acceptBookingRequest = async (
+  bookingId: string,
+  driverId: string,
+  vehicleId: string
+): Promise<{ success: boolean; message: string; data: BookingData }> => {
+  const response = await vendorBookingAxios.post('/vendor/accept-booking', {
+    booking_id: bookingId,
+    driver_id: driverId,
+    vehicle_id: vehicleId,
+  });
+  return response.data;
 };
 
 // Get vendor profile data

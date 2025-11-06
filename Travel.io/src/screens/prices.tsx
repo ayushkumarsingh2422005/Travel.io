@@ -9,12 +9,28 @@ declare global {
   }
 }
 
+interface CabCategory {
+  id: string;
+  category: string;
+  price_per_km: number;
+  min_no_of_seats: number;
+  max_no_of_seats: number;
+  fuel_charges: number;
+  driver_charges: number;
+  night_charges: number;
+  included_vehicle_types: any; // Adjust type if schema is known
+  base_discount: number;
+  category_image: string;
+  notes: string;
+  is_active: boolean;
+}
+
 interface RouteData {
   pickup: string;
   destination: string;
   stops: string[];
   tripType: string;
-  vehicle_id: string;
+  cabCategory: CabCategory; // Add cabCategory object
   pickupDate: string;
   dropDate: string;
 }
@@ -76,7 +92,7 @@ export default function Prices() {
         const directionsService = new google.maps.DirectionsService();
         const directionsRenderer = new google.maps.DirectionsRenderer({
           map,
-          suppressMarkers: false,
+          suppressMarkers: true, // Suppress default markers to use custom ones
           polylineOptions: {
             strokeColor: "#4F46E5",
             strokeWeight: 5,
@@ -84,6 +100,31 @@ export default function Prices() {
           }
         });
 
+        // Custom markers array
+        const markers: google.maps.Marker[] = [];
+
+        // Function to create a custom marker
+        const createMarker = (position: google.maps.LatLngLiteral, label: string, iconColor: string) => {
+          const marker = new google.maps.Marker({
+            position: position,
+            map: map,
+            label: {
+              text: label,
+              color: '#FFFFFF',
+              fontWeight: 'bold',
+            },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: iconColor,
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 2,
+              scale: 10,
+            },
+          });
+          markers.push(marker);
+          return marker;
+        };
         // Prepare waypoints including stops
         const waypoints = routeData.stops.map(stop => ({
           location: stop,
@@ -100,6 +141,20 @@ export default function Prices() {
         directionsService.route(request, (result: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
           if (status === google.maps.DirectionsStatus.OK && result) {
             directionsRenderer.setDirections(result);
+
+            // Clear existing markers before adding new ones
+            markers.forEach(marker => marker.setMap(null));
+            markers.length = 0; // Clear the array
+
+            // Add custom markers for origin, destination, and waypoints
+            createMarker(result.routes[0].legs[0].start_location.toJSON(), 'A', '#34D399'); // Pickup (Green)
+            result.routes[0].legs.forEach((leg, index) => {
+              if (index < result.routes[0].legs.length - 1) {
+                createMarker(leg.end_location.toJSON(), (String.fromCharCode(66 + index)), '#FBBF24'); // Stops (Yellow)
+              } else {
+                createMarker(leg.end_location.toJSON(), (String.fromCharCode(66 + index)), '#EF4444'); // Destination (Red)
+              }
+            });
             
             // Calculate total distance and duration
             let totalDistance = 0;
@@ -118,8 +173,22 @@ export default function Prices() {
               totalDuration *= 2;
             }
 
-            // Calculate estimated price (₹15 per km)
-            const estimatedPrice = Math.round((totalDistance / 1000) * 15);
+            // Calculate estimated price using cab category details
+            const distanceInKm = totalDistance / 1000;
+            let calculatedPrice = distanceInKm * routeData.cabCategory.price_per_km;
+
+            if (routeData.cabCategory.fuel_charges) {
+              calculatedPrice += parseFloat(routeData.cabCategory.fuel_charges.toString());
+            }
+            if (routeData.cabCategory.driver_charges) {
+              calculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
+            }
+            if (routeData.cabCategory.base_discount) {
+              const discount = (calculatedPrice * parseFloat(routeData.cabCategory.base_discount.toString())) / 100;
+              calculatedPrice -= discount;
+            }
+            
+            const estimatedPrice = Math.round(calculatedPrice);
 
             // Extract encoded polyline from the route
             const encodedPolyline = result.routes[0].overview_polyline || '';
@@ -178,6 +247,8 @@ export default function Prices() {
         ...routeDetails,
         distance_km: parseFloat(routeDetails.distance.replace(' km', '')),
         stops: routeData.stops || [],
+        cab_category_id: routeData.cabCategory.id, // Pass cab_category_id
+        cab_category_name: routeData.cabCategory.category, // Pass cab_category_name
         isRouteLoading: isLoading // Pass the isLoading state
       } 
     });
@@ -221,7 +292,7 @@ export default function Prices() {
                     Route Map
                   </h2>
                 </div>
-                <div ref={mapRef} className="w-full h-[500px]"></div>
+                <div ref={mapRef} className="w-full h-500px"></div>
                 {isLoading && (
                   <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -244,18 +315,59 @@ export default function Prices() {
                   
                   <div className="p-6">
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex justify-between items-center p-4 bg-green-100 rounded-lg border border-green-200">
                         <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Trip Type</span>
+                          {routeData.tripType === 'Round Trip' ? (
+                            <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          )}
+                          <span className="font-bold text-green-800 text-lg">Trip Type</span>
                         </div>
-                        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        <span className="text-green-900 text-lg font-semibold">
                           {routeData.tripType}
                         </span>
                       </div>
 
+                      {/* New card for Cab Category Details */}
+                      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                        <div className="p-4 bg-green-100 border-b border-gray-100">
+                          <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData.cabCategory.category}</h3>
+                        </div>
+                        <div className="p-4 text-sm text-gray-700 space-y-2">
+                          <div className="flex justify-between">
+                            <span>Price per Km:</span>
+                            <span className="font-medium">₹{routeData.cabCategory.price_per_km}/Km</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Seats:</span>
+                            <span className="font-medium">{routeData.cabCategory.min_no_of_seats}-{routeData.cabCategory.max_no_of_seats}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Fuel Charges:</span>
+                            <span className="font-medium">{routeData.cabCategory.fuel_charges > 0 ? `₹${routeData.cabCategory.fuel_charges}` : 'Included'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Driver Charges:</span>
+                            <span className="font-medium">{routeData.cabCategory.driver_charges > 0 ? `₹${routeData.cabCategory.driver_charges}` : 'Included'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Night Charges:</span>
+                            <span className="font-medium">{routeData.cabCategory.night_charges > 0 ? `₹${routeData.cabCategory.night_charges}` : 'Included'}</span>
+                          </div>
+                          {routeData.cabCategory.base_discount > 0 && (
+                            <div className="flex justify-between text-red-600 font-semibold">
+                              <span>Discount:</span>
+                              <span>{routeData.cabCategory.base_discount}% OFF</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
