@@ -689,6 +689,249 @@ const getVendorEarnings = async (req, res) => {
     }
 };
 
+// Get pending booking requests (unassigned bookings)
+const getPendingBookingRequests = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        
+        let query = `
+            SELECT 
+                b.id,
+                b.pickup_location,
+                b.dropoff_location,
+                b.pickup_date,
+                b.drop_date,
+                b.price,
+                b.distance,
+                b.path,
+                b.status,
+                b.created_at,
+                u.name as customer_name,
+                u.phone as customer_phone,
+                cc.id as cab_category_id,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km,
+                cc.min_no_of_seats as min_seats,
+                cc.max_no_of_seats as max_seats,
+                cc.category_image as cab_category_image
+            FROM bookings b
+            LEFT JOIN users u ON b.customer_id = u.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
+            WHERE b.vendor_id IS NULL AND b.status = 'waiting'
+            ORDER BY b.created_at DESC
+        `;
+        
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+        
+        const [bookings] = await db.execute(query);
+        
+        // Count total pending requests
+        const [countResult] = await db.execute(`
+            SELECT COUNT(*) as total
+            FROM bookings 
+            WHERE vendor_id IS NULL AND status = 'waiting'
+        `);
+        const total = countResult[0].total;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Pending booking requests retrieved successfully',
+            data: {
+                bookings,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting pending booking requests:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve pending booking requests',
+            error: error.message
+        });
+    }
+};
+
+// Accept a booking request by assigning driver and vehicle
+const acceptBookingRequest = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const { booking_id, driver_id, vehicle_id } = req.body;
+        
+        // Validate required fields
+        if (!booking_id || !driver_id || !vehicle_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Booking ID, driver ID, and vehicle ID are required'
+            });
+        }
+        
+        // Check if booking exists and vendor_id IS NULL (not yet accepted)
+        const [bookings] = await db.execute(`
+            SELECT b.*, cc.min_no_of_seats, cc.max_no_of_seats
+            FROM bookings b
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
+            WHERE b.id = ? AND b.vendor_id IS NULL AND b.status = 'waiting'
+        `, [booking_id]);
+        
+        if (bookings.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found or already accepted by another vendor'
+            });
+        }
+        
+        const booking = bookings[0];
+        
+        // Verify driver belongs to vendor and is active
+        const [drivers] = await db.execute(`
+            SELECT * FROM drivers 
+            WHERE id = ? AND vendor_id = ? AND is_active = 1
+        `, [driver_id, vendorId]);
+        
+        if (drivers.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Driver not found or not active'
+            });
+        }
+        
+        // Verify vehicle belongs to vendor and is active
+        const [vehicles] = await db.execute(`
+            SELECT * FROM vehicles 
+            WHERE id = ? AND vendor_id = ? AND is_active = 1
+        `, [vehicle_id, vendorId]);
+        
+        if (vehicles.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vehicle not found or not active'
+            });
+        }
+        
+        const vehicle = vehicles[0];
+        
+        // Verify vehicle matches cab category seat requirements
+        if (booking.min_no_of_seats && vehicle.no_of_seats < booking.min_no_of_seats) {
+            return res.status(400).json({
+                success: false,
+                message: `Vehicle does not meet minimum seat requirement (${booking.min_no_of_seats} seats required)`
+            });
+        }
+        
+        if (booking.max_no_of_seats && vehicle.no_of_seats > booking.max_no_of_seats) {
+            return res.status(400).json({
+                success: false,
+                message: `Vehicle exceeds maximum seat requirement (${booking.max_no_of_seats} seats maximum)`
+            });
+        }
+        
+        // Check if vehicle is already booked for the requested time
+        const [existingBookings] = await db.execute(`
+            SELECT COUNT(*) as count
+            FROM bookings
+            WHERE vehicle_id = ? AND status IN ('waiting', 'approved', 'preongoing', 'ongoing')
+            AND id != ?
+            AND (
+                (pickup_date <= ? AND drop_date >= ?) OR
+                (pickup_date <= ? AND drop_date >= ?) OR
+                (pickup_date >= ? AND drop_date <= ?)
+            )
+        `, [vehicle_id, booking_id, booking.pickup_date, booking.pickup_date, 
+            booking.drop_date, booking.drop_date, booking.pickup_date, booking.drop_date]);
+        
+        if (existingBookings[0].count > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vehicle is already booked for the requested time period'
+            });
+        }
+        
+        // Check if driver is already assigned for the requested time
+        const [existingDriverBookings] = await db.execute(`
+            SELECT COUNT(*) as count
+            FROM bookings
+            WHERE driver_id = ? AND status IN ('waiting', 'approved', 'preongoing', 'ongoing')
+            AND id != ?
+            AND (
+                (pickup_date <= ? AND drop_date >= ?) OR
+                (pickup_date <= ? AND drop_date >= ?) OR
+                (pickup_date >= ? AND drop_date <= ?)
+            )
+        `, [driver_id, booking_id, booking.pickup_date, booking.pickup_date,
+            booking.drop_date, booking.drop_date, booking.pickup_date, booking.drop_date]);
+        
+        if (existingDriverBookings[0].count > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Driver is already assigned for the requested time period'
+            });
+        }
+        
+        // Update booking with vendor, driver, and vehicle - use WHERE clause to prevent race condition
+        const [updateResult] = await db.execute(`
+            UPDATE bookings 
+            SET vendor_id = ?, driver_id = ?, vehicle_id = ?, status = 'approved'
+            WHERE id = ? AND vendor_id IS NULL AND status = 'waiting'
+        `, [vendorId, driver_id, vehicle_id, booking_id]);
+        
+        // Check if update was successful (affected rows > 0)
+        if (updateResult.affectedRows === 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'Booking was already accepted by another vendor'
+            });
+        }
+        
+        // Update transaction with vendor_id
+        await db.execute(`
+            UPDATE transactions 
+            SET vendor_id = ?
+            WHERE booking_id = ?
+        `, [vendorId, booking_id]);
+        
+        // Get updated booking details
+        const [updatedBookings] = await db.execute(`
+            SELECT 
+                b.*,
+                u.name as customer_name,
+                u.phone as customer_phone,
+                v.model as vehicle_model,
+                v.registration_no as vehicle_registration,
+                d.name as driver_name,
+                d.phone as driver_phone,
+                cc.category as cab_category_name
+            FROM bookings b
+            LEFT JOIN users u ON b.customer_id = u.id
+            LEFT JOIN vehicles v ON b.vehicle_id = v.id
+            LEFT JOIN drivers d ON b.driver_id = d.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
+            WHERE b.id = ?
+        `, [booking_id]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Booking accepted successfully',
+            data: updatedBookings[0]
+        });
+    } catch (error) {
+        console.error('Error accepting booking request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to accept booking request',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getVendorProfile,
     updateVendorProfile,
@@ -698,5 +941,7 @@ module.exports = {
     getVendorDashboard,
     getVendorOngoingBookings,
     getVendorCompletedRides,
-    getVendorEarnings
+    getVendorEarnings,
+    getPendingBookingRequests,
+    acceptBookingRequest
 };

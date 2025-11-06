@@ -10,7 +10,15 @@ const {
     getVehicleDetails,
     getVehicleTypes
 } = require('../controller/userController');
+const { 
+    getCabCategories, 
+    getCabCategory 
+} = require('../controller/cabCategoryController');
 const authMiddleware = require('../middleware/authMiddleware');
+
+// Public cab category routes (no auth required)
+router.get('/cab-categories', getCabCategories);
+router.get('/cab-categories/:id', getCabCategory);
 
 // Vehicle search and details routes
 router.get('/vehicles/search', searchVehicles);

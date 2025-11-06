@@ -7,10 +7,11 @@ const createBookingsTable = async () => {
         CREATE TABLE IF NOT EXISTS bookings (
             id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
             customer_id CHAR(64) ,
-            vehicle_id CHAR(64) ,
+            vehicle_id CHAR(64) default null,
             driver_id CHAR(64) default null,
-            vendor_id CHAR(64),
+            vendor_id CHAR(64) default null,
             partner_id CHAR(64) default null,
+            cab_category_id CHAR(64) not null,
             pickup_location VARCHAR(255) NOT NULL,
             dropoff_location VARCHAR(255) NOT NULL,
             pickup_date DATETIME NOT NULL,
@@ -38,3 +39,14 @@ const createBookingsTable = async () => {
 };
 
 module.exports = createBookingsTable;
+
+
+// -- Migration Script: Update table structure
+// -- Replace `rides` with your actual table name
+
+// ALTER TABLE rides
+//     MODIFY vehicle_id CHAR(64) DEFAULT NULL,
+//     MODIFY driver_id CHAR(64) DEFAULT NULL,
+//     MODIFY vendor_id CHAR(64) DEFAULT NULL,
+//     MODIFY partner_id CHAR(64) DEFAULT NULL,
+//     ADD COLUMN cab_category_id CHAR(64) NOT NULL;

@@ -18,7 +18,7 @@ const createPaymentOrder = async (req, res) => {
     try {
         const userId = req.user.id;
         let {
-            vehicle_id,
+            cab_category_id,
             partner_id,
             pickup_location,
             dropoff_location,
@@ -33,51 +33,46 @@ const createPaymentOrder = async (req, res) => {
         }
 
         // Validate required fields
-        if (!vehicle_id || !pickup_location || !dropoff_location || !drop_date || !pickup_date  || !path || !distance) {
+        if (!cab_category_id || !pickup_location || !dropoff_location || !drop_date || !pickup_date  || !path || !distance) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: vehicle_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance'
+                message: 'Missing required fields: cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance'
             });
         }
 
-        // Get vehicle details and calculate price
-        const [vehicles] = await db.execute(`
-            SELECT v.*, ven.id as vendor_id, ven.name as vendor_name
-            FROM vehicles v
-            INNER JOIN vendors ven ON v.vendor_id = ven.id
-            WHERE v.id = ? AND v.is_active = 1
-        `, [vehicle_id]);
+        // Get cab category details and calculate price
+        const [cabCategories] = await db.execute(`
+            SELECT * FROM cab_categories
+            WHERE id = ? AND is_active = 1
+        `, [cab_category_id]);
 
-        if (vehicles.length === 0) {
+        if (cabCategories.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Vehicle not found or not available'
+                message: 'Cab category not found or not available'
             });
         }
 
-        const vehicle = vehicles[0];
+        const cabCategory = cabCategories[0];
 
-        // Check if vehicle is already booked for the requested time
-        const [existingBookings] = await db.execute(`
-            SELECT COUNT(*) as count
-            FROM bookings
-            WHERE vehicle_id = ? AND status IN ('waiting', 'approved', 'preongoing', 'ongoing')
-            AND (
-                (pickup_date <= ? AND drop_date >= ?) OR
-                (pickup_date <= ? AND drop_date >= ?) OR
-                (pickup_date >= ? AND drop_date <= ?)
-            )
-        `, [vehicle_id, pickup_date, pickup_date, drop_date, drop_date, pickup_date, drop_date]);
-
-        if (existingBookings[0].count > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Vehicle is already booked for the requested time period'
-            });
+        // Calculate price based on distance and cab category pricing
+        // Base price = distance * price_per_km
+        let amount = Math.round(parseFloat(distance) * parseFloat(cabCategory.price_per_km));
+        
+        // Add additional charges if applicable
+        if (cabCategory.fuel_charges) {
+            amount += parseFloat(cabCategory.fuel_charges);
         }
-
-        // Calculate price based on distance and per_km_charge
-        const amount = Math.round(parseFloat(distance) * parseFloat(vehicle.per_km_charge));
+        if (cabCategory.driver_charges) {
+            amount += parseFloat(cabCategory.driver_charges);
+        }
+        
+        // Apply discount if available
+        if (cabCategory.base_discount) {
+            const discount = Math.round((amount * parseFloat(cabCategory.base_discount)) / 100);
+            amount -= discount;
+        }
+        
         const amountInPaise = amount * 100; // Razorpay expects amount in paise
 
         // Generate unique payment ID
@@ -90,8 +85,7 @@ const createPaymentOrder = async (req, res) => {
             receipt: `booking_${paymentId.substring(0, 32)}`,
             notes: {
                 customer_id: userId,
-                vendor_id: vehicle.vendor_id,
-                vehicle_id: vehicle_id,
+                cab_category_id: cab_category_id,
                 partner_id: partner_id || null,
                 pickup_location,
                 dropoff_location,
@@ -114,22 +108,21 @@ const createPaymentOrder = async (req, res) => {
         `, [
             paymentId,
             userId,
-            vehicle.vendor_id,
+            null, // vendor_id will be set when vendor accepts the booking
             null, // booking_id will be set after successful payment
             partner_id || null,
             razorpayOrder.id, // Reverting this to razorpayOrder.id as payment_id cannot be null
             amount,
             razorpayOrder.id,
             JSON.stringify({
-                vehicle_id,
+                cab_category_id,
                 pickup_location,
                 dropoff_location,
                 pickup_date,
                 drop_date,
                 path,
                 distance,
-                vehicle_model: vehicle.model,
-                vendor_name: vehicle.vendor_name
+                cab_category_name: cabCategory.category
             })
         ]);
 
@@ -147,10 +140,12 @@ const createPaymentOrder = async (req, res) => {
                 amount: amount,
                 currency: 'INR',
                 payment_id: paymentId,
-                vehicle_details: {
-                    model: vehicle.model,
-                    registration_no: vehicle.registration_no,
-                    vendor_name: vehicle.vendor_name
+                cab_category_details: {
+                    id: cabCategory.id,
+                    category: cabCategory.category,
+                    price_per_km: cabCategory.price_per_km,
+                    min_seats: cabCategory.min_no_of_seats,
+                    max_seats: cabCategory.max_no_of_seats
                 },
                 booking_details: {
                     pickup_location,
@@ -242,21 +237,23 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             `, [razorpay_payment_id, payment_id]);
             console.log('verifyPaymentAndCreateBooking: Transaction status updated to success.');
 
-            // Create booking
+            // Create booking with NULL vendor, driver, and vehicle (to be assigned by vendor)
             const bookingId = generatePaymentId(); // Reuse the function for booking ID
             console.log('verifyPaymentAndCreateBooking: Creating booking with ID:', bookingId);
             await db.execute(`
                 INSERT INTO bookings (
-                     id,customer_id, vehicle_id, vendor_id, partner_id,
+                     id, customer_id, vehicle_id, driver_id, vendor_id, partner_id, cab_category_id,
                     pickup_location, dropoff_location, pickup_date, drop_date,
                     price, path, distance, status
-                ) VALUES ( ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
+                ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting')
             `, [
                 bookingId,
                 userId,
-                paymentData.vehicle_id,
-                transaction.vendor_id,
+                null, // vehicle_id - will be assigned when vendor accepts
+                null, // driver_id - will be assigned when vendor accepts
+                null, // vendor_id - will be assigned when vendor accepts
                 transaction.partner_id,
+                paymentData.cab_category_id,
                 paymentData.pickup_location,
                 paymentData.dropoff_location,
                 paymentData.pickup_date,
@@ -265,7 +262,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 paymentData.path,
                 paymentData.distance
             ]);
-            console.log('verifyPaymentAndCreateBooking: Booking created successfully.');
+            console.log('verifyPaymentAndCreateBooking: Booking created successfully with NULL vendor/driver/vehicle.');
 
             // Update transaction with booking_id
             await db.execute(`
@@ -303,12 +300,15 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                     v.no_of_seats,
                     ven.name as vendor_name,
                     ven.phone as vendor_phone,
-                    p.name as partner_name
+                    p.name as partner_name,
+                    cc.category as cab_category_name,
+                    cc.price_per_km as cab_category_price_per_km
                 FROM bookings b
                 LEFT JOIN users u ON b.customer_id = u.id
                 LEFT JOIN vehicles v ON b.vehicle_id = v.id
                 LEFT JOIN vendors ven ON b.vendor_id = ven.id
                 LEFT JOIN users p ON b.partner_id = p.id
+                LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
                 WHERE b.id = ?
             `, [bookingId]);
             console.log('verifyPaymentAndCreateBooking: Fetched new booking details:', newBookings[0]);
