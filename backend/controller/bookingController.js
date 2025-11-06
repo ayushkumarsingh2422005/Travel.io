@@ -32,12 +32,16 @@ const getUserBookings = async (req, res) => {
                 ven.phone as vendor_phone,
                 d.name as driver_name,
                 d.phone as driver_phone,
-                p.name as partner_name
+                p.name as partner_name,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km,
+                cc.category_image as cab_category_image
             FROM bookings b
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.customer_id = ?
         `;
 
@@ -109,12 +113,16 @@ const getVendorBookings = async (req, res) => {
                 v.image as vehicle_image,
                 d.name as driver_name,
                 d.phone as driver_phone,
-                p.name as partner_name
+                p.name as partner_name,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km,
+                cc.category_image as cab_category_image
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.vendor_id = ?
         `;
 
@@ -192,13 +200,17 @@ const getBookingDetails = async (req, res) => {
                 ven.email as vendor_email,
                 d.name as driver_name,
                 d.phone as driver_phone,
-                p.name as partner_name
+                p.name as partner_name,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km,
+                cc.category_image as cab_category_image
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.id = ?
         `;
 
@@ -327,11 +339,14 @@ const updateBookingStatus = async (req, res) => {
                 v.model as vehicle_model,
                 v.registration_no as vehicle_registration,
                 d.name as driver_name,
-                d.phone as driver_phone
+                d.phone as driver_phone,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN drivers d ON b.driver_id = d.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.id = ?
         `, [bookingId]);
 
@@ -410,11 +425,15 @@ const getDriverBookings = async (req, res) => {
                 v.registration_no as vehicle_registration,
                 v.image as vehicle_image,
                 ven.name as vendor_name,
-                ven.phone as vendor_phone
+                ven.phone as vendor_phone,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km,
+                cc.category_image as cab_category_image
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.driver_id = ?
         `;
 
@@ -533,10 +552,13 @@ const updateBookingStatusByDriver = async (req, res) => {
                 u.name as customer_name,
                 u.phone as customer_phone,
                 v.model as vehicle_model,
-                v.registration_no as vehicle_registration
+                v.registration_no as vehicle_registration,
+                cc.category as cab_category_name,
+                cc.price_per_km as cab_category_price_per_km
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.id = ?
         `, [bookingId]);
 
