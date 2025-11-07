@@ -9,6 +9,7 @@ export interface CreateOrderRequest {
   drop_date: string;
   path: string;
   distance: number;
+  amount: number; // Total booking price from frontend
 }
 
 export interface CreateOrderResponse {
@@ -16,7 +17,7 @@ export interface CreateOrderResponse {
   message: string;
   data: {
     order_id: string;
-    amount: number;
+    amount: number; // This will be the calculated totalUpfrontPayment
     currency: string;
     payment_id: string;
     cab_category_details: {
@@ -32,7 +33,7 @@ export interface CreateOrderResponse {
       pickup_date: string;
       drop_date: string;
       distance: number;
-      amount: number;
+      amount: number; // This will be the calculated remainingAmount
     };
   };
 }
@@ -58,7 +59,7 @@ export interface VerifyPaymentResponse {
       dropoff_location: string;
       pickup_date: string;
       drop_date: string;
-      price: number;
+      price: number; // This will be the remaining amount
       path: string;
       distance: number;
       status: string;
@@ -75,7 +76,7 @@ export interface VerifyPaymentResponse {
     payment: {
       payment_id: string;
       razorpay_payment_id: string;
-      amount: number;
+      amount: number; // This will be the total upfront payment
       status: string;
     };
   };

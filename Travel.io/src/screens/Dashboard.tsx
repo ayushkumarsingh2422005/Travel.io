@@ -124,6 +124,15 @@ const Dashboard = () => {
                   <h3 className="text-xl font-semibold mb-2 text-gray-800">Booking Status: Waiting for Vendor</h3>
                   <p className="text-gray-600 mb-2">Your booking request has been sent to vendors.</p>
                   <p className="text-gray-800 font-medium mb-4">Cab Category: {activeBooking.cab_category_name}</p>
+                  <div className="space-y-2 text-left inline-block mb-4">
+                    <p className="text-gray-600">Pickup: <span className="font-medium text-gray-800">{activeBooking.pickup_location}</span></p>
+                    <p className="text-gray-600">Drop: <span className="font-medium text-gray-800">{activeBooking.dropoff_location}</span></p>
+                    <p className="text-gray-600">Date: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.pickup_date).date}</span></p>
+                    <p className="text-gray-600">Time: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.pickup_date).time}</span></p>
+                    {activeBooking.drop_date && activeBooking.drop_date !== activeBooking.pickup_date && (
+                      <p className="text-gray-600">Drop Date: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.drop_date).date}</span></p>
+                    )}
+                  </div>
                   <div className="space-y-2 text-left inline-block">
                     <p className="text-gray-600">Vendor: Not assigned yet</p>
                     <p className="text-gray-600">Vehicle: Not assigned yet</p>

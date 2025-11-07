@@ -27,6 +27,10 @@ interface BookingData {
   path: string;
   distance_km: number;
   isRouteLoading: boolean;
+  platformCharges: number;
+  gstAmount: number;
+  totalUpfrontPayment: number;
+  remainingAmount: number;
 }
 
 interface UserDetails {
@@ -252,6 +256,7 @@ export default function BookingPage() {
         drop_date: bookingData.dropDate,
         path: bookingData.path,
         distance: bookingData.distance_km,
+        amount: bookingData.price, // Send total booking price to backend
       };
 
       const orderResponse = await createPaymentOrder(orderRequest, userToken);
@@ -281,7 +286,7 @@ export default function BookingPage() {
 
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use VITE_ for Vite projects
-      amount: orderData.amount * 100, // Convert to paise
+      amount: orderData.amount * 100, // Use the calculated totalUpfrontPayment from backend
       currency: 'INR',
       name: 'Travel.io',
       description: `Booking for ${bookingData.cab_category_name}`,
@@ -660,19 +665,27 @@ export default function BookingPage() {
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Base Price</span>
+                      <span className="text-gray-600">Total Estimated Price</span>
                       <span className="font-semibold">₹{bookingData.price.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">GST (5%)</span>
-                      <span className="font-semibold">₹{(bookingData.price * 0.05).toFixed(0)}</span>
+                      <span className="text-gray-600">Platform Charges (10%)</span>
+                      <span className="font-semibold">₹{bookingData.platformCharges.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">GST (5% on Platform Charges)</span>
+                      <span className="font-semibold">₹{bookingData.gstAmount.toLocaleString()}</span>
                     </div>
                     <div className="border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-semibold text-gray-800">Total Amount</span>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-lg font-semibold text-gray-800">Total Upfront Payment</span>
                         <span className="text-2xl font-bold text-green-700">
-                          ₹{(bookingData.price * 1.05).toFixed(0)}
+                          ₹{bookingData.totalUpfrontPayment.toLocaleString()}
                         </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Remaining Amount (to Vendor)</span>
+                        <span className="font-semibold">₹{bookingData.remainingAmount.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

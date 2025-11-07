@@ -54,6 +54,10 @@ export default function Prices() {
     path: ''
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [platformCharges, setPlatformCharges] = useState<number>(0);
+  const [gstAmount, setGstAmount] = useState<number>(0);
+  const [totalUpfrontPayment, setTotalUpfrontPayment] = useState<number>(0);
+  const [remainingAmount, setRemainingAmount] = useState<number>(0);
 
       console.log('Route Data:', routeData);
 
@@ -199,6 +203,17 @@ export default function Prices() {
               price: estimatedPrice,
               path: encodedPolyline
             });
+
+            // Calculate platform charges, GST, and total upfront payment
+            const calculatedPlatformCharges = estimatedPrice * 0.10; // 10% of booking amount
+            const calculatedGstAmount = calculatedPlatformCharges * 0.05; // 5% GST on platform charges
+            const calculatedTotalUpfrontPayment = calculatedPlatformCharges + calculatedGstAmount;
+            const calculatedRemainingAmount = estimatedPrice - calculatedPlatformCharges;
+
+            setPlatformCharges(Math.round(calculatedPlatformCharges));
+            setGstAmount(Math.round(calculatedGstAmount));
+            setTotalUpfrontPayment(Math.round(calculatedTotalUpfrontPayment));
+            setRemainingAmount(Math.round(calculatedRemainingAmount));
             
             // Adjust map bounds to show the entire route
             const bounds = new google.maps.LatLngBounds();
@@ -249,7 +264,11 @@ export default function Prices() {
         stops: routeData.stops || [],
         cab_category_id: routeData.cabCategory.id, // Pass cab_category_id
         cab_category_name: routeData.cabCategory.category, // Pass cab_category_name
-        isRouteLoading: isLoading // Pass the isLoading state
+        isRouteLoading: isLoading, // Pass the isLoading state
+        platformCharges,
+        gstAmount,
+        totalUpfrontPayment,
+        remainingAmount
       } 
     });
   };
