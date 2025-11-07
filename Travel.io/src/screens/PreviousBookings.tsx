@@ -137,20 +137,21 @@ const PreviousBookings = () => {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-8 text-gray-800">Previous Bookings</h1>
-      <div className="mb-6 flex flex-wrap gap-3">
-        {['', 'waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'].map(status => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              statusFilter === status
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {status === '' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
+      <div className="mb-6">
+        <label htmlFor="status-filter" className="sr-only">Filter by Status</label>
+        <select
+          id="status-filter"
+          className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-4 py-2 rounded-lg w-full md:w-60 transition-all duration-200"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">All</option>
+          {['waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'].map(status => (
+            <option key={status} value={status}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-4">
         {bookings.length === 0 && !loading ? (

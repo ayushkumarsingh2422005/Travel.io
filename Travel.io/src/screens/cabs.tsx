@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
@@ -547,38 +547,7 @@ export default function Cabs() {
           )}
         </div>
 
-        {/* Destination */}
-        <div className="relative" ref={destinationRef}>
-          <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
-            Destination <span className="text-red-500">*</span>
-          </label>
-          <input 
-            type="text" 
-            id="destination"
-            name="destination"
-            value={bookingForm.destination}
-            onChange={handleDestinationChange}
-            placeholder="Destination" 
-            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
-            required
-          />
-          {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-              {destinationSuggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleSuggestionSelect(suggestion, 'destination')}
-                >
-                  {suggestion}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Additional Stops */}
+          {/* Additional Stops */}
       {additionalStops.map((stop) => (
         <div key={stop.id} className="mt-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
           <input 
@@ -623,6 +592,39 @@ export default function Cabs() {
       >
         + Add Stop
       </button>
+
+        {/* Destination */}
+        <div className="relative" ref={destinationRef}>
+          <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+            Destination <span className="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="destination"
+            name="destination"
+            value={bookingForm.destination}
+            onChange={handleDestinationChange}
+            placeholder="Destination" 
+            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
+            required
+          />
+          {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+              {destinationSuggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+    
 
       {/* Date and Time Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

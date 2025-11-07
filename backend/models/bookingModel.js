@@ -20,7 +20,7 @@ const createBookingsTable = async () => {
             path TEXT NOT NULL,
             distance BIGINT NOT NULL, 
             status ENUM('waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled') DEFAULT 'waiting',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  o
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
 
             FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,

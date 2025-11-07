@@ -17,6 +17,11 @@ const Booking: React.FC = () => {
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]); // New state
   const [searchText, setSearchText] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<BookingData['status'] | ''>('waiting'); // Default to 'waiting'
+  const [pickupLocationFilter, setPickupLocationFilter] = useState<string>('');
+  const [dropoffLocationFilter, setDropoffLocationFilter] = useState<string>('');
+  const [vehicleModelFilter, setVehicleModelFilter] = useState<string>('');
+  const [cabCategoryFilter, setCabCategoryFilter] = useState<string>('');
+  const [customerNameFilter, setCustomerNameFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,14 +40,13 @@ const Booking: React.FC = () => {
       if (statusFilter === 'waiting') { // Use 'waiting' for pending requests
         response = await getPendingBookingRequests();
       } else {
-        const params: { status?: BookingData['status'], bookingId?: string } = {};
+        const params: { status?: BookingData['status'] } = {}; // Removed bookingId from params
         if (statusFilter) {
           params.status = statusFilter as BookingData['status'];
         }
-        params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-        response = await getVendorBookings(params);
+        response = await getVendorBookings(params); // Fetch all bookings for the selected status
       }
-      setBookings(response.data.bookings);
+      setBookings(response.data.bookings); // Store all fetched bookings
     } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
       setError(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
@@ -72,27 +76,56 @@ const Booking: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchBookings(selectedStatus);
+    const fetchAndSetBookings = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let response;
+        if (selectedStatus === 'waiting') {
+          response = await getPendingBookingRequests();
+        } else {
+          const params: { status?: BookingData['status'] } = {};
+          if (selectedStatus) {
+            params.status = selectedStatus as BookingData['status'];
+          }
+          response = await getVendorBookings(params);
+        }
+        setBookings(response.data.bookings); // Store all fetched bookings without immediate filtering
+      } catch (err: any) {
+        console.error('Error fetching vendor bookings:', err);
+        setError(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAndSetBookings();
     fetchDrivers();
     fetchVehicles(); // Fetch vehicles on component mount
-  }, [selectedStatus]); // Refetch bookings when selectedStatus changes, fetch drivers and vehicles once
+  }, [selectedStatus]); // Only re-fetch when selectedStatus changes
 
   const handleSearch = async () => {
     setSearchLoading(true);
     setError(null);
     try {
-      let response;
-      if (selectedStatus === 'waiting') { // Use 'waiting' for pending requests
-        response = await getPendingBookingRequests();
+      let fetchedBookings: BookingData[] = [];
+      if (selectedStatus === 'waiting') {
+        const response = await getPendingBookingRequests();
+        fetchedBookings = response.data.bookings;
       } else {
         const params: { status?: BookingData['status'], bookingId?: string } = {};
         if (selectedStatus) {
           params.status = selectedStatus as BookingData['status'];
         }
-        params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-        response = await getVendorBookings(params);
+        // Only pass bookingId to backend if searchText is not empty, otherwise fetch all for status
+        if (searchText) {
+          params.bookingId = searchText;
+        }
+        const response = await getVendorBookings(params);
+        fetchedBookings = response.data.bookings;
       }
-      setBookings(response.data.bookings);
+      // Apply client-side filters to the fetched bookings
+      setBookings(getFilteredBookings(fetchedBookings));
     } catch (err: any) {
       console.error('Error searching vendor bookings:', err);
       setError(err.response?.data?.message || 'Failed to search bookings. Please try again.');
@@ -156,6 +189,39 @@ const Booking: React.FC = () => {
     setSelectedDriver('');
     setSelectedVehicle(''); // Reset vehicle selection
     setError(null);
+  };
+
+  // Client-side filtering function
+  const getFilteredBookings = (allBookings: BookingData[]) => {
+    return allBookings.filter(booking => {
+      const matchesSearchText = searchText
+        ? booking.id.toLowerCase().includes(searchText.toLowerCase())
+        : true;
+      const matchesPickupLocation = pickupLocationFilter
+        ? booking.pickup_location.toLowerCase().includes(pickupLocationFilter.toLowerCase())
+        : true;
+      const matchesDropoffLocation = dropoffLocationFilter
+        ? booking.dropoff_location.toLowerCase().includes(dropoffLocationFilter.toLowerCase())
+        : true;
+      const matchesVehicleModel = vehicleModelFilter
+        ? (booking.vehicle_model?.toLowerCase().includes(vehicleModelFilter.toLowerCase()) || false)
+        : true;
+      const matchesCabCategory = cabCategoryFilter
+        ? (booking.cab_category_name?.toLowerCase().includes(cabCategoryFilter.toLowerCase()) || false)
+        : true;
+      const matchesCustomerName = customerNameFilter
+        ? booking.customer_name.toLowerCase().includes(customerNameFilter.toLowerCase())
+        : true;
+
+      return (
+        matchesSearchText &&
+        matchesPickupLocation &&
+        matchesDropoffLocation &&
+        matchesVehicleModel &&
+        matchesCabCategory &&
+        matchesCustomerName
+      );
+    });
   };
 
   // Function to render skeleton loading rows
@@ -231,6 +297,58 @@ const Booking: React.FC = () => {
               disabled={searchLoading}
             />
           </div>
+
+          {/* New Filter Inputs */}
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Pickup Location"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={pickupLocationFilter}
+              onChange={(e) => setPickupLocationFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Dropoff Location"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={dropoffLocationFilter}
+              onChange={(e) => setDropoffLocationFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Vehicle Model"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={vehicleModelFilter}
+              onChange={(e) => setVehicleModelFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Cab Category"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={cabCategoryFilter}
+              onChange={(e) => setCabCategoryFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Customer Name"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={customerNameFilter}
+              onChange={(e) => setCustomerNameFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
           
           <div className="w-full md:w-auto">
             <button 
@@ -296,7 +414,7 @@ const Booking: React.FC = () => {
                 </tr>
               ) : (
                 // Show actual booking data
-                bookings.map((booking) => (
+                getFilteredBookings(bookings).map((booking) => (
                   <tr key={booking.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-all">{booking.id}</td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.customer_name}</td>
