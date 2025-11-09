@@ -1,6 +1,7 @@
 import axios from "../api/axios";
 import { useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import toast from 'react-hot-toast'; 
 
 const ResetPassword = () => {
      const [searchParams] = useSearchParams();
@@ -9,41 +10,34 @@ const ResetPassword = () => {
     const location = useLocation();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
     const handleChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(e.target.value);
-        setError(''); // Clear error when user starts typing
     };
 
     const handleChangeConfirmPassword = (e: React.ChangeEvent<HTMLInputElement>) => {
         setConfirmPassword(e.target.value);
-        setError(''); // Clear error when user starts typing
     }
 
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
 
         try {
-
             console.log('Resetting password with token:', token);
             if (!token) {
-                setError('The session has expired. Please try again.');
+                toast.error('The session has expired. Please try again.');
                 return;
             }
             if (!password) {
-                setError('Password is required');
+                toast.error('Password is required');
                 return;
             }
             if (!confirmPassword) {
-                setError('Confirm password is required');
+                toast.error('Confirm password is required');
                 return;
             }
             if (password !== confirmPassword) {
-                setError('Passwords do not match');
+                toast.error('Passwords do not match');
                 return;
             }
 
@@ -55,17 +49,16 @@ const ResetPassword = () => {
             const pageState = location.state?.pageState;
 
             if (response) {
-                setSuccess('Password reset successfully! You can now log in.');
+                toast.success('Password reset successfully! You can now log in.');
                 setTimeout(() => {
                     navigate('/login', { state: pageState });
                 }, 2000);
-                setError('');
             } else {
-                setError('Failed to reset password. Please try again later.');
+                toast.error('Failed to reset password. Please try again later.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error resetting password:', error);
-            setError('An error occurred while resetting the password. Please try again later.');
+            toast.error(error.response?.data?.message || 'An error occurred while resetting the password. Please try again later.');
         }
     };
 
@@ -129,18 +122,6 @@ const ResetPassword = () => {
                             Reset Password
                         </button>
                     </form>
-
-                    {error && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-red-600 text-sm text-center">{error}</p>
-                        </div>
-                    )}
-
-                    {success && (
-                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <p className="text-green-600 text-sm text-center">{success}</p>
-                        </div>
-                    )}
 
                     <div className="text-center text-gray-500 mt-6">
                         Remember your password?{' '}

@@ -1,5 +1,6 @@
 import  { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast'; // Import toast
 import { getVendorBookings, getVendorDrivers } from '../utils/bookingService';
 
 interface BookingSummary {
@@ -39,15 +40,11 @@ const Dashboard = () => {
     active: 0,
     onTrip: 0
   });
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
-
-        console.log(error);
 
         // Fetch bookings
         const bookingsResponse = await getVendorBookings({ limit: 1000 }); // Fetch all to process locally
@@ -74,8 +71,9 @@ const Dashboard = () => {
               status: b.status === 'completed' ? 'Completed' : b.status === 'cancelled' ? 'Cancelled' : 'In Progress',
             }));
           setRecentBookings(mappedRecentBookings);
+          toast.success('Bookings data loaded successfully!'); // Success toast
         } else {
-          setError(bookingsResponse.message || 'Failed to fetch bookings.');
+          toast.error(bookingsResponse.message || 'Failed to fetch bookings.'); // Error toast
         }
 
         // Fetch drivers
@@ -90,13 +88,14 @@ const Dashboard = () => {
             active: allDrivers.length, // Placeholder: assuming all fetched drivers are active
             onTrip: 0 // Placeholder: no direct 'onTrip' status from current API
           });
+          toast.success('Drivers data loaded successfully!'); // Success toast
         } else {
-          setError('Failed to fetch drivers.');
+          toast.error('Failed to fetch drivers.'); // Error toast
         }
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching dashboard data:", err);
-        setError('Failed to load dashboard data.');
+        toast.error(err.response?.data?.message || 'Failed to load dashboard data.'); // Error toast
       } finally {
         setLoading(false);
       }

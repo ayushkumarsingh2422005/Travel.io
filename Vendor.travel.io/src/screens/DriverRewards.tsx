@@ -1,5 +1,6 @@
 // src/components/DriverRewards.tsx
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 // Define TypeScript interfaces
 interface Driver {
@@ -31,11 +32,13 @@ const DriverRewards: React.FC = () => {
         setTimeout(() => {
           setDrivers(dummyDrivers);
           setLoading(false);
+          toast.success('Driver rewards loaded successfully!'); // Success toast
         }, 500);
       } catch (error) {
         console.error('Error fetching driver rewards:', error);
         setDrivers([]);
         setLoading(false);
+        toast.error('Failed to load driver rewards.'); // Error toast
       }
     };
 
@@ -55,12 +58,30 @@ const DriverRewards: React.FC = () => {
   }, 0);
 
   const handleDeleteDriver = (id: number) => {
-    setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== id));
+    // Simulate API call for deletion
+    const success = Math.random() > 0.5;
+    if (success) {
+      setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== id));
+      toast.success(`Driver ${id} deleted successfully!`);
+    } else {
+      toast.error(`Failed to delete driver ${id}.`);
+    }
   };
 
   const handleShowReviews = (id: number) => {
     // Implement show reviews functionality
-    alert(`Show reviews for driver ${id}`);
+    toast(`Showing reviews for driver ${id}`); // Changed to generic toast
+  };
+
+  const handleAddReward = (id: number) => {
+    // Simulate API call for adding a reward
+    const success = Math.random() > 0.5;
+    if (success) {
+      toast.success(`Reward added for driver ${id} successfully!`);
+      // Logic to update driver's reward
+    } else {
+      toast.error(`Failed to add reward for driver ${id}.`);
+    }
   };
 
   return (
@@ -214,7 +235,10 @@ const DriverRewards: React.FC = () => {
                         >
                           Reviews
                         </button>
-                        <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
+                        <button
+                          onClick={() => handleAddReward(driver.id)} // Add onClick handler
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                        >
                           Add Reward
                         </button>
                       </div>

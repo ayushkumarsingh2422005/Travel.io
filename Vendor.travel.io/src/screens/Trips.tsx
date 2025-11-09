@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast'; // Import toast
 import { getVendorTrips, BookingData } from '../utils/bookingService';
 
 // Trip summary data for cards - will be dynamically calculated or fetched
@@ -41,7 +42,6 @@ export const TripsComponent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
   const [trips, setTrips] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const limit = 10; // Number of items per page
@@ -49,7 +49,6 @@ export const TripsComponent: React.FC = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       setLoading(true);
-      setError(null);
       setTrips([]); // Clear previous trips while loading
 
       try {
@@ -58,6 +57,7 @@ export const TripsComponent: React.FC = () => {
         if (response.success) {
           setTrips(response.data.bookings);
           setTotalPages(response.data.pagination.total_pages);
+          toast.success('Trips loaded successfully!'); // Success toast
 
           // Calculate trip summary data
           const totalTrips = response.data.bookings.length.toString();
@@ -117,11 +117,11 @@ export const TripsComponent: React.FC = () => {
           }
 
         } else {
-          setError(response.message || 'Failed to fetch trips');
+          toast.error(response.message || 'Failed to fetch trips'); // Error toast
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching trips:', err);
-        setError('An error occurred while fetching trips.');
+        toast.error(err.response?.data?.message || 'An error occurred while fetching trips.'); // Error toast
       } finally {
         setLoading(false);
       }
@@ -233,12 +233,6 @@ export const TripsComponent: React.FC = () => {
                     ))}
                   </tr>
                 ))
-              ) : error ? (
-                <tr>
-                  <td colSpan={activeTab === 'upcoming' ? 6 : 7} className="p-4 text-center text-red-500">
-                    Error: {error}
-                  </td>
-                </tr>
               ) : trips.length === 0 ? (
                 <tr>
                   <td colSpan={activeTab === 'upcoming' ? 6 : 7} className="p-4 text-center text-gray-500">
@@ -250,12 +244,12 @@ export const TripsComponent: React.FC = () => {
                   <tr key={trip.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.id}</td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTripTypeClass(trip.vehicle_model)}`}>
-                        {trip.vehicle_model}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTripTypeClass(trip.vehicle_model || '')}`}>
+                        {trip.vehicle_model || 'N/A'}
                       </span>
                     </td>
                     {activeTab === 'upcoming' && (
-                      <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.vehicle_model}</td>
+                      <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{trip.vehicle_model || 'N/A'}</td>
                     )}
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{`${trip.pickup_location} → ${trip.dropoff_location}`}</td>
                     <td className="p-4 text-sm font-medium text-gray-900 border-b border-gray-100">₹{trip.price}</td>

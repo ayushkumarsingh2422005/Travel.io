@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   BookingData,
   Driver,
@@ -24,7 +25,6 @@ const Booking: React.FC = () => {
   const [customerNameFilter, setCustomerNameFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [showApproveModal, setShowApproveModal] = useState<boolean>(false);
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<BookingData | null>(null);
@@ -34,7 +34,6 @@ const Booking: React.FC = () => {
 
   const fetchBookings = async (statusFilter: BookingData['status'] | '' = '') => {
     setLoading(true);
-    setError(null);
     try {
       let response;
       if (statusFilter === 'waiting') { // Use 'waiting' for pending requests
@@ -47,9 +46,10 @@ const Booking: React.FC = () => {
         response = await getVendorBookings(params); // Fetch all bookings for the selected status
       }
       setBookings(response.data.bookings); // Store all fetched bookings
+      toast.success('Bookings loaded successfully!'); // Success toast
     } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
-      setError(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.'); // Error toast
     } finally {
       setLoading(false);
     }
@@ -59,9 +59,10 @@ const Booking: React.FC = () => {
     try {
       const response = await getVendorDrivers();
       setDrivers(response.data.drivers);
+      toast.success('Drivers loaded successfully!'); // Success toast
     } catch (err) {
       console.error('Error fetching drivers:', err);
-      // Optionally set an error state for drivers
+      toast.error('Failed to fetch drivers.'); // Error toast
     }
   };
 
@@ -69,16 +70,16 @@ const Booking: React.FC = () => {
     try {
       const response = await getVendorVehicles();
       setAvailableVehicles(response.data.vehicles);
+      toast.success('Vehicles loaded successfully!'); // Success toast
     } catch (err) {
       console.error('Error fetching vehicles:', err);
-      // Optionally set an error state for vehicles
+      toast.error('Failed to fetch vehicles.'); // Error toast
     }
   };
 
   useEffect(() => {
     const fetchAndSetBookings = async () => {
       setLoading(true);
-      setError(null);
       try {
         let response;
         if (selectedStatus === 'waiting') {
@@ -91,9 +92,10 @@ const Booking: React.FC = () => {
           response = await getVendorBookings(params);
         }
         setBookings(response.data.bookings); // Store all fetched bookings without immediate filtering
+        toast.success('Bookings updated successfully!'); // Success toast
       } catch (err: any) {
         console.error('Error fetching vendor bookings:', err);
-        setError(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
+        toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.'); // Error toast
       } finally {
         setLoading(false);
       }
@@ -106,7 +108,6 @@ const Booking: React.FC = () => {
 
   const handleSearch = async () => {
     setSearchLoading(true);
-    setError(null);
     try {
       let fetchedBookings: BookingData[] = [];
       if (selectedStatus === 'waiting') {
@@ -126,9 +127,10 @@ const Booking: React.FC = () => {
       }
       // Apply client-side filters to the fetched bookings
       setBookings(getFilteredBookings(fetchedBookings));
+      toast.success('Search completed successfully!'); // Success toast
     } catch (err: any) {
       console.error('Error searching vendor bookings:', err);
-      setError(err.response?.data?.message || 'Failed to search bookings. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to search bookings. Please try again.'); // Error toast
     } finally {
       setSearchLoading(false);
     }
@@ -136,7 +138,6 @@ const Booking: React.FC = () => {
 
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingData['status'], driverId: string | null = null) => {
     setUpdateLoading(true);
-    setError(null);
     try {
       await updateBookingStatus(bookingId, newStatus, driverId);
       setShowApproveModal(false);
@@ -144,9 +145,10 @@ const Booking: React.FC = () => {
       setSelectedDriver('');
       setSelectedVehicle(''); // Reset vehicle selection
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
+      toast.success(`Booking ${bookingId} status updated to ${newStatus} successfully!`); // Success toast
     } catch (err: any) {
       console.error('Error updating booking status:', err);
-      setError(err.response?.data?.message || 'Failed to update booking status. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to update booking status. Please try again.'); // Error toast
     } finally {
       setUpdateLoading(false);
     }
@@ -154,12 +156,11 @@ const Booking: React.FC = () => {
 
   const handleAcceptBooking = async () => {
     if (!selectedBookingForApproval || !selectedDriver || !selectedVehicle) {
-      setError('Please select a driver and a vehicle to approve the booking.');
+      toast.error('Please select a driver and a vehicle to approve the booking.'); // Error toast
       return;
     }
 
     setUpdateLoading(true);
-    setError(null);
     try {
       await acceptBookingRequest(selectedBookingForApproval.id, selectedDriver, selectedVehicle);
       setShowApproveModal(false);
@@ -167,9 +168,10 @@ const Booking: React.FC = () => {
       setSelectedDriver('');
       setSelectedVehicle('');
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
+      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`); // Success toast
     } catch (err: any) {
       console.error('Error accepting booking request:', err);
-      setError(err.response?.data?.message || 'Failed to accept booking. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.'); // Error toast
     } finally {
       setUpdateLoading(false);
     }
@@ -179,7 +181,7 @@ const Booking: React.FC = () => {
     setSelectedBookingForApproval(booking);
     setSelectedDriver(''); // Reset driver selection
     setSelectedVehicle(''); // Reset vehicle selection
-    setError(null); // Clear previous errors
+
     setShowApproveModal(true);
   };
 
@@ -188,7 +190,7 @@ const Booking: React.FC = () => {
     setSelectedBookingForApproval(null);
     setSelectedDriver('');
     setSelectedVehicle(''); // Reset vehicle selection
-    setError(null);
+
   };
 
   // Client-side filtering function
@@ -377,13 +379,6 @@ const Booking: React.FC = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
-        </div>
-      )}
-
       {/* Bookings Table */}
       <div className="bg-white p-6 rounded-xl shadow-md overflow-hidden">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Available Bookings</h2>
@@ -549,11 +544,6 @@ const Booking: React.FC = () => {
                   ))}
               </select>
             </div>
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
-                {error}
-              </div>
-            )}
             <div className="flex justify-end gap-3">
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"

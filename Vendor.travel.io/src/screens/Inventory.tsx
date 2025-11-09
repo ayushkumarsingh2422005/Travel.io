@@ -1,5 +1,6 @@
 // src/components/Inventory.tsx
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 // Define TypeScript interfaces
 interface Vehicle {
@@ -25,10 +26,12 @@ const Inventory: React.FC = () => {
         setTimeout(() => {
           setVehicles(dummyVehicles);
           setLoading(false);
+          toast.success('Vehicles loaded successfully!'); // Success toast
         }, 500);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         setLoading(false);
+        toast.error('Failed to load vehicles.'); // Error toast
       }
     };
 
@@ -50,12 +53,30 @@ const Inventory: React.FC = () => {
   };
 
   const handleDeleteVehicle = (id: number) => {
-    setVehicles(prevVehicles => prevVehicles.filter(vehicle => vehicle.id !== id));
+    // Simulate API call for deletion
+    const success = Math.random() > 0.5;
+    if (success) {
+      setVehicles(prevVehicles => prevVehicles.filter(vehicle => vehicle.id !== id));
+      toast.success(`Vehicle ${id} deleted successfully!`);
+    } else {
+      toast.error(`Failed to delete vehicle ${id}.`);
+    }
   };
 
   const handleShowBookingHistory = (id: number) => {
     // Implement show booking history functionality
-    alert(`Show booking history for vehicle ${id}`);
+    toast(`Showing booking history for vehicle ${id}`); // Changed to generic toast
+  };
+
+  const handleAddVehicle = () => {
+    // Simulate API call for adding a vehicle
+    const success = Math.random() > 0.5;
+    if (success) {
+      toast.success('New vehicle added successfully!');
+      // Logic to add new vehicle to state
+    } else {
+      toast.error('Failed to add new vehicle.');
+    }
   };
 
   return (
@@ -109,6 +130,7 @@ const Inventory: React.FC = () => {
             />
           </div>
           <button
+            onClick={handleAddVehicle} // Add onClick handler
             className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
