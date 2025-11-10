@@ -26,30 +26,48 @@ const Booking: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalBookingsCount, setTotalBookingsCount] = useState<number>(0); // New state for total count
+
   const [showApproveModal, setShowApproveModal] = useState<boolean>(false);
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<BookingData | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>('');
   const [selectedVehicle, setSelectedVehicle] = useState<string>(''); // New state
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
+  const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
+  const [selectedBookingForCancellation, setSelectedBookingForCancellation] = useState<BookingData | null>(null);
 
-  const fetchBookings = async (statusFilter: BookingData['status'] | '' = '') => {
+  const fetchBookings = async (
+    statusFilter: BookingData['status'] | '' = '',
+    page: number = currentPage,
+    limit: number = itemsPerPage,
+    bookingIdSearch?: string
+  ) => {
     setLoading(true);
     try {
       let response;
-      if (statusFilter === 'waiting') { // Use 'waiting' for pending requests
-        response = await getPendingBookingRequests();
+      if (statusFilter === 'waiting') {
+        response = await getPendingBookingRequests({ page, limit });
       } else {
-        const params: { status?: BookingData['status'] } = {}; // Removed bookingId from params
+        const params: { status?: BookingData['status']; bookingId?: string; page?: number; limit?: number } = { page, limit };
         if (statusFilter) {
           params.status = statusFilter as BookingData['status'];
         }
-        response = await getVendorBookings(params); // Fetch all bookings for the selected status
+        if (bookingIdSearch) {
+          params.bookingId = bookingIdSearch;
+        }
+        response = await getVendorBookings(params);
       }
-      setBookings(response.data.bookings); // Store all fetched bookings
-      toast.success('Bookings loaded successfully!'); // Success toast
+      setBookings(response.data.bookings);
+      setTotalPages(response.data.pagination.total_pages);
+      setTotalBookingsCount(response.data.pagination.total);
+      toast.success('Bookings loaded successfully!');
     } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
-      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.'); // Error toast
+      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -58,82 +76,36 @@ const Booking: React.FC = () => {
   const fetchDrivers = async () => {
     try {
       const response = await getVendorDrivers();
-      setDrivers(response.data.drivers);
-      toast.success('Drivers loaded successfully!'); // Success toast
+      setDrivers(response.data.drivers); // Corrected to access data.drivers
+      // toast.success('Drivers loaded successfully!');
     } catch (err) {
       console.error('Error fetching drivers:', err);
-      toast.error('Failed to fetch drivers.'); // Error toast
+      toast.error('Failed to fetch drivers.');
     }
   };
 
   const fetchVehicles = async () => {
     try {
       const response = await getVendorVehicles();
-      setAvailableVehicles(response.data.vehicles);
-      toast.success('Vehicles loaded successfully!'); // Success toast
+      setAvailableVehicles(response.data.vehicles); // Corrected to access data.vehicles
+      // toast.success('Vehicles loaded successfully!');
     } catch (err) {
       console.error('Error fetching vehicles:', err);
-      toast.error('Failed to fetch vehicles.'); // Error toast
+      toast.error('Failed to fetch vehicles.');
     }
   };
 
   useEffect(() => {
-    const fetchAndSetBookings = async () => {
-      setLoading(true);
-      try {
-        let response;
-        if (selectedStatus === 'waiting') {
-          response = await getPendingBookingRequests();
-        } else {
-          const params: { status?: BookingData['status'] } = {};
-          if (selectedStatus) {
-            params.status = selectedStatus as BookingData['status'];
-          }
-          response = await getVendorBookings(params);
-        }
-        setBookings(response.data.bookings); // Store all fetched bookings without immediate filtering
-        toast.success('Bookings updated successfully!'); // Success toast
-      } catch (err: any) {
-        console.error('Error fetching vendor bookings:', err);
-        toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.'); // Error toast
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAndSetBookings();
+    fetchBookings(selectedStatus, currentPage, itemsPerPage, searchText);
     fetchDrivers();
-    fetchVehicles(); // Fetch vehicles on component mount
-  }, [selectedStatus]); // Only re-fetch when selectedStatus changes
+    fetchVehicles();
+  }, [selectedStatus, currentPage, itemsPerPage]); // Re-fetch when selectedStatus, currentPage, or itemsPerPage changes
 
   const handleSearch = async () => {
-    setSearchLoading(true);
-    try {
-      let fetchedBookings: BookingData[] = [];
-      if (selectedStatus === 'waiting') {
-        const response = await getPendingBookingRequests();
-        fetchedBookings = response.data.bookings;
-      } else {
-        const params: { status?: BookingData['status'], bookingId?: string } = {};
-        if (selectedStatus) {
-          params.status = selectedStatus as BookingData['status'];
-        }
-        // Only pass bookingId to backend if searchText is not empty, otherwise fetch all for status
-        if (searchText) {
-          params.bookingId = searchText;
-        }
-        const response = await getVendorBookings(params);
-        fetchedBookings = response.data.bookings;
-      }
-      // Apply client-side filters to the fetched bookings
-      setBookings(getFilteredBookings(fetchedBookings));
-      toast.success('Search completed successfully!'); // Success toast
-    } catch (err: any) {
-      console.error('Error searching vendor bookings:', err);
-      toast.error(err.response?.data?.message || 'Failed to search bookings. Please try again.'); // Error toast
-    } finally {
-      setSearchLoading(false);
-    }
+    setSearchLoading(true)
+    setCurrentPage(1); // Reset to first page on new search
+    fetchBookings(selectedStatus, 1, itemsPerPage, searchText);
+    setSearchLoading(false);
   };
 
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingData['status'], driverId: string | null = null) => {
@@ -191,6 +163,35 @@ const Booking: React.FC = () => {
     setSelectedDriver('');
     setSelectedVehicle(''); // Reset vehicle selection
 
+  };
+
+  const openCancelModal = (booking: BookingData) => {
+    setSelectedBookingForCancellation(booking);
+    setShowCancelModal(true);
+  };
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setSelectedBookingForCancellation(null);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedBookingForCancellation) {
+      toast.error('No booking selected for cancellation.');
+      return;
+    }
+    setUpdateLoading(true);
+    try {
+      await updateBookingStatus(selectedBookingForCancellation.id, 'cancelled');
+      closeCancelModal();
+      fetchBookings(selectedStatus);
+      toast.success(`Booking ${selectedBookingForCancellation.id} cancelled successfully!`);
+    } catch (err: any) {
+      console.error('Error cancelling booking:', err);
+      toast.error(err.response?.data?.message || 'Failed to cancel booking. Please try again.');
+    } finally {
+      setUpdateLoading(false);
+    }
   };
 
   // Client-side filtering function
@@ -388,7 +389,7 @@ const Booking: React.FC = () => {
               <tr className="bg-gray-50">
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Booking ID</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Customer Name</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Cab Category / Vehicle Model</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Cab Category</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[180px]">Pickup/Dropoff</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Dates</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[80px]">Price</th>
@@ -441,51 +442,53 @@ const Booking: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3 text-sm border-b border-gray-100">
-                      {booking.status === 'waiting' && (
-                        <button
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
-                          onClick={() => openApproveModal(booking)}
-                          disabled={updateLoading}
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {booking.status === 'approved' && (
-                        <button
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
-                          disabled={updateLoading}
-                        >
-                          Mark Pre-Ongoing
-                        </button>
-                      )}
-                      {booking.status === 'preongoing' && (
-                        <button
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'ongoing')}
-                          disabled={updateLoading}
-                        >
-                          Mark Ongoing
-                        </button>
-                      )}
-                      {booking.status === 'ongoing' && (
-                        <button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'completed')}
-                          disabled={updateLoading}
-                        >
-                          Mark Completed
-                        </button>
-                      )}
-                      {(booking.status === 'waiting' || booking.status === 'approved') && (
-                        <button
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
-                          onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
-                          disabled={updateLoading}
-                        >
-                          Cancel
-                        </button>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {booking.status === 'waiting' && (
+                          <button
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => openApproveModal(booking)}
+                            disabled={updateLoading}
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {booking.status === 'approved' && (
+                          <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
+                            disabled={updateLoading}
+                          >
+                            Mark Pre-Ongoing
+                          </button>
+                        )}
+                        {booking.status === 'preongoing' && (
+                          <button
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'ongoing')}
+                            disabled={updateLoading}
+                          >
+                            Mark Ongoing
+                          </button>
+                        )}
+                        {booking.status === 'ongoing' && (
+                          <button
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'completed')}
+                            disabled={updateLoading}
+                          >
+                            Mark Completed
+                          </button>
+                        )}
+                        {(booking.status === 'approved' || booking.status === 'preongoing' || booking.status === 'ongoing') && (
+                          <button
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => openCancelModal(booking)}
+                            disabled={updateLoading}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -493,6 +496,50 @@ const Booking: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalBookingsCount > 0 && (
+          <div className="flex flex-wrap justify-between items-center mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <div className="text-sm text-gray-600 mb-2 md:mb-0">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalBookingsCount)} of {totalBookingsCount} bookings
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading || searchLoading}
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || loading || searchLoading}
+              >
+                Next
+              </button>
+            </div>
+            <div className="w-full md:w-auto mt-2 md:mt-0">
+              <select
+                className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-3 py-2 rounded-lg text-sm w-full md:w-auto transition-all duration-200"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1); // Reset to first page when items per page changes
+                }}
+                disabled={loading || searchLoading}
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {showApproveModal && selectedBookingForApproval && (
@@ -558,6 +605,36 @@ const Booking: React.FC = () => {
                 disabled={updateLoading}
               >
                 {updateLoading ? 'Approving...' : 'Approve Booking'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && selectedBookingForCancellation && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <h3 className="text-lg font-bold mb-4">
+              Cancel Booking <span className="break-all">{selectedBookingForCancellation.id}</span>
+            </h3>
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to cancel this booking? This action cannot be undone.
+              Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms and Conditions</a> for more details on cancellation policies.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={closeCancelModal}
+                disabled={updateLoading}
+              >
+                No, Keep Booking
+              </button>
+              <button
+                className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
+                onClick={handleConfirmCancel}
+                disabled={updateLoading}
+              >
+                {updateLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
               </button>
             </div>
           </div>

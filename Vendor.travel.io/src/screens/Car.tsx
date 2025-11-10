@@ -99,6 +99,8 @@ const AddCarForm: React.FC = () => {
   // State for Car Details Modal
   const [showCarDetailsModal, setShowCarDetailsModal] = useState(false);
   const [selectedCarDetails, setSelectedCarDetails] = useState<Car | null>(null);
+  const [showDeleteCarModal, setShowDeleteCarModal] = useState(false);
+  const [selectedCarForDeletion, setSelectedCarForDeletion] = useState<Car | null>(null);
 
 
   const handleAddCar = async () => {
@@ -204,14 +206,39 @@ setCars(mappedCars);
     }
   };
 
-  const handleDeleteCar = async (id: string) => {
+  const handleDeleteCar = async () => {
+    if (!selectedCarForDeletion) {
+      toast.error('No car selected for deletion.');
+      return;
+    }
     try {
-      await axios.delete(API_ENDPOINTS.DELETE_CAR(id));
+       const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        toast.error('You must be logged in to delete cars.'); // Error toast
+        return;
+      } // Assuming token is stored in localStorage
+      await axios.delete(API_ENDPOINTS.DELETE_CAR(selectedCarForDeletion.id),
+     {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       fetchCars(); // Refresh the car list
+      closeDeleteCarModal();
       toast.success('Car deleted successfully!'); // Success toast
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to delete car"); // Error toast
     }
+  };
+
+  const openDeleteCarModal = (car: Car) => {
+    setSelectedCarForDeletion(car);
+    setShowDeleteCarModal(true);
+  };
+
+  const closeDeleteCarModal = () => {
+    setShowDeleteCarModal(false);
+    setSelectedCarForDeletion(null);
   };
 
   const getStatusBadgeClass = (status: string): string => {
@@ -418,7 +445,7 @@ setCars(mappedCars);
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
                       <button 
                         className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
-                        onClick={() => handleDeleteCar(car.id)}
+                        onClick={() => openDeleteCarModal(car)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -957,6 +984,34 @@ setCars(mappedCars);
           getStatusBadgeClass={getStatusBadgeClass}
           getPermitBadgeClass={getPermitBadgeClass}
         />
+      )}
+
+      {/* Delete Car Confirmation Modal */}
+      {showDeleteCarModal && selectedCarForDeletion && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">
+              Delete Car <span className="break-all">{selectedCarForDeletion.brand} ({selectedCarForDeletion.rcNumber})</span>
+            </h3>
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to delete this car? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={closeDeleteCarModal}
+              >
+                No, Keep Car
+              </button>
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={handleDeleteCar}
+              >
+                Yes, Delete Car
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
