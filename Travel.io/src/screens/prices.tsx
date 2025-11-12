@@ -40,6 +40,8 @@ interface RouteDetails {
   duration: string;
   price: number;
   path: string;
+  oneWayDistance?: string; // Optional for one-way trips
+  oneWayDuration?: string; // Optional for one-way trips
 }
 
 export default function Prices() {
@@ -58,6 +60,9 @@ export default function Prices() {
   const [gstAmount, setGstAmount] = useState<number>(0);
   const [totalUpfrontPayment, setTotalUpfrontPayment] = useState<number>(0);
   const [remainingAmount, setRemainingAmount] = useState<number>(0);
+  const [calculatedNightCharges, setCalculatedNightCharges] = useState<number>(0);
+  const [calculatedBaseFare, setCalculatedBaseFare] = useState<number>(0); // New state for base fare
+  const [calculatedDiscountAmount, setCalculatedDiscountAmount] = useState<number>(0); // New state for discount amount
 
       console.log('Route Data:', routeData);
 
@@ -171,6 +176,9 @@ export default function Prices() {
               }
             });
 
+            const oneWayDistance = totalDistance; // Store one-way distance
+            const oneWayDuration = totalDuration; // Store one-way duration
+
             // Adjust for round trip if needed
             if (routeData.tripType === 'Round Trip') {
               totalDistance *= 2;
@@ -179,20 +187,56 @@ export default function Prices() {
 
             // Calculate estimated price using cab category details
             const distanceInKm = totalDistance / 1000;
-            let calculatedPrice = distanceInKm * routeData.cabCategory.price_per_km;
+            const baseFare = distanceInKm * routeData.cabCategory.price_per_km;
+            setCalculatedBaseFare(Math.round(baseFare)); // Set calculated base fare
+
+            let currentCalculatedPrice = baseFare;
 
             if (routeData.cabCategory.fuel_charges) {
-              calculatedPrice += parseFloat(routeData.cabCategory.fuel_charges.toString());
+              currentCalculatedPrice += parseFloat(routeData.cabCategory.fuel_charges.toString());
             }
             if (routeData.cabCategory.driver_charges) {
-              calculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
+              currentCalculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
             }
+
+            // Add night charges if applicable (using the user's preferred logic)
+            const pickupDateTime = new Date(routeData.pickupDate);
+            const dropDateTime = new Date(routeData.dropDate);
+            const nightChargeStartTime = 22; // 10 PM
+            const nightChargeEndTime = 6; // 6 AM
+
+            let nightChargesApplicable = false;
+            if (pickupDateTime.getHours() >= nightChargeStartTime || pickupDateTime.getHours() < nightChargeEndTime ||
+                dropDateTime.getHours() >= nightChargeStartTime || dropDateTime.getHours() < nightChargeEndTime) {
+                nightChargesApplicable = true;
+            }
+
+            let nightChargeValue = 0;
+            if (nightChargesApplicable && routeData.cabCategory.night_charges) {
+                nightChargeValue = parseFloat(routeData.cabCategory.night_charges.toString());
+                currentCalculatedPrice += nightChargeValue;
+            }
+            setCalculatedNightCharges(nightChargeValue); // Set the calculated night charges
+
+            let discountAmount = 0;
             if (routeData.cabCategory.base_discount) {
-              const discount = (calculatedPrice * parseFloat(routeData.cabCategory.base_discount.toString())) / 100;
-              calculatedPrice -= discount;
+              discountAmount = (currentCalculatedPrice * parseFloat(routeData.cabCategory.base_discount.toString())) / 100;
+              currentCalculatedPrice -= discountAmount;
             }
+            setCalculatedDiscountAmount(Math.round(discountAmount)); // Set calculated discount amount
             
-            const estimatedPrice = Math.round(calculatedPrice);
+            const estimatedPrice = Math.round(currentCalculatedPrice);
+
+            // Adjust drop-off date if less than minimum duration
+            const minDurationInMs = oneWayDuration * 1000; // Convert seconds to milliseconds
+            const actualDurationInMs = dropDateTime.getTime() - pickupDateTime.getTime();
+
+            if (actualDurationInMs < minDurationInMs) {
+                const newDropOffDate = new Date(pickupDateTime.getTime() + minDurationInMs);
+                toast.error(`Drop-off date adjusted to ${newDropOffDate.toLocaleString()} to meet minimum trip duration.`);
+                // You might want to update routeData.dropDate here or pass it to the booking page
+                // For now, we'll just show a toast.
+            }
 
             // Extract encoded polyline from the route
             const encodedPolyline = result.routes[0].overview_polyline || '';
@@ -201,7 +245,9 @@ export default function Prices() {
               distance: `${(totalDistance / 1000).toFixed(1)} km`,
               duration: formatDuration(totalDuration),
               price: estimatedPrice,
-              path: encodedPolyline
+              path: encodedPolyline,
+              oneWayDistance: `${(oneWayDistance / 1000).toFixed(1)} km`, // Add one-way distance
+              oneWayDuration: formatDuration(oneWayDuration) // Add one-way duration
             });
 
             // Calculate platform charges, GST, and total upfront payment
@@ -353,15 +399,71 @@ export default function Prices() {
                         </span>
                       </div>
 
-                      {/* New card for Cab Category Details */}
+                      
+                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          <span className="font-medium text-gray-700">Total Distance</span>
+                        </div>
+                        <span className="font-semibold text-gray-800">{routeDetails.distance}</span>
+                      </div>
+
+                      {routeData.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
+                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            <span className="font-medium text-gray-700">One-Way Distance</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">{routeDetails.oneWayDistance}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="font-medium text-gray-700">Total Duration</span>
+                        </div>
+                        <span className="font-semibold text-gray-800">{routeDetails.duration}</span>
+                      </div>
+
+                      {routeData.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
+                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium text-gray-700">One-Way Duration</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">{routeDetails.oneWayDuration}</span>
+                        </div>
+                      )}
+
+                      {calculatedNightCharges > 0 && (
+                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.75 12a9.75 9.75 0 01-9.75 9.75H12a9.75 9.75 0 009.75-9.75zm-9.75 0A9.75 9.75 0 012.25 12H12a9.75 9.75 0 00-9.75 9.75zm-9.75 0a9.75 9.75 0 019.75-9.75H12a9.75 9.75 0 00-9.75 9.75zM12 12a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />
+                            </svg>
+                            <span className="font-medium text-gray-700">Night Charges</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">₹{calculatedNightCharges.toLocaleString()}</span>
+                        </div>
+                      )}
+{/* New card for Cab Category Details */}
                       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
                         <div className="p-4 bg-green-100 border-b border-gray-100">
                           <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData.cabCategory.category}</h3>
                         </div>
                         <div className="p-4 text-sm text-gray-700 space-y-2">
                           <div className="flex justify-between">
-                            <span>Price per Km:</span>
-                            <span className="font-medium">₹{routeData.cabCategory.price_per_km}/Km</span>
+                            <span>Price (dist*perkm):</span>
+                            <span className="font-medium">₹{calculatedBaseFare}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Seats:</span>
@@ -377,36 +479,17 @@ export default function Prices() {
                           </div>
                           <div className="flex justify-between">
                             <span>Night Charges:</span>
-                            <span className="font-medium">{routeData.cabCategory.night_charges > 0 ? `₹${routeData.cabCategory.night_charges}` : 'Included'}</span>
+                            <span className="font-medium">{calculatedNightCharges> 0 ? `₹${routeData.cabCategory.night_charges}` : 'Included'}</span>
                           </div>
                           {routeData.cabCategory.base_discount > 0 && (
                             <div className="flex justify-between text-red-600 font-semibold">
                               <span>Discount:</span>
                               <span>{routeData.cabCategory.base_discount}% OFF</span>
+                              <span className="font-medium">-₹{calculatedDiscountAmount.toLocaleString()}</span>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Distance</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.distance}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Duration</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.duration}</span>
-                      </div>
-
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
