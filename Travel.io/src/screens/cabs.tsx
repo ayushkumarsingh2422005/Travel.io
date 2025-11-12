@@ -381,6 +381,7 @@ export default function Cabs() {
   setTimeout(() => {
     const form = document.querySelector("form");
 
+    
     if (form) {
       // Create a synthetic submit event and pass it to handleBookingSubmit
       const event = new Event("submit", { cancelable: true, bubbles: true });
