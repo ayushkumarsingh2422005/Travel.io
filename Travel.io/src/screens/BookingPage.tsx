@@ -574,7 +574,7 @@ export default function BookingPage() {
                       </span>
                     </div>
 
-                    {bookingData.tripType === 'Round Trip' && (
+                    
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -586,7 +586,7 @@ export default function BookingPage() {
                           {new Date(bookingData.dropDate).toLocaleString()}
                         </span>
                       </div>
-                    )}
+                    
                   </div>
                 </div>
               </div>

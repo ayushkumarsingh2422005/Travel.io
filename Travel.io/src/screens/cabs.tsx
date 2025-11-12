@@ -370,6 +370,27 @@ export default function Cabs() {
   //   );
   // };
 
+  // issue here : on selecting cab, state not updated in time for form submit
+
+  const handleSelectCab = (categoryId: string | null) => {
+  // 1️⃣ Update selected cab state immediately
+  setSelectedCabCategory(categoryId);
+
+  // 2️⃣ Wait for React to update state, then trigger the submit logic
+  // Using a small timeout ensures state update is reflected
+  setTimeout(() => {
+    const form = document.querySelector("form");
+
+    if (form) {
+      // Create a synthetic submit event and pass it to handleBookingSubmit
+      const event = new Event("submit", { cancelable: true, bubbles: true });
+      handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    }
+  }, 10);
+};
+
+
+
 
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -677,7 +698,7 @@ export default function Cabs() {
         className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${
           selectedCabCategory === category.id ? 'border-green-500' : 'border-gray-200'
         } hover:shadow-xl transition-all duration-300 cursor-pointer`}
-        onClick={() => setSelectedCabCategory(category.id)}
+        onClick={() => handleSelectCab(category.id)}
       >
         <div className="relative h-40 bg-gray-100 flex items-center justify-center">
           {category.category_image ? (
@@ -705,7 +726,6 @@ export default function Cabs() {
             <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
           </div>
           <ul className="text-sm text-gray-700 space-y-1 mb-4">
-            <li>Included Km: <span className="font-medium">N/A</span></li> {/* Placeholder */}
             <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
             <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
             <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
@@ -714,25 +734,7 @@ export default function Cabs() {
           <button
             type="button"
             className="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
-            onClick={() => {
-              setSelectedCabCategory(category.id);
-              // Trigger form submission which includes validation and navigation
-              // This will be handled by the form's onSubmit, so we just set the category here.
-              // The user will then click the main "Book Now" button or the form will submit if this button is part of the form.
-              // Since this button is outside the form, we need to simulate a form submission or call handleBookingSubmit directly.
-              // For now, let's assume the user will click the main submit button after selecting a category.
-              // If the "Select Cab" button itself should trigger the full validation and navigation,
-              // we need to adjust the logic to call handleBookingSubmit after setting the category.
-              // Let's make it call handleBookingSubmit directly after setting the category.
-              const event = new Event('submit', { cancelable: true, bubbles: true });
-              const form = document.querySelector('form'); // Assuming there's only one form
-              if (form) {
-                // Temporarily set the selected category and then trigger submit
-                setBookingForm(prev => ({ ...prev })); // Trigger re-render to ensure selectedCabCategory is updated
-                setTimeout(() => { // Use a timeout to ensure state update is processed
-                  handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
-                }, 0);
-              }
+            onClick={() => {handleSelectCab(category.id)
             }}
           >
             Select Cab

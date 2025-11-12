@@ -199,24 +199,60 @@ export default function Prices() {
               currentCalculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
             }
 
-            // Add night charges if applicable (using the user's preferred logic)
-            const pickupDateTime = new Date(routeData.pickupDate);
-            const dropDateTime = new Date(routeData.dropDate);
-            const nightChargeStartTime = 22; // 10 PM
-            const nightChargeEndTime = 6; // 6 AM
+        // Add night charges if applicable (for every night in the trip)
+const pickupDateTime = new Date(routeData.pickupDate);
+const dropDateTime = new Date(routeData.dropDate);
 
-            let nightChargesApplicable = false;
-            if (pickupDateTime.getHours() >= nightChargeStartTime || pickupDateTime.getHours() < nightChargeEndTime ||
-                dropDateTime.getHours() >= nightChargeStartTime || dropDateTime.getHours() < nightChargeEndTime) {
-                nightChargesApplicable = true;
-            }
+console.log('Pickup DateTime:', pickupDateTime);
+console.log('Drop DateTime:', dropDateTime);
 
-            let nightChargeValue = 0;
-            if (nightChargesApplicable && routeData.cabCategory.night_charges) {
-                nightChargeValue = parseFloat(routeData.cabCategory.night_charges.toString());
-                currentCalculatedPrice += nightChargeValue;
-            }
-            setCalculatedNightCharges(nightChargeValue); // Set the calculated night charges
+const nightChargeStartTime = 22; // 10 PM
+const nightChargeEndTime = 6; // 6 AM
+
+let nightChargesApplicable = false;
+let numberOfNights = 0;
+
+// Calculate the number of calendar days the trip spans
+const pickupDate = new Date(pickupDateTime.getFullYear(), pickupDateTime.getMonth(), pickupDateTime.getDate());
+const dropDate = new Date(dropDateTime.getFullYear(), dropDateTime.getMonth(), dropDateTime.getDate());
+
+console.log('Pickup Date (normalized):', pickupDate);
+console.log('Drop Date (normalized):', dropDate);
+
+const daysDifference = Math.floor((dropDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
+
+console.log('Days Difference:', daysDifference);
+
+if (daysDifference === 0) {
+    // Same day trip - check if it crosses night hours
+    const pickupHour = pickupDateTime.getHours();
+    const dropHour = dropDateTime.getHours();
+    
+    if (pickupHour >= nightChargeStartTime || pickupHour < nightChargeEndTime ||
+        dropHour >= nightChargeStartTime || dropHour < nightChargeEndTime) {
+        numberOfNights = 1;
+        nightChargesApplicable = true;
+    }
+} else {
+    // Multi-day trip
+    numberOfNights = daysDifference;
+    nightChargesApplicable = true;
+}
+
+console.log('Number of Nights:', numberOfNights);
+console.log('Night Charges Applicable:', nightChargesApplicable);
+
+let nightChargeValue = 0;
+if (nightChargesApplicable && routeData.cabCategory.night_charges) {
+    const perNightCharge = parseFloat(routeData.cabCategory.night_charges.toString());
+    console.log('Per Night Charge:', perNightCharge);
+    nightChargeValue = perNightCharge * numberOfNights;
+    console.log('Total Night Charge Value:', nightChargeValue);
+    currentCalculatedPrice += nightChargeValue;
+}
+
+setCalculatedNightCharges(nightChargeValue);
+console.log('Final Calculated Night Charges:', nightChargeValue); // Set the calculated night charges
 
             let discountAmount = 0;
             if (routeData.cabCategory.base_discount) {
@@ -357,12 +393,12 @@ export default function Prices() {
                     Route Map
                   </h2>
                 </div>
-                <div ref={mapRef} className="w-full h-500px"></div>
-                {isLoading && (
-                  <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-                  </div>
-                )}
+               <div ref={mapRef} className="w-full h-[500px] lg:h-full"></div>
+{isLoading && (
+  <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+  </div>
+)}
               </div>
 
               {/* Trip Details Section - 2/5 width on large screens */}
@@ -444,17 +480,7 @@ export default function Prices() {
                         </div>
                       )}
 
-                      {calculatedNightCharges > 0 && (
-                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                          <div className="flex items-center">
-                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.75 12a9.75 9.75 0 01-9.75 9.75H12a9.75 9.75 0 009.75-9.75zm-9.75 0A9.75 9.75 0 012.25 12H12a9.75 9.75 0 00-9.75 9.75zm-9.75 0a9.75 9.75 0 019.75-9.75H12a9.75 9.75 0 00-9.75 9.75zM12 12a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />
-                            </svg>
-                            <span className="font-medium text-gray-700">Night Charges</span>
-                          </div>
-                          <span className="font-semibold text-gray-800">₹{calculatedNightCharges.toLocaleString()}</span>
-                        </div>
-                      )}
+                   
 {/* New card for Cab Category Details */}
                       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
                         <div className="p-4 bg-green-100 border-b border-gray-100">
@@ -479,7 +505,7 @@ export default function Prices() {
                           </div>
                           <div className="flex justify-between">
                             <span>Night Charges:</span>
-                            <span className="font-medium">{calculatedNightCharges> 0 ? `₹${routeData.cabCategory.night_charges}` : 'Included'}</span>
+                            <span className="font-medium">{calculatedNightCharges> 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
                           </div>
                           {routeData.cabCategory.base_discount > 0 && (
                             <div className="flex justify-between text-red-600 font-semibold">
@@ -563,7 +589,7 @@ export default function Prices() {
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 mt-6">
                   <button 
-                    onClick={() => navigate('/cabs')} 
+                    onClick={() => navigate('/cabs',{ state: routeData })} 
                     className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg flex items-center justify-center transition-all"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
