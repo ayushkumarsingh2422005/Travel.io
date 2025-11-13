@@ -601,6 +601,1158 @@ const getFinancialAnalytics = async (req, res) => {
     }
 };
 
+// ==================== VENDOR MANAGEMENT ====================
+
+// Get all vendors with their details
+const getAllVendors = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, status, search } = req.query;
+        
+        let query = `
+            SELECT 
+                v.id,
+                v.name,
+                v.email,
+                v.phone,
+                v.is_active,
+                v.is_profile_completed,
+                v.is_phone_verified,
+                v.is_email_verified,
+                v.star_rating,
+                v.total_earnings,
+                v.amount,
+                v.penalty_reason,
+                v.penalty_amount,
+                v.total_penalties,
+                v.suspended_by_admin,
+                v.suspension_reason,
+                v.suspension_date,
+                v.suspension_until,
+                v.created_at,
+                COUNT(DISTINCT veh.id) as total_vehicles,
+                COUNT(DISTINCT d.id) as total_drivers,
+                COUNT(DISTINCT pb.id) as total_bookings,
+                COUNT(DISTINCT CASE WHEN pb.status = 'completed' THEN pb.id END) as completed_bookings
+            FROM vendors v
+            LEFT JOIN vehicles veh ON v.id = veh.vendor_id
+            LEFT JOIN drivers d ON v.id = d.vendor_id
+            LEFT JOIN prevbookings pb ON v.id = pb.vendor_id
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (status === 'active') {
+            query += ' AND v.is_active = 1';
+        } else if (status === 'inactive') {
+            query += ' AND v.is_active = 0';
+        } else if (status === 'suspended') {
+            query += ' AND v.suspended_by_admin = 1';
+        }
+        
+        if (search) {
+            query += ' AND (v.name LIKE ? OR v.email LIKE ? OR v.phone LIKE ?)';
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+        
+        query += ' GROUP BY v.id ORDER BY v.created_at DESC';
+        
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+        
+        const [vendors] = await db.execute(query, params);
+        
+        // Count total vendors
+        let countQuery = 'SELECT COUNT(DISTINCT v.id) as total FROM vendors v WHERE 1=1';
+        const countParams = [];
+        
+        if (status === 'active') {
+            countQuery += ' AND v.is_active = 1';
+        } else if (status === 'inactive') {
+            countQuery += ' AND v.is_active = 0';
+        } else if (status === 'suspended') {
+            countQuery += ' AND v.suspended_by_admin = 1';
+        }
+        
+        if (search) {
+            countQuery += ' AND (v.name LIKE ? OR v.email LIKE ? OR v.phone LIKE ?)';
+            const searchParam = `%${search}%`;
+            countParams.push(searchParam, searchParam, searchParam);
+        }
+        
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Vendors retrieved successfully',
+            data: {
+                vendors,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting all vendors:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve vendors',
+            error: error.message
+        });
+    }
+};
+
+// Get vendor details with bookings
+const getVendorDetails = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        
+        // Get vendor details
+        const [vendors] = await db.execute(`
+            SELECT 
+                v.*,
+                COUNT(DISTINCT veh.id) as total_vehicles,
+                COUNT(DISTINCT d.id) as total_drivers,
+                COUNT(DISTINCT pb.id) as total_bookings,
+                COUNT(DISTINCT CASE WHEN pb.status = 'completed' THEN pb.id END) as completed_bookings,
+                COALESCE(SUM(CASE WHEN pb.status = 'completed' THEN pb.price ELSE 0 END), 0) as total_booking_revenue
+            FROM vendors v
+            LEFT JOIN vehicles veh ON v.id = veh.vendor_id
+            LEFT JOIN drivers d ON v.id = d.vendor_id
+            LEFT JOIN prevbookings pb ON v.id = pb.vendor_id
+            WHERE v.id = ?
+            GROUP BY v.id
+        `, [vendorId]);
+        
+        if (vendors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+        
+        const vendor = vendors[0];
+        
+        // Get recent bookings for this vendor
+        const [bookings] = await db.execute(`
+            SELECT 
+                pb.*,
+                u.name as customer_name,
+                u.email as customer_email,
+                u.phone as customer_phone,
+                veh.model as vehicle_model,
+                veh.registration_no as vehicle_registration,
+                d.name as driver_name,
+                d.phone as driver_phone
+            FROM prevbookings pb
+            LEFT JOIN users u ON pb.customer_id = u.id
+            LEFT JOIN vehicles veh ON pb.vehicle_id = veh.id
+            LEFT JOIN drivers d ON pb.driver_id = d.id
+            WHERE pb.vendor_id = ?
+            ORDER BY pb.created_at DESC
+            LIMIT 20
+        `, [vendorId]);
+        
+        // Get vehicles for this vendor
+        const [vehicles] = await db.execute(`
+            SELECT id, model, registration_no, is_active, per_km_charge, no_of_seats, created_at
+            FROM vehicles
+            WHERE vendor_id = ?
+            ORDER BY created_at DESC
+        `, [vendorId]);
+        
+        // Get drivers for this vendor
+        const [drivers] = await db.execute(`
+            SELECT id, name, phone, dl_number, is_active, created_at
+            FROM drivers
+            WHERE vendor_id = ?
+            ORDER BY created_at DESC
+        `, [vendorId]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Vendor details retrieved successfully',
+            data: {
+                vendor,
+                bookings,
+                vehicles,
+                drivers
+            }
+        });
+    } catch (error) {
+        console.error('Error getting vendor details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve vendor details',
+            error: error.message
+        });
+    }
+};
+
+// Activate or deactivate vendor
+const toggleVendorStatus = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const { is_active } = req.body;
+        
+        if (typeof is_active !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'is_active must be a boolean value'
+            });
+        }
+        
+        // Verify vendor exists
+        const [vendors] = await db.execute(
+            'SELECT id, name FROM vendors WHERE id = ?',
+            [vendorId]
+        );
+        
+        if (vendors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+        
+        // Update vendor status
+        await db.execute(
+            'UPDATE vendors SET is_active = ? WHERE id = ?',
+            [is_active ? 1 : 0, vendorId]
+        );
+        
+        // If deactivating vendor, also deactivate all their drivers
+        if (!is_active) {
+            await db.execute(
+                'UPDATE drivers SET is_active = 0 WHERE vendor_id = ?',
+                [vendorId]
+            );
+        }
+        
+        res.status(200).json({
+            success: true,
+            message: `Vendor ${is_active ? 'activated' : 'deactivated'} successfully`,
+            data: {
+                vendor_id: vendorId,
+                is_active
+            }
+        });
+    } catch (error) {
+        console.error('Error toggling vendor status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update vendor status',
+            error: error.message
+        });
+    }
+};
+
+// Apply penalty to vendor
+const applyVendorPenalty = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const { penalty_amount, penalty_reason } = req.body;
+        
+        if (!penalty_amount || !penalty_reason) {
+            return res.status(400).json({
+                success: false,
+                message: 'Penalty amount and reason are required'
+            });
+        }
+        
+        // Verify vendor exists
+        const [vendors] = await db.execute(
+            'SELECT id, name, amount FROM vendors WHERE id = ?',
+            [vendorId]
+        );
+        
+        if (vendors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+        
+        const vendor = vendors[0];
+        
+        // Deduct penalty from vendor's amount
+        const newAmount = Math.max(0, (vendor.amount || 0) - penalty_amount);
+        
+        // Update vendor with penalty details
+        await db.execute(`
+            UPDATE vendors 
+            SET penalty_reason = ?,
+                penalty_amount = ?,
+                last_penalty_date = NOW(),
+                total_penalties = total_penalties + 1,
+                amount = ?
+            WHERE id = ?
+        `, [penalty_reason, penalty_amount, newAmount, vendorId]);
+        
+        // Create penalty payment record
+        const paymentId = generatePaymentId();
+        await db.execute(`
+            INSERT INTO payments (
+                id, vendor_id, amount, status, type, created_at
+            ) VALUES (?, ?, ?, 'completed', 'penalty', NOW())
+        `, [paymentId, vendorId, penalty_amount]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Penalty applied to vendor successfully',
+            data: {
+                vendor_id: vendorId,
+                penalty_amount,
+                penalty_reason,
+                remaining_amount: newAmount,
+                payment_id: paymentId
+            }
+        });
+    } catch (error) {
+        console.error('Error applying penalty:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to apply penalty',
+            error: error.message
+        });
+    }
+};
+
+// Suspend or unsuspend vendor
+const suspendVendor = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const { suspended, suspension_reason, suspension_until } = req.body;
+        
+        if (typeof suspended !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'suspended must be a boolean value'
+            });
+        }
+        
+        // Verify vendor exists
+        const [vendors] = await db.execute(
+            'SELECT id, name FROM vendors WHERE id = ?',
+            [vendorId]
+        );
+        
+        if (vendors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+        
+        if (suspended) {
+            if (!suspension_reason) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Suspension reason is required'
+                });
+            }
+            
+            // Suspend vendor
+            await db.execute(`
+                UPDATE vendors 
+                SET suspended_by_admin = 1,
+                    suspension_reason = ?,
+                    suspension_date = NOW(),
+                    suspension_until = ?,
+                    is_active = 0
+                WHERE id = ?
+            `, [suspension_reason, suspension_until || null, vendorId]);
+            
+            // Also deactivate all their drivers
+            await db.execute(
+                'UPDATE drivers SET is_active = 0 WHERE vendor_id = ?',
+                [vendorId]
+            );
+        } else {
+            // Unsuspend vendor
+            await db.execute(`
+                UPDATE vendors 
+                SET suspended_by_admin = 0,
+                    suspension_reason = NULL,
+                    suspension_date = NULL,
+                    suspension_until = NULL
+                WHERE id = ?
+            `, [vendorId]);
+        }
+        
+        res.status(200).json({
+            success: true,
+            message: `Vendor ${suspended ? 'suspended' : 'unsuspended'} successfully`,
+            data: {
+                vendor_id: vendorId,
+                suspended
+            }
+        });
+    } catch (error) {
+        console.error('Error suspending vendor:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update vendor suspension status',
+            error: error.message
+        });
+    }
+};
+
+// Get vendor bookings
+const getVendorBookings = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const { page = 1, limit = 20, status, start_date, end_date } = req.query;
+        
+        let query = `
+            SELECT 
+                pb.*,
+                u.name as customer_name,
+                u.email as customer_email,
+                u.phone as customer_phone,
+                veh.model as vehicle_model,
+                veh.registration_no as vehicle_registration,
+                d.name as driver_name,
+                d.phone as driver_phone
+            FROM prevbookings pb
+            LEFT JOIN users u ON pb.customer_id = u.id
+            LEFT JOIN vehicles veh ON pb.vehicle_id = veh.id
+            LEFT JOIN drivers d ON pb.driver_id = d.id
+            WHERE pb.vendor_id = ?
+        `;
+        
+        const params = [vendorId];
+        
+        if (status) {
+            query += ' AND pb.status = ?';
+            params.push(status);
+        }
+        
+        if (start_date) {
+            query += ' AND pb.created_at >= ?';
+            params.push(start_date);
+        }
+        
+        if (end_date) {
+            query += ' AND pb.created_at <= ?';
+            params.push(end_date);
+        }
+        
+        query += ' ORDER BY pb.created_at DESC';
+        
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+        
+        const [bookings] = await db.execute(query, params);
+        
+        // Count total bookings
+        let countQuery = 'SELECT COUNT(*) as total FROM prevbookings WHERE vendor_id = ?';
+        const countParams = [vendorId];
+        
+        if (status) {
+            countQuery += ' AND status = ?';
+            countParams.push(status);
+        }
+        
+        if (start_date) {
+            countQuery += ' AND created_at >= ?';
+            countParams.push(start_date);
+        }
+        
+        if (end_date) {
+            countQuery += ' AND created_at <= ?';
+            countParams.push(end_date);
+        }
+        
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Vendor bookings retrieved successfully',
+            data: {
+                bookings,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting vendor bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve vendor bookings',
+            error: error.message
+        });
+    }
+};
+
+// ==================== DRIVER MANAGEMENT ====================
+
+// Get all drivers
+const getAllDrivers = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, status, vendor_id, search } = req.query;
+        
+        let query = `
+            SELECT 
+                d.*,
+                v.name as vendor_name,
+                v.email as vendor_email,
+                v.phone as vendor_phone,
+                veh.model as vehicle_model,
+                veh.registration_no as vehicle_registration,
+                COUNT(DISTINCT pb.id) as total_bookings
+            FROM drivers d
+            LEFT JOIN vendors v ON d.vendor_id = v.id
+            LEFT JOIN vehicles veh ON d.vehicle_id = veh.id
+            LEFT JOIN prevbookings pb ON d.id = pb.driver_id
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (status === 'active') {
+            query += ' AND d.is_active = 1';
+        } else if (status === 'inactive') {
+            query += ' AND d.is_active = 0';
+        }
+        
+        if (vendor_id) {
+            query += ' AND d.vendor_id = ?';
+            params.push(vendor_id);
+        }
+        
+        if (search) {
+            query += ' AND (d.name LIKE ? OR d.phone LIKE ? OR d.dl_number LIKE ?)';
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+        
+        query += ' GROUP BY d.id ORDER BY d.created_at DESC';
+        
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+        
+        const [drivers] = await db.execute(query, params);
+        
+        // Count total drivers
+        let countQuery = 'SELECT COUNT(*) as total FROM drivers WHERE 1=1';
+        const countParams = [];
+        
+        if (status === 'active') {
+            countQuery += ' AND is_active = 1';
+        } else if (status === 'inactive') {
+            countQuery += ' AND is_active = 0';
+        }
+        
+        if (vendor_id) {
+            countQuery += ' AND vendor_id = ?';
+            countParams.push(vendor_id);
+        }
+        
+        if (search) {
+            countQuery += ' AND (name LIKE ? OR phone LIKE ? OR dl_number LIKE ?)';
+            const searchParam = `%${search}%`;
+            countParams.push(searchParam, searchParam, searchParam);
+        }
+        
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Drivers retrieved successfully',
+            data: {
+                drivers,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting all drivers:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve drivers',
+            error: error.message
+        });
+    }
+};
+
+// Activate or deactivate driver
+const toggleDriverStatus = async (req, res) => {
+    try {
+        const { driverId } = req.params;
+        const { is_active } = req.body;
+        
+        if (typeof is_active !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'is_active must be a boolean value'
+            });
+        }
+        
+        // Verify driver exists
+        const [drivers] = await db.execute(
+            'SELECT id, name, vendor_id FROM drivers WHERE id = ?',
+            [driverId]
+        );
+        
+        if (drivers.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Driver not found'
+            });
+        }
+        
+        const driver = drivers[0];
+        
+        // Check if vendor is active/suspended
+        if (is_active) {
+            const [vendors] = await db.execute(
+                'SELECT is_active, suspended_by_admin FROM vendors WHERE id = ?',
+                [driver.vendor_id]
+            );
+            
+            if (vendors.length > 0 && (!vendors[0].is_active || vendors[0].suspended_by_admin)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot activate driver because vendor is inactive or suspended'
+                });
+            }
+        }
+        
+        // Update driver status
+        await db.execute(
+            'UPDATE drivers SET is_active = ? WHERE id = ?',
+            [is_active ? 1 : 0, driverId]
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: `Driver ${is_active ? 'activated' : 'deactivated'} successfully`,
+            data: {
+                driver_id: driverId,
+                is_active
+            }
+        });
+    } catch (error) {
+        console.error('Error toggling driver status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update driver status',
+            error: error.message
+        });
+    }
+};
+
+// ==================== USER/CLIENT MANAGEMENT ====================
+
+// Get all users/clients
+const getAllUsers = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search, verified } = req.query;
+        
+        let query = `
+            SELECT 
+                u.*,
+                COUNT(DISTINCT pb.id) as total_bookings,
+                COUNT(DISTINCT CASE WHEN pb.status = 'completed' THEN pb.id END) as completed_bookings,
+                COALESCE(SUM(CASE WHEN pb.status = 'completed' THEN pb.price ELSE 0 END), 0) as total_spent
+            FROM users u
+            LEFT JOIN prevbookings pb ON u.id = pb.customer_id
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (verified === 'phone') {
+            query += ' AND u.is_phone_verified = 1';
+        } else if (verified === 'profile') {
+            query += ' AND u.is_profile_completed = 1';
+        }
+        
+        if (search) {
+            query += ' AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)';
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+        
+        query += ' GROUP BY u.id ORDER BY u.created_at DESC';
+        
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+        
+        const [users] = await db.execute(query, params);
+        
+        // Count total users
+        let countQuery = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
+        const countParams = [];
+        
+        if (verified === 'phone') {
+            countQuery += ' AND is_phone_verified = 1';
+        } else if (verified === 'profile') {
+            countQuery += ' AND is_profile_completed = 1';
+        }
+        
+        if (search) {
+            countQuery += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)';
+            const searchParam = `%${search}%`;
+            countParams.push(searchParam, searchParam, searchParam);
+        }
+        
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Users retrieved successfully',
+            data: {
+                users,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting all users:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve users',
+            error: error.message
+        });
+    }
+};
+
+// Get user details with bookings
+const getUserDetails = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Get user details
+        const [users] = await db.execute(
+            'SELECT * FROM users WHERE id = ?',
+            [userId]
+        );
+        
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        const user = users[0];
+        
+        // Get user bookings
+        const [bookings] = await db.execute(`
+            SELECT 
+                pb.*,
+                v.name as vendor_name,
+                veh.model as vehicle_model,
+                veh.registration_no as vehicle_registration,
+                d.name as driver_name
+            FROM prevbookings pb
+            LEFT JOIN vendors v ON pb.vendor_id = v.id
+            LEFT JOIN vehicles veh ON pb.vehicle_id = veh.id
+            LEFT JOIN drivers d ON pb.driver_id = d.id
+            WHERE pb.customer_id = ?
+            ORDER BY pb.created_at DESC
+            LIMIT 50
+        `, [userId]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'User details retrieved successfully',
+            data: {
+                user,
+                bookings
+            }
+        });
+    } catch (error) {
+        console.error('Error getting user details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve user details',
+            error: error.message
+        });
+    }
+};
+
+// Update user data (admin)
+const updateUserData = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { name, email, phone, is_phone_verified, is_profile_completed } = req.body;
+        
+        // Verify user exists
+        const [users] = await db.execute(
+            'SELECT id FROM users WHERE id = ?',
+            [userId]
+        );
+        
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        const updates = [];
+        const params = [];
+        
+        if (name !== undefined) {
+            updates.push('name = ?');
+            params.push(name);
+        }
+        if (email !== undefined) {
+            updates.push('email = ?');
+            params.push(email);
+        }
+        if (phone !== undefined) {
+            updates.push('phone = ?');
+            params.push(phone);
+        }
+        if (is_phone_verified !== undefined) {
+            updates.push('is_phone_verified = ?');
+            params.push(is_phone_verified ? 1 : 0);
+        }
+        if (is_profile_completed !== undefined) {
+            updates.push('is_profile_completed = ?');
+            params.push(is_profile_completed ? 1 : 0);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No fields to update'
+            });
+        }
+        
+        params.push(userId);
+        await db.execute(
+            `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+            params
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'User data updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating user data:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update user data',
+            error: error.message
+        });
+    }
+};
+
+// Delete user (admin)
+const deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Verify user exists
+        const [users] = await db.execute(
+            'SELECT id, name FROM users WHERE id = ?',
+            [userId]
+        );
+        
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        // Delete user (cascade will handle related records)
+        await db.execute('DELETE FROM users WHERE id = ?', [userId]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete user',
+            error: error.message
+        });
+    }
+};
+
+// ==================== STATISTICS & ANALYTICS ====================
+
+// Get annual bookings statistics
+const getAnnualBookingsStats = async (req, res) => {
+    try {
+        const { year } = req.query;
+        const currentYear = year || new Date().getFullYear();
+        
+        // Get monthly bookings breakdown for the year
+        const [monthlyStats] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(created_at, '%Y-%m') as month,
+                DATE_FORMAT(created_at, '%M %Y') as month_name,
+                COUNT(*) as total_bookings,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_bookings,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN price ELSE 0 END), 0) as total_revenue,
+                COALESCE(AVG(CASE WHEN status = 'completed' THEN price ELSE NULL END), 0) as avg_booking_value
+            FROM prevbookings
+            WHERE YEAR(created_at) = ?
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            ORDER BY month ASC
+        `, [currentYear]);
+        
+        // Get yearly summary
+        const [yearlySummary] = await db.execute(`
+            SELECT 
+                COUNT(*) as total_bookings,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_bookings,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN price ELSE 0 END), 0) as total_revenue,
+                COALESCE(AVG(CASE WHEN status = 'completed' THEN price ELSE NULL END), 0) as avg_booking_value,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN price * 0.1 ELSE 0 END), 0) as admin_commission
+            FROM prevbookings
+            WHERE YEAR(created_at) = ?
+        `, [currentYear]);
+        
+        // Get bookings by status
+        const [statusBreakdown] = await db.execute(`
+            SELECT 
+                status,
+                COUNT(*) as count,
+                COALESCE(SUM(price), 0) as total_revenue
+            FROM prevbookings
+            WHERE YEAR(created_at) = ?
+            GROUP BY status
+        `, [currentYear]);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Annual bookings statistics retrieved successfully',
+            data: {
+                year: currentYear,
+                yearly_summary: yearlySummary[0],
+                monthly_stats: monthlyStats,
+                status_breakdown: statusBreakdown
+            }
+        });
+    } catch (error) {
+        console.error('Error getting annual bookings stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve annual bookings statistics',
+            error: error.message
+        });
+    }
+};
+
+// Get website reach and leads statistics
+const getWebsiteReachStats = async (req, res) => {
+    try {
+        const { period = 'year' } = req.query; // week, month, year
+        
+        let dateFilter = '';
+        if (period === 'week') {
+            dateFilter = ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+        } else if (period === 'month') {
+            dateFilter = ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+        } else if (period === 'year') {
+            dateFilter = ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+        }
+        
+        // Total users registered
+        const [totalUsers] = await db.execute(`
+            SELECT COUNT(*) as total FROM users
+        `);
+        
+        // New users in period
+        const [newUsers] = await db.execute(`
+            SELECT COUNT(*) as total FROM users WHERE 1=1${dateFilter}
+        `);
+        
+        // Verified users
+        const [verifiedUsers] = await db.execute(`
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_phone_verified = 1 THEN 1 END) as phone_verified,
+                COUNT(CASE WHEN is_profile_completed = 1 THEN 1 END) as profile_completed
+            FROM users
+        `);
+        
+        // Total vendors
+        const [totalVendors] = await db.execute(`
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_vendors,
+                COUNT(CASE WHEN suspended_by_admin = 1 THEN 1 END) as suspended_vendors,
+                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN 1 END) as new_this_month
+            FROM vendors
+        `);
+        
+        // Total drivers
+        const [totalDrivers] = await db.execute(`
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_drivers,
+                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN 1 END) as new_this_month
+            FROM drivers
+        `);
+        
+        // Total partners
+        const [totalPartners] = await db.execute(`
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_phone_verified = 1 THEN 1 END) as verified_partners
+            FROM partners
+        `);
+        
+        // Leads (potential bookings that didn't complete)
+        const [leads] = await db.execute(`
+            SELECT 
+                COUNT(DISTINCT customer_id) as unique_leads,
+                COUNT(*) as total_leads
+            FROM bookings
+            WHERE status = 'waiting' OR status = 'cancelled'
+        `);
+        
+        // User growth over time (monthly for the last 12 months)
+        const [userGrowth] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(created_at, '%Y-%m') as month,
+                DATE_FORMAT(created_at, '%M %Y') as month_name,
+                COUNT(*) as new_users
+            FROM users
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            ORDER BY month ASC
+        `);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Website reach statistics retrieved successfully',
+            data: {
+                period,
+                total_users: totalUsers[0].total,
+                new_users_in_period: newUsers[0].total,
+                verified_users: verifiedUsers[0],
+                vendors: totalVendors[0],
+                drivers: totalDrivers[0],
+                partners: totalPartners[0],
+                leads: leads[0],
+                user_growth: userGrowth
+            }
+        });
+    } catch (error) {
+        console.error('Error getting website reach stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve website reach statistics',
+            error: error.message
+        });
+    }
+};
+
+// Get comprehensive admin statistics
+const getAdminStats = async (req, res) => {
+    try {
+        // Overall statistics
+        const [overallStats] = await db.execute(`
+            SELECT 
+                (SELECT COUNT(*) FROM users) as total_users,
+                (SELECT COUNT(*) FROM vendors) as total_vendors,
+                (SELECT COUNT(*) FROM vendors WHERE is_active = 1) as active_vendors,
+                (SELECT COUNT(*) FROM vendors WHERE suspended_by_admin = 1) as suspended_vendors,
+                (SELECT COUNT(*) FROM drivers) as total_drivers,
+                (SELECT COUNT(*) FROM drivers WHERE is_active = 1) as active_drivers,
+                (SELECT COUNT(*) FROM partners) as total_partners,
+                (SELECT COUNT(*) FROM vehicles) as total_vehicles,
+                (SELECT COUNT(*) FROM vehicles WHERE is_active = 1) as active_vehicles,
+                (SELECT COUNT(*) FROM prevbookings) as total_bookings,
+                (SELECT COUNT(*) FROM prevbookings WHERE status = 'completed') as completed_bookings,
+                (SELECT COUNT(*) FROM prevbookings WHERE status = 'cancelled') as cancelled_bookings,
+                (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE status = 'completed') as total_revenue,
+                (SELECT COALESCE(SUM(price * 0.1), 0) FROM prevbookings WHERE status = 'completed') as admin_commission
+        `);
+        
+        // Recent activity (last 7 days)
+        const [recentActivity] = await db.execute(`
+            SELECT 
+                (SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_users,
+                (SELECT COUNT(*) FROM vendors WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_vendors,
+                (SELECT COUNT(*) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_bookings,
+                (SELECT COUNT(*) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as completed_bookings,
+                (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as revenue_7_days
+        `);
+        
+        // Top performing vendors
+        const [topVendors] = await db.execute(`
+            SELECT 
+                v.id,
+                v.name,
+                v.email,
+                v.star_rating,
+                COUNT(DISTINCT pb.id) as total_bookings,
+                COUNT(DISTINCT CASE WHEN pb.status = 'completed' THEN pb.id END) as completed_bookings,
+                COALESCE(SUM(CASE WHEN pb.status = 'completed' THEN pb.price ELSE 0 END), 0) as total_earnings
+            FROM vendors v
+            LEFT JOIN prevbookings pb ON v.id = pb.vendor_id
+            GROUP BY v.id, v.name, v.email, v.star_rating
+            ORDER BY total_earnings DESC
+            LIMIT 10
+        `);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Admin statistics retrieved successfully',
+            data: {
+                overall: overallStats[0],
+                recent_activity: recentActivity[0],
+                top_vendors: topVendors
+            }
+        });
+    } catch (error) {
+        console.error('Error getting admin stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve admin statistics',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getAdminDashboard,
     getPendingVendorPayments,
@@ -608,5 +1760,24 @@ module.exports = {
     payVendor,
     payPartner,
     getAllPayments,
-    getFinancialAnalytics
+    getFinancialAnalytics,
+    // Vendor Management
+    getAllVendors,
+    getVendorDetails,
+    toggleVendorStatus,
+    applyVendorPenalty,
+    suspendVendor,
+    getVendorBookings,
+    // Driver Management
+    getAllDrivers,
+    toggleDriverStatus,
+    // User/Client Management
+    getAllUsers,
+    getUserDetails,
+    updateUserData,
+    deleteUser,
+    // Statistics
+    getAnnualBookingsStats,
+    getWebsiteReachStats,
+    getAdminStats
 };

@@ -7,7 +7,26 @@ const {
     payVendor,
     payPartner,
     getAllPayments,
-    getFinancialAnalytics
+    getFinancialAnalytics,
+    // Vendor Management
+    getAllVendors,
+    getVendorDetails,
+    toggleVendorStatus,
+    applyVendorPenalty,
+    suspendVendor,
+    getVendorBookings,
+    // Driver Management
+    getAllDrivers,
+    toggleDriverStatus,
+    // User/Client Management
+    getAllUsers,
+    getUserDetails,
+    updateUserData,
+    deleteUser,
+    // Statistics
+    getAnnualBookingsStats,
+    getWebsiteReachStats,
+    getAdminStats
 } = require('../controller/adminController');
 const { 
     addCabCategory, 
@@ -62,5 +81,43 @@ router.get('/cab-categories', getCabCategories);
 router.get('/cab-categories/:id', getCabCategory);
 router.put('/cab-categories/:id', updateCabCategory);
 router.delete('/cab-categories/:id', deleteCabCategory);
+
+// ==================== VENDOR MANAGEMENT ====================
+// Get all vendors with filtering and pagination
+router.get('/vendors', getAllVendors);
+// Get vendor details with bookings, vehicles, and drivers
+router.get('/vendors/:vendorId', getVendorDetails);
+// Activate/deactivate vendor
+router.put('/vendors/:vendorId/status', toggleVendorStatus);
+// Apply penalty to vendor
+router.post('/vendors/:vendorId/penalty', applyVendorPenalty);
+// Suspend/unsuspend vendor
+router.put('/vendors/:vendorId/suspend', suspendVendor);
+// Get vendor bookings
+router.get('/vendors/:vendorId/bookings', getVendorBookings);
+
+// ==================== DRIVER MANAGEMENT ====================
+// Get all drivers with filtering and pagination
+router.get('/drivers', getAllDrivers);
+// Activate/deactivate driver
+router.put('/drivers/:driverId/status', toggleDriverStatus);
+
+// ==================== USER/CLIENT MANAGEMENT ====================
+// Get all users/clients with filtering and pagination
+router.get('/users', getAllUsers);
+// Get user details with bookings
+router.get('/users/:userId', getUserDetails);
+// Update user data (admin)
+router.put('/users/:userId', updateUserData);
+// Delete user (admin)
+router.delete('/users/:userId', deleteUser);
+
+// ==================== STATISTICS & ANALYTICS ====================
+// Get annual bookings statistics
+router.get('/stats/annual-bookings', getAnnualBookingsStats);
+// Get website reach and leads statistics
+router.get('/stats/website-reach', getWebsiteReachStats);
+// Get comprehensive admin statistics
+router.get('/stats', getAdminStats);
 
 module.exports = router;

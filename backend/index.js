@@ -21,6 +21,7 @@ const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
 const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
 const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
+const addIsActiveToVendors = require('./migrate_vendors_add_is_active');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -54,6 +55,7 @@ const createTables = async () => {
     await createvendorbanktale();
     await createVendorsTable();
     await createVendorBankTable();
+    await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
     await createVehiclesTable();
     await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
     await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
