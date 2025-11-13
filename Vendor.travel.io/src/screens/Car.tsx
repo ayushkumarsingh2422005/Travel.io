@@ -1,6 +1,7 @@
 // src/components/AddCar.tsx
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+import toast from 'react-hot-toast'; // Import toast
 // import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import CarDetailsModal from '../components/CarDetailsModal'; // Import CarDetailsModal
 
@@ -65,7 +66,6 @@ const AddCarForm: React.FC = () => {
   const [formStep, setFormStep] = useState<'auto-fetch' | 'add-car'>('auto-fetch');
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // State for RC auto-fetch form
@@ -99,12 +99,13 @@ const AddCarForm: React.FC = () => {
   // State for Car Details Modal
   const [showCarDetailsModal, setShowCarDetailsModal] = useState(false);
   const [selectedCarDetails, setSelectedCarDetails] = useState<Car | null>(null);
+  const [showDeleteCarModal, setShowDeleteCarModal] = useState(false);
+  const [selectedCarForDeletion, setSelectedCarForDeletion] = useState<Car | null>(null);
 
 
   const handleAddCar = async () => {
     try {
       setLoading(true);
-      setError(null);
 
       const formData = new FormData();
       console.log(fetchedCarDetails?.model);
@@ -132,7 +133,7 @@ const AddCarForm: React.FC = () => {
 
         const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to add a car.'); // Error toast
         return;
       }
       // use form data when u want to upload files currently just data 
@@ -157,8 +158,9 @@ const AddCarForm: React.FC = () => {
 
       fetchCars();
       handleCloseForm();
-    } catch (err) {
-      setError('Failed to add car. Please try again.');
+      toast.success('Car added successfully!'); // Success toast
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to add car. Please try again.'); // Error toast
     } finally {
       setLoading(false);
     }
@@ -171,10 +173,9 @@ const AddCarForm: React.FC = () => {
   const fetchCars = async () => {
     try {
       setLoading(true);
-      setError(null);
          const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to fetch cars.'); // Error toast
         return;
       } // Assuming token is stored in localStorage
       const response = await axios.get(API_ENDPOINTS.CARS, {
@@ -197,21 +198,47 @@ const AddCarForm: React.FC = () => {
 }));
 setCars(mappedCars);
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.log("Error fetching cars:");
       console.log(err);
-      setError("Error fetching car data");
+      toast.error(err.response?.data?.message || "Error fetching car data"); // Error toast
       setLoading(false);
     }
   };
 
-  const handleDeleteCar = async (id: string) => {
-    try {
-      await axios.delete(API_ENDPOINTS.DELETE_CAR(id));
-      fetchCars(); // Refresh the car list
-    } catch (err) {
-      setError("Failed to delete car");
+  const handleDeleteCar = async () => {
+    if (!selectedCarForDeletion) {
+      toast.error('No car selected for deletion.');
+      return;
     }
+    try {
+       const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        toast.error('You must be logged in to delete cars.'); // Error toast
+        return;
+      } // Assuming token is stored in localStorage
+      await axios.delete(API_ENDPOINTS.DELETE_CAR(selectedCarForDeletion.id),
+     {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      fetchCars(); // Refresh the car list
+      closeDeleteCarModal();
+      toast.success('Car deleted successfully!'); // Success toast
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete car"); // Error toast
+    }
+  };
+
+  const openDeleteCarModal = (car: Car) => {
+    setSelectedCarForDeletion(car);
+    setShowDeleteCarModal(true);
+  };
+
+  const closeDeleteCarModal = () => {
+    setShowDeleteCarModal(false);
+    setSelectedCarForDeletion(null);
   };
 
   const getStatusBadgeClass = (status: string): string => {
@@ -235,11 +262,10 @@ setCars(mappedCars);
   const handleFetchCarDetails = async () => {
     try {
       setLoading(true);
-      setError(null);
       const fullRcNumber = `${rcState}${rtoCode}${issueYear}${rcDigits}`;
        const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to verify car details.'); // Error toast
         return;
       }
 
@@ -257,7 +283,7 @@ setCars(mappedCars);
       const ResponseData=response.data.data;
       console.log(ResponseData);
      if (ResponseData.status !== "Success") {
-        setError("Failed to fetch car details. Please check the RC number and try again.");
+        toast.error("Failed to fetch car details. Please check the RC number and try again."); // Error toast
         setLoading(false);
         setFetchedCarDetails(null);
         return;
@@ -287,8 +313,9 @@ setCars(mappedCars);
     setRcCache(prev => ({ ...prev, [fullRcNumber]: carDetails }));
 
       setLoading(false);
-    } catch (err) {
-      setError("Failed to fetch car details. Please check the RC number and try again.");
+      toast.success('Car details fetched successfully!'); // Success toast
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to fetch car details. Please check the RC number and try again."); // Error toast
       setLoading(false);
       setFetchedCarDetails(null);
     }
@@ -379,14 +406,6 @@ setCars(mappedCars);
       </div>
 
       {/* Error message if any */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-8 flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </div>
-      )}
 
       {/* Car List Table */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -426,7 +445,7 @@ setCars(mappedCars);
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
                       <button 
                         className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
-                        onClick={() => handleDeleteCar(car.id)}
+                        onClick={() => openDeleteCarModal(car)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -965,6 +984,34 @@ setCars(mappedCars);
           getStatusBadgeClass={getStatusBadgeClass}
           getPermitBadgeClass={getPermitBadgeClass}
         />
+      )}
+
+      {/* Delete Car Confirmation Modal */}
+      {showDeleteCarModal && selectedCarForDeletion && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">
+              Delete Car <span className="break-all">{selectedCarForDeletion.brand} ({selectedCarForDeletion.rcNumber})</span>
+            </h3>
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to delete this car? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={closeDeleteCarModal}
+              >
+                No, Keep Car
+              </button>
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={handleDeleteCar}
+              >
+                Yes, Delete Car
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

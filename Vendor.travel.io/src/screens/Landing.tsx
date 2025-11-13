@@ -10,7 +10,7 @@ import AddCarForm from './Car';
 import Booking from './Booking'
 import Wallet from './Wallet'
 import Driver from './Driver'
-import { useNavigate } from 'react-router-dom';
+
 
 type ComponentKey = 'inventory' | 'driverRewards' | 'penalty' | 'trips' | 'addcabs' | 'booking' | 'Wallet' | 'adddriver';
 
@@ -28,7 +28,7 @@ const componentMap: Record<ComponentKey, React.FC> = {
 const Landing: React.FC = () => {
   const [activeComponent, setActiveComponent] = useState<ComponentKey>('booking');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate=useNavigate();
+
 
   const handleMenuClick = (menuItem: string) => {
     const normalized = menuItem.toLowerCase();
@@ -68,7 +68,7 @@ const Landing: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar - hidden on mobile by default */}
       <div className={`fixed inset-y-0 left-0 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out z-30`}>
-        <Sidebar onMenuClick={handleMenuClick} />
+        <Sidebar onMenuClick={handleMenuClick} kycCompleted />
       </div>
       
       {/* Main Content */}

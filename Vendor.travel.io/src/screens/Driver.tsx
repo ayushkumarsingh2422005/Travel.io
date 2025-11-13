@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios'
+import toast from 'react-hot-toast'; // Already imported, but good to confirm
+
 interface Driver {
   id: string;
   vendor_id ?: string;
@@ -22,18 +24,14 @@ const DriverManagementComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showAddDriverModal, setShowAddDriverModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const[error,setError]=useState('');
-  const[success,setSuccess]=useState('');
-  const [approvedByFilter, setApprovedByFilter] = useState<string>('all'); // 'all', 'Approved', 'Awaited', 'Rejected'
-  const [isActiveFilter, setIsActiveFilter] = useState<string>('all'); // 'all', 'true', 'false'
-  const[AutoFetchData,setAutoFetchData]=useState({
-    name:'',
-    IssueDate:'',
-    ExpiryDate:'',
-    address:'',
-    dl_number:'',
-    dl_data:'',
-    dob:'' 
+  const [AutoFetchData, setAutoFetchData] = useState({
+    name: '',
+    IssueDate: '',
+    ExpiryDate: '',
+    address: '',
+    dl_number: '',
+    dl_data: '',
+    dob: ''
   });
   // Driver form data
   const [dlState, setDlState] = useState<string>('');
@@ -41,8 +39,8 @@ const DriverManagementComponent: React.FC = () => {
   const [dlIssueYear, setDlIssueYear] = useState<string>('');
   const [dl_number, setdl_number] = useState<string>('');
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['hindi','english']);
-  const[phone,setPhone]=useState('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['hindi', 'english']);
+  const [phone, setPhone] = useState('');
 
   // State for Edit Driver Modal
   const [showEditDriverModal, setShowEditDriverModal] = useState<boolean>(false);
@@ -62,61 +60,31 @@ const DriverManagementComponent: React.FC = () => {
     dl_data: '',
     dob: ''
   });
-  // const mockDrivers: Driver[] = [
-  //   {
-  //     id: '1',
-  //     name: 'Akash Rai',
-  //     phone: 'xx xxxx xxxx',
-  //     languages: ['Hindi', 'English'],
-  //     dl_number: 'UP522024(7)',
-  //     dl_data: '06/09/2047',
-  //     address: 'Approved'
-  //   },
-  //   {
-  //     id: '2',
-  //     name: 'Akash Rai',
-  //     phone: 'xx xxxx xxxx',
-  //     languages: ['Hindi', 'English'],
-  //     dl_number: 'UP522024(7)',
-  //     dl_data: '06/09/2047',
-  //     address: 'Awaited'
-  //   }
-  // ];
 
   useEffect(() => {
-    // Simulate API call to fetch drivers
     const fetchDrivers = async () => {
       setLoading(true);
       try {
+        const token = localStorage.getItem("marcocabs_vendor_token");
+        if (!token) {
+          toast.error('You must be logged in to fetch drivers.');
+          setLoading(false);
+          return;
+        }
 
-          const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        setError('You must be logged in to verify your phone number.');
-        return;
-      }
-
-        // Replace with actual API call
         const response = await axios.get('/driver', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        // const data = await response.json();
-        // setDrivers(data);
-
-        console.log("Fetching Drivers")
-
-        console.log(response);
-        
-        // Using mock data for demonstration
-        // setTimeout(() => {
-          setDrivers(response.data.drivers);
-          setLoading(false);
-        // }, 500);
+        setDrivers(response.data.drivers);
+        setLoading(false);
+        toast.success('Drivers loaded successfully!');
       } catch (error) {
         console.error('Error fetching drivers:', error);
         setDrivers([]);
         setLoading(false);
+        toast.error('Failed to load drivers.');
       }
     };
 
@@ -207,7 +175,7 @@ const DriverManagementComponent: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to update driver details.');
         return;
       }
 
@@ -229,18 +197,18 @@ const DriverManagementComponent: React.FC = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Driver updated successfully');
+        toast.success('Driver updated successfully');
         setDrivers(prevDrivers =>
           prevDrivers.map(driver =>
             driver.id === currentDriverToEdit.id ? response.data.driver : driver
           )
         );
       } else {
-        setError(response.data.message);
+        toast.error(response.data.message || 'Failed to update driver.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating driver:', error);
-      setError('Failed to update driver');
+      toast.error(error.response?.data?.message || 'Failed to update driver.');
     } finally {
       handleCloseEditModal();
     }
@@ -248,37 +216,35 @@ const DriverManagementComponent: React.FC = () => {
 
   const handleDeleteDriver = async(driverId: string) => {
     try {
-
-        const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to delete a driver.');
         return;
       }
 
-      const response=await axios.delete(`/driver/${driverId}`, {
+      const response = await axios.delete(`/driver/${driverId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
         if(response.data.success){
-          setSuccess(response.data.message)
+          toast.success(response.data.message);
           setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
         }
         else{
-          setError(response.data.message)
+          toast.error(response.data.message || 'Failed to delete driver.');
         }
       
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        setError('Something Went Wrong');
+        toast.error(error.response?.data?.message || 'Something Went Wrong while deleting driver.');
     }
-    // Implement delete driver functionality
   };
   
   const handleShowBookingHistory = (driverId: string) => {
     // Implement show booking history functionality
-    alert(`Show booking history for driver ${driverId}`);
+    toast(`Showing booking history for driver ${driverId}`);
   };
   
   const handleConfirmAddDriver = async() => {
@@ -289,12 +255,11 @@ const DriverManagementComponent: React.FC = () => {
 
        const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to add a driver.');
         return;
       }
       
-
-      const response=await axios.post('/driver',{
+      const response = await axios.post('/driver',{
         phone:phone,
       ...AutoFetchData,
       },{
@@ -304,16 +269,16 @@ const DriverManagementComponent: React.FC = () => {
         });
 
       if(response.data.success){
-        setSuccess('Driver Added Successfully');
+        toast.success('Driver Added Successfully');
         setDrivers((prev) => [...prev, response.data.driver]);
       }
       else{
-        setError('Please Check Driver Details')
+        toast.error(response.data.message || 'Please Check Driver Details');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
-      setError('Please Check Driver Details')
+      toast.error(error.response?.data?.message || 'Please Check Driver Details');
     }
     finally {
       handleCloseModal();
@@ -328,21 +293,18 @@ const DriverManagementComponent: React.FC = () => {
 
   const handleFetchDetails=async()=>{
     try {
-
-        const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to verify driver license.');
         return;
       }
 
-
-      const DLNumber=dlState+dlRtoCode+dlIssueYear+dl_number;
+      const DLNumber = dlState + dlRtoCode + dlIssueYear + dl_number;
        
-    
       const [year, month, day] = dateOfBirth.split('-');
       const DOB = `${year}-${month}-${day}`;
 
-      const response=await axios.post('/driver/verify-license',{
+      const response = await axios.post('/driver/verify-license',{
         dl_number:DLNumber,
         dob:DOB
       }, {
@@ -352,15 +314,11 @@ const DriverManagementComponent: React.FC = () => {
         });
         
         console.log(response.data);
-        // setAutoFetchData(response.data.data);
 
         if(response.data.success){
-        
           if(response.data.data.dl_status!=="ACTIVE"){
-            setError('The Driving License is not Active');
-            setSuccess('');
+            toast.error('The Driving License is not Active');
             return ;
-
           }
           console.log("setting the data");
           setAutoFetchData({
@@ -371,33 +329,26 @@ const DriverManagementComponent: React.FC = () => {
             dl_number:response.data.data.dl_number ?? '',
             dl_data:JSON.stringify(response.data.data) ?? '',
             dob: response.data.data.dob ?? ''
-          })
-          setSuccess('Driver License Verified Successfully')
-
-          setError('')
+          });
+          toast.success('Driver License Verified Successfully');
         }
         else{
-        setError(response.data.message)
-        setSuccess('');
+          toast.error(response.data.message || 'Verification Failed');
         }
-
-        
-      
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
-      setError('Verification Failed');
-      setSuccess('');
+      toast.error(error.response?.data?.message || 'Verification Failed');
     }
   }
 
-  const getaddressBadgeClass = (address: string) => {
-    switch(address.toLowerCase()) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'awaited': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // const getaddressBadgeClass = (address: string) => {
+  //   switch(address.toLowerCase()) {
+  //     case 'approved': return 'bg-green-100 text-green-800';
+  //     case 'awaited': return 'bg-yellow-100 text-yellow-800';
+  //     case 'rejected': return 'bg-red-100 text-red-800';
+  //     default: return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
   const getApprovalStatusBadgeClass = (status: string | undefined) => {
     switch(status?.toLowerCase()) {
@@ -410,23 +361,6 @@ const DriverManagementComponent: React.FC = () => {
 
   return (
     <div className="w-full">
-      {
-        error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {error}
-            <button className="float-right font-bold" onClick={() => setError('')}>X</button>
-          </div>
-        )
-
-      }
-      {
-        success && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            {success}
-            <button className="float-right font-bold" onClick={() => setSuccess('')}>X</button>
-          </div>
-        )
-      }
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[0, 1, 2].map((idx) => (

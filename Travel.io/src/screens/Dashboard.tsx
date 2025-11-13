@@ -119,33 +119,72 @@ const Dashboard = () => {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">Active Booking</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Pickup</p>
-                  <p className="text-gray-800">{activeBooking.pickup_location}</p>
+              {activeBooking.status === 'waiting' ? (
+                <div className="col-span-2 text-center">
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Booking Status: Waiting for Vendor</h3>
+                  <p className="text-gray-600 mb-2">Your booking request has been sent to vendors.</p>
+                  <p className="text-gray-800 font-medium mb-4">Cab Category: {activeBooking.cab_category_name}</p>
+                  <div className="space-y-2 text-left inline-block mb-4">
+                    <p className="text-gray-600">Pickup: <span className="font-medium text-gray-800">{activeBooking.pickup_location}</span></p>
+                    <p className="text-gray-600">Drop: <span className="font-medium text-gray-800">{activeBooking.dropoff_location}</span></p>
+                    <p className="text-gray-600">Date: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.pickup_date).date}</span></p>
+                    <p className="text-gray-600">Time: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.pickup_date).time}</span></p>
+                    {activeBooking.drop_date && activeBooking.drop_date !== activeBooking.pickup_date && (
+                      <p className="text-gray-600">Drop Date: <span className="font-medium text-gray-800">{formatDateTime(activeBooking.drop_date).date}</span></p>
+                    )}
+                  </div>
+                  <div className="space-y-2 text-left inline-block">
+                    <p className="text-gray-600">Vendor: Not assigned yet</p>
+                    <p className="text-gray-600">Vehicle: Not assigned yet</p>
+                    <p className="text-gray-600">Driver: Not assigned yet</p>
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Drop</p>
-                  <p className="text-gray-800">{activeBooking.dropoff_location}</p>
-                </div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Date & Time</p>
-                  <p className="text-gray-800">
-                    {formatDateTime(activeBooking.pickup_date).date} at {formatDateTime(activeBooking.pickup_date).time}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-1">Driver Details</p>
-                  <p className="text-gray-800">{activeBooking.driver_name || 'N/A'}</p>
-                  <p className="text-gray-600">{activeBooking.driver_phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Amount</p>
-                  <p className="text-gray-800 font-semibold">₹{activeBooking.price.toLocaleString()}</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Pickup</p>
+                      <p className="text-gray-800">{activeBooking.pickup_location}</p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Drop</p>
+                      <p className="text-gray-800">{activeBooking.dropoff_location}</p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Date & Time</p>
+                      <p className="text-gray-800">
+                        {formatDateTime(activeBooking.pickup_date).date} at {formatDateTime(activeBooking.pickup_date).time}
+                      </p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Cab Category</p>
+                      <p className="text-gray-800">{activeBooking.cab_category_name}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Vendor</p>
+                      <p className="text-gray-800">{activeBooking.vendor_name || 'N/A'}</p>
+                      <p className="text-gray-600">{activeBooking.vendor_phone || 'N/A'}</p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Vehicle</p>
+                      <p className="text-gray-800">
+                        {activeBooking.vehicle_model ? `${activeBooking.vehicle_model} (${activeBooking.vehicle_registration})` : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">Driver</p>
+                      <p className="text-gray-800">{activeBooking.driver_name || 'N/A'}</p>
+                      <p className="text-gray-600">{activeBooking.driver_phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Amount</p>
+                      <p className="text-gray-800 font-semibold">₹{activeBooking.price.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -188,7 +227,7 @@ const Dashboard = () => {
                     <p className="font-medium text-gray-800">
                       {booking.pickup_location} → {booking.dropoff_location}
                     </p>
-                    <p className="text-sm text-gray-600">{date}</p>
+                    <p className="text-sm text-gray-600">{booking.cab_category_name} - {date}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-800">₹{booking.price.toLocaleString()}</p>

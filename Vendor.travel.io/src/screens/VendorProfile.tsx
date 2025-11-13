@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from '../api/axios'
+import axios from '../api/axios';
+import toast from 'react-hot-toast';
 
 interface VendorInfo {
   // Basic Information (from registration form)
@@ -59,8 +60,6 @@ const VendorProfile: React.FC = () => {
   const [AadharOtp, setAadharOtp] = useState<string>('');
   const [phoneOtp, setPhoneOtp] = useState<string>('');
   const [emailOtp, setEmailOtp] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
   const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
   const [showAadharOtp, setShowAadharOtp] = useState<boolean>(false);
@@ -120,7 +119,7 @@ const VendorProfile: React.FC = () => {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching vendor data:', error);
-        setError('Failed to fetch vendor data. Please try again.');
+        toast.error('Failed to fetch vendor data. Please try again.');
         setLoading(false);
       }
     };
@@ -128,28 +127,17 @@ const VendorProfile: React.FC = () => {
     fetchVendorData();
   }, []);
 
-  // Effect to clear success/error messages after a few seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 5000);
-      return () => clearTimeout(timer);
-    }
-    if (error) {
-      const timer = setTimeout(() => setError(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
 
   const handleVerifyPhone = async () => {
     try {
       if (!vendorInfo?.mobile) {
-        setError('Phone number is required for verification.');
+        toast.error('Phone number is required for verification.');
         return;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to verify your phone number.');
         return;
       }
 
@@ -167,32 +155,30 @@ const VendorProfile: React.FC = () => {
       );
 
       if(response){
-        setSuccess('OTP sent successfully to your phone number. It will be valid for 10 minutes.');
+        toast.success('OTP sent successfully to your phone number. It will be valid for 10 minutes.');
         setShowPhoneOtp(true);
-        setError('');
         }
         else{
-        setError('Failed to send OTP. Please try again.');
+        toast.error('Failed to send OTP. Please try again.');
         }
 
 
     } catch (error) {
       console.log('Error sending phone OTP:', error);
-      setError('Failed to send OTP. Please try again.');
-      setSuccess('');
+      toast.error('Failed to send OTP. Please try again.');
     }
   };
 
   const handleVerifyPhoneOtp = async () => {
     try {
       if (!phoneOtp) {
-        setError('Please enter the OTP sent to your phone.');
+        toast.error('Please enter the OTP sent to your phone.');
         return;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your phone number.');
+        toast.error('You must be logged in to verify your phone number.');
         return;
       }
 
@@ -210,36 +196,33 @@ const VendorProfile: React.FC = () => {
       );
 
       if(response){
-        setSuccess("phone number verified successfully.");
-        setError('');
+        toast.success("phone number verified successfully.");
         setPhoneOtp(''); 
         setShowPhoneOtp(false);
         setVendorInfo(prev => prev ? { ...prev, isPhoneVerified: true } : null); // Update state
       }
       else{
-        setError('Failed to verify OTP. Please check the OTP and try again.');
-        setSuccess('');
+        toast.error('Failed to verify OTP. Please check the OTP and try again.');
       }
 
  
 
     } catch (error) {
       console.log('Error verifying phone OTP:', error);
-      setError('Failed to verify OTP. Please try again.');
-      setSuccess('');
+      toast.error('Failed to verify OTP. Please try again.');
     }
   }
 
   const handleVerifyEmail = async () => {
     try {
       if (!vendorInfo?.email) {
-        setError('Email address is required for verification.');
+        toast.error('Email address is required for verification.');
         return;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your email.');
+        toast.error('You must be logged in to verify your email.');
         return;
       }
 
@@ -257,34 +240,31 @@ const VendorProfile: React.FC = () => {
       );
 
       if(response){
-        setSuccess('OTP sent successfully to your email. It will be valid for 10 minutes.');
-        setError('');
+        toast.success('OTP sent successfully to your email. It will be valid for 10 minutes.');
         setShowEmailOtp(true);
       }
       else{
-        setSuccess('');
-        setError('Otp Was Not Send Try Again');
+        toast.error('Otp Was Not Send Try Again');
         setShowEmailOtp(false);
       }
 
 
     } catch (error) {
       console.log('Error sending email OTP:', error);
-      setError('Failed to send OTP. Please try again.');
-      setSuccess('');
+      toast.error('Failed to send OTP. Please try again.');
     }
   };
 
   const handleVerifyEmailOtp = async () => {
     try {
       if (!emailOtp) {
-        setError('Please enter the OTP sent to your email.');
+        toast.error('Please enter the OTP sent to your email.');
         return;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your email.');
+        toast.error('You must be logged in to verify your email.');
         return;
       }
 
@@ -301,23 +281,20 @@ const VendorProfile: React.FC = () => {
       );
 
      if(response){ 
-        setSuccess("Email verified successfully.");
-        setError('');
+        toast.success("Email verified successfully.");
         setEmailOtp('');
         setShowEmailOtp(false);
         setVendorInfo(prev => prev ? { ...prev, isEmailVerified: true } : null); // Update state
       }
       else{
-        setError('Failed to verify OTP. Please check the OTP and try again.');
-        setSuccess('');
+        toast.error('Failed to verify OTP. Please check the OTP and try again.');
         setEmailOtp('');
         setShowEmailOtp(false);
       }
 
     } catch (error) {
       console.log('Error verifying email OTP:', error);
-      setError('Failed to verify OTP. Please try again.');
-      setSuccess('');
+      toast.error('Failed to verify OTP. Please try again.');
       setShowEmailOtp(false);
     }
   }
@@ -336,12 +313,12 @@ const VendorProfile: React.FC = () => {
      
      const token = localStorage.getItem("marcocabs_vendor_token");
      if (!token) {
-       setError('You must be logged in to verify your Aadhar.');
+       toast.error('You must be logged in to verify your Aadhar.');
        return;
       }
       
       if(!editedInfo?.aadhar_number){ // Use editedInfo for input field
-        setError("Enter Your Aadhar Number First ");
+        toast.error("Enter Your Aadhar Number First ");
         return;
       }
       
@@ -358,21 +335,18 @@ const VendorProfile: React.FC = () => {
     console.log('Aadhar verification OTP response:', response.data.message);
 
     if(response.data.status){
-      setSuccess('Aadhar verification OTP generated successfully. Please check your email.');
-      setError('');
+      toast.success('Aadhar verification OTP generated successfully. Please check your email.');
       setShowAadharOtp(true);
       setLastAadharOtpRequestTime(Date.now()); // Set timestamp on successful OTP generation
     }
     else{
-      setError('Failed to generate Aadhar verification link. Please try again.');
-      setSuccess('');
+      toast.error('Failed to generate Aadhar verification link. Please try again.');
       setShowAadharOtp(false);
     }
     
    } catch (error) {
      console.error('Error generating Aadhar verification link:', error);
-     setError('Failed to generate Aadhar verification link. Please try again.');
-     setSuccess('');
+     toast.error('Failed to generate Aadhar verification link. Please try again.');
      setShowAadharOtp(false);
    }
   }
@@ -381,13 +355,13 @@ const VendorProfile: React.FC = () => {
     try {
 
       if(!AadharOtp){
-        setError("Enter The OTP for verification");
+        toast.error("Enter The OTP for verification");
         return ;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your Aadhar.');
+        toast.error('You must be logged in to verify your Aadhar.');
         return;
       }
 
@@ -402,16 +376,14 @@ const VendorProfile: React.FC = () => {
       const responseData = response.data ;
 
       if (responseData.status===1) {
-        setSuccess("Aadhar verified successfully.");
-        setError('');
+        toast.success("Aadhar verified successfully.");
         setAadharOtp('');
         setShowAadharOtp(false);
         setVendorInfo(prev => prev ? { ...prev, is_aadhar_verified: true, aadhar_number: editedInfo.aadhar_number || '' } : null); // Update state
         setLastAadharOtpRequestTime(null); // Clear cooldown on successful verification
       }
       else{
-        setError('Failed to verify OTP. Please check the OTP and try again.');
-        setSuccess('');
+        toast.error('Failed to verify OTP. Please check the OTP and try again.');
         setAadharOtp('');
         // Keep showAadharOtp true to allow retry
       }
@@ -419,8 +391,7 @@ const VendorProfile: React.FC = () => {
     } catch (error) {
       
       console.error('Error confirming Aadhar verification:', error);
-      setError('Failed to verify OTP. Please try again.');
-      setSuccess('');
+      toast.error('Failed to verify OTP. Please try again.');
       setAadharOtp('');
       // Keep showAadharOtp true to allow retry
     }
@@ -432,14 +403,14 @@ const VendorProfile: React.FC = () => {
   //   try {
 
   //     if(!(vendorInfo?.is_aadhar_verified)){
-  //       setError("Please Complete Aadhar Verification First")
+  //       toast.error("Please Complete Aadhar Verification First")
   //       return;
   //     }
 
       
   //     const token = localStorage.getItem("marcocabs_vendor_token");
   //     if (!token) {
-  //       setError('You must be logged in to verify your Aadhar.');
+  //       toast.error('You must be logged in to verify your Aadhar.');
   //       return;
   //     }
 
@@ -450,7 +421,7 @@ const VendorProfile: React.FC = () => {
   //     });
 
   //     if(!response.data.status){
-  //       setError(response.data.message);
+  //       toast.error(response.data.message);
   //     }
   //     else{
   //       console.log(response.data.aadhar_data);
@@ -459,7 +430,7 @@ const VendorProfile: React.FC = () => {
       
   //   } catch (error) {
   //     console.log("Something went Wring While Fetching Aadhar details");
-  //     setError("Something Went Wrong");
+  //     toast.error("Something Went Wrong");
   //   }
   // }
 
@@ -471,12 +442,12 @@ const VendorProfile: React.FC = () => {
 
         const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to verify your PAN.');
+        toast.error('You must be logged in to verify your PAN.');
         return;
       }
 
       if(!editedInfo?.panNumber){ // Use editedInfo for input field
-        setError("Enter Your PAN Number First ");
+        toast.error("Enter Your PAN Number First ");
         return;
       }
 
@@ -489,18 +460,18 @@ const VendorProfile: React.FC = () => {
       });
 
       if(response.data.status){
-        setSuccess('Pan Verification SuccessFull');
+        toast.success('Pan Verification SuccessFull');
         console.log(response.data);
         setVendorInfo(prev => prev ? { ...prev, is_pan_verified: true, panNumber: editedInfo.panNumber || '' } : null); // Update state
       }
       else{
-        setError('Pan Verification Unsuccessfull make sure the details are Up To Date');
+        toast.error('Pan Verification Unsuccessfull make sure the details are Up To Date');
       }
 
 
       
     } catch (error) {
-      setError('Pan Verification Failed Please Try After Some Time');
+      toast.error('Pan Verification Failed Please Try After Some Time');
       console.log(error);
     }
   }
@@ -511,13 +482,13 @@ const VendorProfile: React.FC = () => {
   //   try {
 
   //     if(!vendorInfo?.is_pan_verified){
-  //       setError(" Complete Pan Verification First ");
+  //       toast.error(" Complete Pan Verification First ");
   //       return ;
   //     }
 
   //      const token = localStorage.getItem("marcocabs_vendor_token");
   //     if (!token) {
-  //       setError('You must be logged in to verify your Aadhar.');
+  //       toast.error('You must be logged in to verify your Aadhar.');
   //       return;
   //     }
       
@@ -528,7 +499,7 @@ const VendorProfile: React.FC = () => {
   //     });
 
   //     if(!response.data.status){
-  //       setError("Something Went Wrong");
+  //       toast.error("Something Went Wrong");
   //     }
   //     else{
   //       console.log(response.data);
@@ -537,7 +508,7 @@ const VendorProfile: React.FC = () => {
       
   //   } catch (error) {
   //     console.log(error);
-  //     setError("Something Went Wrong"); 
+  //     toast.error("Something Went Wrong"); 
   //   }
   // }
 
@@ -547,7 +518,7 @@ const VendorProfile: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        setError('You must be logged in to update your profile.');
+        toast.error('You must be logged in to update your profile.');
         return;
       }
 
@@ -570,7 +541,7 @@ const VendorProfile: React.FC = () => {
 
       // If no fields are being updated, just exit
       if (Object.keys(updateData).length === 0) {
-        setSuccess('No changes to save.');
+        toast.success('No changes to save.');
         setIsEditing(false);
         return;
       }
@@ -589,14 +560,14 @@ const VendorProfile: React.FC = () => {
         // Update vendorInfo with the data that was sent, and then merge any additional data from the backend response
         setVendorInfo(prev => ({ ...prev, ...updateData, ...response.data.vendor } as VendorInfo));
         setEditedInfo(prev => ({ ...prev, ...updateData, ...response.data.vendor } as VendorInfo)); // Also update editedInfo
-        setSuccess('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
         setIsEditing(false);
       } else {
-        setError(response.data.message || 'Failed to update profile.');
+        toast.error(response.data.message || 'Failed to update profile.');
       }
     } catch (error) {
       console.error('Error updating vendor profile:', error);
-      setError('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     }
   };
 
@@ -902,8 +873,6 @@ const VendorProfile: React.FC = () => {
               {!vendorInfo.mobile && (
                 <p className="text-gray-600 text-sm mt-1">Please add a phone number to verify</p>
               )}
-              {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
-              {success && <p className="text-green-500 mt-2 text-sm">{success}</p>}
             </div>
 
             {/* City (Disabled for editing) */}

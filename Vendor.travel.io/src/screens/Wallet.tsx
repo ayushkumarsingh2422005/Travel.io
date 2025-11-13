@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 interface Transaction {
   bookingId: string;
@@ -63,11 +64,13 @@ const WalletComponent: React.FC = () => {
           setTransactions(mockTransactions);
           setWalletStats(mockWalletStatsData);
           setLoading(false);
+          toast.success('Wallet data loaded successfully!'); // Success toast
         }, 500);
       } catch (error) {
         console.error('Error fetching wallet data:', error);
         setTransactions([]);
         setLoading(false);
+        toast.error('Failed to load wallet data.'); // Error toast
       }
     };
 
@@ -75,8 +78,15 @@ const WalletComponent: React.FC = () => {
   }, [filterType]);
 
   const handleTopUp = () => {
-    // Implement top-up functionality
-    alert('Top-up functionality will be implemented here');
+    // Simulate top-up functionality
+    const success = Math.random() > 0.5; // Simulate success or failure
+    if (success) {
+      toast.success('Top-up initiated successfully!');
+      // Further logic for successful top-up
+    } else {
+      toast.error('Top-up failed. Please try again.');
+      // Further logic for failed top-up
+    }
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

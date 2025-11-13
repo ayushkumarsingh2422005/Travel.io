@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const carouselImages = [
   '/dummy/customer-1.jpg',
@@ -13,7 +14,6 @@ export default function VendorSignup() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', gender: '', age: '', current_address: '', description: ''
   });
-  const [message, setMessage] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const navigate = useNavigate();
    const location = useLocation();
@@ -31,7 +31,6 @@ export default function VendorSignup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     try {
       const res = await axios.post('/auth/signup', form);
          localStorage.setItem('marcocabs_vendor_token', res.data.token);
@@ -43,26 +42,27 @@ export default function VendorSignup() {
 
     // Redirect to original page (with state if any)
     navigate(from, { state: pageState });
+    toast.success('Signup successful!');
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Signup failed');
+      toast.error(err.response?.data?.message || 'Signup failed');
     }
   };
 
   const handleGoogle = async (credentialResponse: any) => {
-    setMessage('');
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
         // Extract redirect info
     const from = location.state?.from || '/';
     const pageState = location.state?.pageState;
-
+      console.log('Login response:', res.data);
+      localStorage.setItem('marcocabs_vendor_token', res.data.token); // added this while adding toast reverify 
     console.log('Redirecting to:', from, 'with state:', pageState);
 
     // Redirect to original page (with state if any)
     navigate(from, { state: pageState });
-      setMessage('Google signup successful!');
+      toast.success('Google signup successful!');
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Google signup failed');
+      toast.error(err.response?.data?.message || 'Google signup failed');
     }
   };
 
@@ -179,10 +179,9 @@ export default function VendorSignup() {
           <div className="flex justify-center mb-2">
             <GoogleLogin
               onSuccess={handleGoogle}
-              onError={() => setMessage('Google signup failed')}
+              onError={() => toast.error('Google signup failed')}
             />
           </div>
-          {message && <div className="text-red-500 text-center mt-2">{message}</div>}
           <div className="text-center text-gray-500 mt-4">
             Already have an account?{' '}
             <Link to="/login" className="text-green-700 font-medium hover:underline">Log In</Link>
@@ -191,4 +190,4 @@ export default function VendorSignup() {
       </div>
     </div>
   );
-} 
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast'; // Import toast
 
 // Define TypeScript interfaces
 interface Penalty {
@@ -46,11 +47,13 @@ const Penalties: React.FC = () => {
         setTimeout(() => {
           setPenalties(dummyPenalties);
           setLoading(false);
+          toast.success('Penalties loaded successfully!'); // Success toast
         }, 500);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching penalties:', error);
         setPenalties([]);
         setLoading(false);
+        toast.error(error.message || 'Failed to load penalties.'); // Error toast
       }
     };
 

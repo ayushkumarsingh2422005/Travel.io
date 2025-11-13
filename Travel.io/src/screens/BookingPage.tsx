@@ -17,7 +17,8 @@ interface BookingData {
   destination: string;
   stops: string[];
   tripType: string;
-  vehicle_id: string;
+  cab_category_id: string; // Add cab_category_id
+  cab_category_name: string; // Add cab_category_name
   pickupDate: string;
   dropDate: string;
   distance: string;
@@ -26,6 +27,10 @@ interface BookingData {
   path: string;
   distance_km: number;
   isRouteLoading: boolean;
+  platformCharges: number;
+  gstAmount: number;
+  totalUpfrontPayment: number;
+  remainingAmount: number;
 }
 
 interface UserDetails {
@@ -243,7 +248,7 @@ export default function BookingPage() {
     setLoading(true);
     try {
       const orderRequest: CreateOrderRequest = {
-        vehicle_id: bookingData.vehicle_id,
+        cab_category_id: bookingData.cab_category_id,
         partner_id: partnerId || undefined,
         pickup_location: bookingData.pickup,
         dropoff_location: bookingData.destination,
@@ -251,6 +256,7 @@ export default function BookingPage() {
         drop_date: bookingData.dropDate,
         path: bookingData.path,
         distance: bookingData.distance_km,
+        amount: bookingData.price, // Send total booking price to backend
       };
 
       const orderResponse = await createPaymentOrder(orderRequest, userToken);
@@ -280,10 +286,10 @@ export default function BookingPage() {
 
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use VITE_ for Vite projects
-      amount: orderData.amount * 100, // Convert to paise
+      amount: orderData.amount * 100, // Use the calculated totalUpfrontPayment from backend
       currency: 'INR',
       name: 'Travel.io',
-      description: `Booking for ${orderData.vehicle_details.model}`,
+      description: `Booking for ${bookingData.cab_category_name}`,
       order_id: orderData.order_id,
       handler: async function (response: any) {
         const paymentVerificationRequest: VerifyPaymentRequest = {
@@ -527,6 +533,18 @@ export default function BookingPage() {
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                       <div className="flex items-center">
                         <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17.25V21.75A2.25 2.25 0 0011.25 24h1.5A2.25 2.25 0 0015 21.75V17.25m-3 0V14.25m0 3l-2.25-2.25m2.25 2.25l2.25-2.25m-2.25-10.5H12a2.25 2.25 0 00-2.25 2.25v1.5A2.25 2.25 0 0012 9h.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Cab Category</span>
+                      </div>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        {bookingData.cab_category_name}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
                         <span className="font-medium text-gray-700">Distance</span>
@@ -556,7 +574,7 @@ export default function BookingPage() {
                       </span>
                     </div>
 
-                    {bookingData.tripType === 'Round Trip' && (
+                    
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -568,7 +586,7 @@ export default function BookingPage() {
                           {new Date(bookingData.dropDate).toLocaleString()}
                         </span>
                       </div>
-                    )}
+                    
                   </div>
                 </div>
               </div>
@@ -647,19 +665,27 @@ export default function BookingPage() {
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Base Price</span>
+                      <span className="text-gray-600">Total Estimated Price</span>
                       <span className="font-semibold">₹{bookingData.price.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">GST (5%)</span>
-                      <span className="font-semibold">₹{(bookingData.price * 0.05).toFixed(0)}</span>
+                      <span className="text-gray-600">Platform Charges (10%)</span>
+                      <span className="font-semibold">₹{bookingData.platformCharges.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">GST (5% on Platform Charges)</span>
+                      <span className="font-semibold">₹{bookingData.gstAmount.toLocaleString()}</span>
                     </div>
                     <div className="border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-semibold text-gray-800">Total Amount</span>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-lg font-semibold text-gray-800">Total Upfront Payment</span>
                         <span className="text-2xl font-bold text-green-700">
-                          ₹{(bookingData.price * 1.05).toFixed(0)}
+                          ₹{bookingData.totalUpfrontPayment.toLocaleString()}
                         </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Remaining Amount (to Vendor)</span>
+                        <span className="font-semibold">₹{bookingData.remainingAmount.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

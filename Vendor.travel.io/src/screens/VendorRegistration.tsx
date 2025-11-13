@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 interface FormData {
   city: string;
@@ -94,7 +95,7 @@ const VendorRegistration: React.FC = () => {
   
   const sendOtp = (type: 'aadhar' | 'pan') => {
     // Simulate OTP sending
-    console.log(`Sending OTP for ${type}`);
+    toast.success(`OTP sent successfully for ${type}!`);
     setOtpSent(prev => ({
       ...prev,
       [type]: true
@@ -109,6 +110,7 @@ const VendorRegistration: React.FC = () => {
     setTimeout(() => {
       console.log('Form submitted:', formData);
       setIsSubmitting(false);
+      toast.success('Vendor registration submitted successfully!');
       // Add your form submission logic here
     }, 2000);
   };
@@ -602,6 +604,7 @@ const VendorRegistration: React.FC = () => {
                     type="checkbox" 
                     id="terms" 
                     className="rounded text-green-600 focus:ring-green-500 h-5 w-5"
+                    required // Added required for terms and conditions
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
                     I agree to the <a href="#" className="text-green-600 hover:underline">Terms and Conditions</a> and confirm that all information provided is accurate

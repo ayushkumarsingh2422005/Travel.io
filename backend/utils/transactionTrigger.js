@@ -39,7 +39,7 @@ const createTransactionTrigger = async () => {
                         total_earnings = total_earnings + (NEW.amount * 0.05)
                     WHERE id = NEW.partner_id;
 
-                    -- Log the commission transaction for the partner
+                    -- Log the commission transaction for the partnerf
                     INSERT INTO partner_transactions (partner_id, booking_id, commission_amount, status)
                     VALUES (NEW.partner_id, NEW.booking_id, (NEW.amount * 0.05), 'completed');
                 END IF;

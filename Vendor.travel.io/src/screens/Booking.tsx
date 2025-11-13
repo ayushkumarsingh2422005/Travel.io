@@ -1,40 +1,73 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   BookingData,
   Driver,
+  Vehicle, // New import
   getVendorBookings,
   updateBookingStatus,
   getVendorDrivers,
+  getVendorVehicles, // New import
+  getPendingBookingRequests, // New import
+  acceptBookingRequest, // New import
 } from '../utils/bookingService'; // Import from the new service file
 
 const Booking: React.FC = () => {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]); // New state
   const [searchText, setSearchText] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<BookingData['status'] | ''>('waiting'); // Default to 'waiting'
+  const [pickupLocationFilter, setPickupLocationFilter] = useState<string>('');
+  const [dropoffLocationFilter, setDropoffLocationFilter] = useState<string>('');
+  const [vehicleModelFilter, setVehicleModelFilter] = useState<string>('');
+  const [cabCategoryFilter, setCabCategoryFilter] = useState<string>('');
+  const [customerNameFilter, setCustomerNameFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalBookingsCount, setTotalBookingsCount] = useState<number>(0); // New state for total count
 
   const [showApproveModal, setShowApproveModal] = useState<boolean>(false);
   const [selectedBookingForApproval, setSelectedBookingForApproval] = useState<BookingData | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>('');
+  const [selectedVehicle, setSelectedVehicle] = useState<string>(''); // New state
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
+  const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
+  const [selectedBookingForCancellation, setSelectedBookingForCancellation] = useState<BookingData | null>(null);
 
-  const fetchBookings = async (statusFilter: BookingData['status'] | '' = '') => {
+  const fetchBookings = async (
+    statusFilter: BookingData['status'] | '' = '',
+    page: number = currentPage,
+    limit: number = itemsPerPage,
+    bookingIdSearch?: string
+  ) => {
     setLoading(true);
-    setError(null);
     try {
-      const params: { status?: BookingData['status'], bookingId?: string } = {};
-      if (statusFilter) {
-        params.status = statusFilter as BookingData['status'];
+      let response;
+      if (statusFilter === 'waiting') {
+        response = await getPendingBookingRequests({ page, limit });
+      } else {
+        const params: { status?: BookingData['status']; bookingId?: string; page?: number; limit?: number } = { page, limit };
+        if (statusFilter) {
+          params.status = statusFilter as BookingData['status'];
+        }
+        if (bookingIdSearch) {
+          params.bookingId = bookingIdSearch;
+        }
+        response = await getVendorBookings(params);
       }
-      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-      const response = await getVendorBookings(params);
       setBookings(response.data.bookings);
-    } catch (err) {
+      setTotalPages(response.data.pagination.total_pages);
+      setTotalBookingsCount(response.data.pagination.total);
+      toast.success('Bookings loaded successfully!');
+    } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
-      setError('Failed to fetch bookings. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -43,50 +76,74 @@ const Booking: React.FC = () => {
   const fetchDrivers = async () => {
     try {
       const response = await getVendorDrivers();
-      console.log('Fetched drivers:', response);
-      setDrivers(response.data.drivers);
+      setDrivers(response.data.drivers); // Corrected to access data.drivers
+      // toast.success('Drivers loaded successfully!');
     } catch (err) {
       console.error('Error fetching drivers:', err);
-      // Optionally set an error state for drivers
+      toast.error('Failed to fetch drivers.');
+    }
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await getVendorVehicles();
+      setAvailableVehicles(response.data.vehicles); // Corrected to access data.vehicles
+      // toast.success('Vehicles loaded successfully!');
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+      toast.error('Failed to fetch vehicles.');
     }
   };
 
   useEffect(() => {
-    fetchBookings(selectedStatus);
+    fetchBookings(selectedStatus, currentPage, itemsPerPage, searchText);
     fetchDrivers();
-  }, [selectedStatus]); // Refetch bookings when selectedStatus changes, fetch drivers once
+    fetchVehicles();
+  }, [selectedStatus, currentPage, itemsPerPage]); // Re-fetch when selectedStatus, currentPage, or itemsPerPage changes
 
   const handleSearch = async () => {
-    setSearchLoading(true);
-    setError(null);
-    try {
-      const params: { status?: BookingData['status'], bookingId?: string } = {};
-      if (selectedStatus) {
-        params.status = selectedStatus as BookingData['status'];
-      }
-      params.bookingId = (searchText as string) || undefined; // Convert empty string to undefined
-      const response = await getVendorBookings(params);
-      setBookings(response.data.bookings);
-    } catch (err) {
-      console.error('Error searching vendor bookings:', err);
-      setError('Failed to search bookings. Please try again.');
-    } finally {
-      setSearchLoading(false);
-    }
+    setSearchLoading(true)
+    setCurrentPage(1); // Reset to first page on new search
+    fetchBookings(selectedStatus, 1, itemsPerPage, searchText);
+    setSearchLoading(false);
   };
 
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingData['status'], driverId: string | null = null) => {
     setUpdateLoading(true);
-    setError(null);
     try {
       await updateBookingStatus(bookingId, newStatus, driverId);
       setShowApproveModal(false);
       setSelectedBookingForApproval(null);
       setSelectedDriver('');
+      setSelectedVehicle(''); // Reset vehicle selection
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
-    } catch (err) {
+      toast.success(`Booking ${bookingId} status updated to ${newStatus} successfully!`); // Success toast
+    } catch (err: any) {
       console.error('Error updating booking status:', err);
-      setError('Failed to update booking status. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to update booking status. Please try again.'); // Error toast
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleAcceptBooking = async () => {
+    if (!selectedBookingForApproval || !selectedDriver || !selectedVehicle) {
+      toast.error('Please select a driver and a vehicle to approve the booking.'); // Error toast
+      return;
+    }
+
+    setUpdateLoading(true);
+    try {
+      await acceptBookingRequest(selectedBookingForApproval.id, selectedDriver, selectedVehicle);
+      setShowApproveModal(false);
+      setSelectedBookingForApproval(null);
+      setSelectedDriver('');
+      setSelectedVehicle('');
+      fetchBookings(selectedStatus); // Re-fetch bookings to update the list
+      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`); // Success toast
+    } catch (err: any) {
+      console.error('Error accepting booking request:', err);
+      toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.'); // Error toast
     } finally {
       setUpdateLoading(false);
     }
@@ -94,6 +151,9 @@ const Booking: React.FC = () => {
 
   const openApproveModal = (booking: BookingData) => {
     setSelectedBookingForApproval(booking);
+    setSelectedDriver(''); // Reset driver selection
+    setSelectedVehicle(''); // Reset vehicle selection
+
     setShowApproveModal(true);
   };
 
@@ -101,14 +161,70 @@ const Booking: React.FC = () => {
     setShowApproveModal(false);
     setSelectedBookingForApproval(null);
     setSelectedDriver('');
+    setSelectedVehicle(''); // Reset vehicle selection
+
   };
 
-  const confirmApproval = () => {
-    if (selectedBookingForApproval && selectedDriver) {
-      handleUpdateStatus(selectedBookingForApproval.id, 'approved', selectedDriver);
-    } else {
-      setError('Please select a driver to approve the booking.');
+  const openCancelModal = (booking: BookingData) => {
+    setSelectedBookingForCancellation(booking);
+    setShowCancelModal(true);
+  };
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setSelectedBookingForCancellation(null);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedBookingForCancellation) {
+      toast.error('No booking selected for cancellation.');
+      return;
     }
+    setUpdateLoading(true);
+    try {
+      await updateBookingStatus(selectedBookingForCancellation.id, 'cancelled');
+      closeCancelModal();
+      fetchBookings(selectedStatus);
+      toast.success(`Booking ${selectedBookingForCancellation.id} cancelled successfully!`);
+    } catch (err: any) {
+      console.error('Error cancelling booking:', err);
+      toast.error(err.response?.data?.message || 'Failed to cancel booking. Please try again.');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  // Client-side filtering function
+  const getFilteredBookings = (allBookings: BookingData[]) => {
+    return allBookings.filter(booking => {
+      const matchesSearchText = searchText
+        ? booking.id.toLowerCase().includes(searchText.toLowerCase())
+        : true;
+      const matchesPickupLocation = pickupLocationFilter
+        ? booking.pickup_location.toLowerCase().includes(pickupLocationFilter.toLowerCase())
+        : true;
+      const matchesDropoffLocation = dropoffLocationFilter
+        ? booking.dropoff_location.toLowerCase().includes(dropoffLocationFilter.toLowerCase())
+        : true;
+      const matchesVehicleModel = vehicleModelFilter
+        ? (booking.vehicle_model?.toLowerCase().includes(vehicleModelFilter.toLowerCase()) || false)
+        : true;
+      const matchesCabCategory = cabCategoryFilter
+        ? (booking.cab_category_name?.toLowerCase().includes(cabCategoryFilter.toLowerCase()) || false)
+        : true;
+      const matchesCustomerName = customerNameFilter
+        ? booking.customer_name.toLowerCase().includes(customerNameFilter.toLowerCase())
+        : true;
+
+      return (
+        matchesSearchText &&
+        matchesPickupLocation &&
+        matchesDropoffLocation &&
+        matchesVehicleModel &&
+        matchesCabCategory &&
+        matchesCustomerName
+      );
+    });
   };
 
   // Function to render skeleton loading rows
@@ -184,6 +300,58 @@ const Booking: React.FC = () => {
               disabled={searchLoading}
             />
           </div>
+
+          {/* New Filter Inputs */}
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Pickup Location"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={pickupLocationFilter}
+              onChange={(e) => setPickupLocationFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Dropoff Location"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={dropoffLocationFilter}
+              onChange={(e) => setDropoffLocationFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Vehicle Model"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={vehicleModelFilter}
+              onChange={(e) => setVehicleModelFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Cab Category"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={cabCategoryFilter}
+              onChange={(e) => setCabCategoryFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
+          <div className="w-full md:w-auto flex-grow">
+            <input
+              type="text"
+              placeholder="Customer Name"
+              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              value={customerNameFilter}
+              onChange={(e) => setCustomerNameFilter(e.target.value)}
+              disabled={searchLoading}
+            />
+          </div>
           
           <div className="w-full md:w-auto">
             <button 
@@ -212,13 +380,6 @@ const Booking: React.FC = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
-        </div>
-      )}
-
       {/* Bookings Table */}
       <div className="bg-white p-6 rounded-xl shadow-md overflow-hidden">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Available Bookings</h2>
@@ -228,7 +389,7 @@ const Booking: React.FC = () => {
               <tr className="bg-gray-50">
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Booking ID</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Customer Name</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Vehicle Model</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Cab Category</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[180px]">Pickup/Dropoff</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Dates</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[80px]">Price</th>
@@ -249,11 +410,14 @@ const Booking: React.FC = () => {
                 </tr>
               ) : (
                 // Show actual booking data
-                bookings.map((booking) => (
+                getFilteredBookings(bookings).map((booking) => (
                   <tr key={booking.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100 break-all">{booking.id}</td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.customer_name}</td>
-                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">{booking.vehicle_model}</td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
+                      {booking.cab_category_name || booking.vehicle_model || 'N/A'}
+                      {booking.vehicle_registration && ` (${booking.vehicle_registration})`}
+                    </td>
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100 whitespace-pre-line break-words">
                       {booking.pickup_location} to {booking.dropoff_location}
                     </td>
@@ -278,51 +442,53 @@ const Booking: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3 text-sm border-b border-gray-100">
-                      {booking.status === 'waiting' && (
-                        <button
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
-                          onClick={() => openApproveModal(booking)}
-                          disabled={updateLoading}
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {booking.status === 'approved' && (
-                        <button
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
-                          disabled={updateLoading}
-                        >
-                          Mark Pre-Ongoing
-                        </button>
-                      )}
-                      {booking.status === 'preongoing' && (
-                        <button
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'ongoing')}
-                          disabled={updateLoading}
-                        >
-                          Mark Ongoing
-                        </button>
-                      )}
-                      {booking.status === 'ongoing' && (
-                        <button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150 mr-2"
-                          onClick={() => handleUpdateStatus(booking.id, 'completed')}
-                          disabled={updateLoading}
-                        >
-                          Mark Completed
-                        </button>
-                      )}
-                      {(booking.status === 'waiting' || booking.status === 'approved') && (
-                        <button
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-md text-sm transition-colors duration-150"
-                          onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
-                          disabled={updateLoading}
-                        >
-                          Cancel
-                        </button>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {booking.status === 'waiting' && (
+                          <button
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => openApproveModal(booking)}
+                            disabled={updateLoading}
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {booking.status === 'approved' && (
+                          <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
+                            disabled={updateLoading}
+                          >
+                            Mark Pre-Ongoing
+                          </button>
+                        )}
+                        {booking.status === 'preongoing' && (
+                          <button
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'ongoing')}
+                            disabled={updateLoading}
+                          >
+                            Mark Ongoing
+                          </button>
+                        )}
+                        {booking.status === 'ongoing' && (
+                          <button
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => handleUpdateStatus(booking.id, 'completed')}
+                            disabled={updateLoading}
+                          >
+                            Mark Completed
+                          </button>
+                        )}
+                        {(booking.status === 'approved' || booking.status === 'preongoing' || booking.status === 'ongoing') && (
+                          <button
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => openCancelModal(booking)}
+                            disabled={updateLoading}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -330,6 +496,50 @@ const Booking: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalBookingsCount > 0 && (
+          <div className="flex flex-wrap justify-between items-center mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <div className="text-sm text-gray-600 mb-2 md:mb-0">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalBookingsCount)} of {totalBookingsCount} bookings
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading || searchLoading}
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || loading || searchLoading}
+              >
+                Next
+              </button>
+            </div>
+            <div className="w-full md:w-auto mt-2 md:mt-0">
+              <select
+                className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-3 py-2 rounded-lg text-sm w-full md:w-auto transition-all duration-200"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1); // Reset to first page when items per page changes
+                }}
+                disabled={loading || searchLoading}
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {showApproveModal && selectedBookingForApproval && (
@@ -357,11 +567,30 @@ const Booking: React.FC = () => {
                 ))}
               </select>
             </div>
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
-                {error}
-              </div>
-            )}
+            <div className="mb-4">
+              <label htmlFor="vehicle-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Vehicle:
+              </label>
+              <select
+                id="vehicle-select"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+                value={selectedVehicle}
+                onChange={(e) => setSelectedVehicle(e.target.value)}
+                disabled={updateLoading}
+              >
+                <option value="">-- Select a Vehicle --</option>
+                {availableVehicles
+                  .filter(v => 
+                    selectedBookingForApproval.min_seats && v.no_of_seats >= selectedBookingForApproval.min_seats &&
+                    selectedBookingForApproval.max_seats && v.no_of_seats <= selectedBookingForApproval.max_seats
+                  )
+                  .map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.model} ({vehicle.registration_no}) - {vehicle.no_of_seats} seats
+                    </option>
+                  ))}
+              </select>
+            </div>
             <div className="flex justify-end gap-3">
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
@@ -372,10 +601,40 @@ const Booking: React.FC = () => {
               </button>
               <button
                 className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
-                onClick={confirmApproval}
+                onClick={handleAcceptBooking}
                 disabled={updateLoading}
               >
                 {updateLoading ? 'Approving...' : 'Approve Booking'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && selectedBookingForCancellation && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <h3 className="text-lg font-bold mb-4">
+              Cancel Booking <span className="break-all">{selectedBookingForCancellation.id}</span>
+            </h3>
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to cancel this booking? This action cannot be undone.
+              Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms and Conditions</a> for more details on cancellation policies.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                onClick={closeCancelModal}
+                disabled={updateLoading}
+              >
+                No, Keep Booking
+              </button>
+              <button
+                className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
+                onClick={handleConfirmCancel}
+                disabled={updateLoading}
+              >
+                {updateLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
               </button>
             </div>
           </div>

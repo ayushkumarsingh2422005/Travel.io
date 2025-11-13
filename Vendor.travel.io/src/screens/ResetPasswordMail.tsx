@@ -1,25 +1,21 @@
 import axios from "../api/axios";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import toast from 'react-hot-toast'; // Import toast
 
 const ResetPasswordMail = () => {
     const [email, setEmail] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEmail(e.target.value);
-        setError(''); // Clear error when user starts typing
     };
 
     const handleSendEmail = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
         
         try {
             if (!email) {
-                setError('Email is required');
+                toast.error('Email is required');
                 return;
             }
 
@@ -28,15 +24,15 @@ const ResetPasswordMail = () => {
             });
 
             if (response) {
-                setSuccess('Email sent successfully! Please check your inbox.');
+                toast.success('Email sent successfully! Please check your inbox.');
                 setEmail(''); // Clear the form
             } else {
-                setError('Failed to send email. Please try again later.');
+                toast.error('Failed to send email. Please try again later.');
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending reset email:', error);
-            setError('An error occurred while sending the reset email. Please try again later.');
+            toast.error(error.response?.data?.message || 'An error occurred while sending the reset email. Please try again later.');
         }
     }
 
@@ -84,18 +80,6 @@ const ResetPasswordMail = () => {
                             Send Reset Link
                         </button>
                     </form>
-
-                    {error && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-red-600 text-sm text-center">{error}</p>
-                        </div>
-                    )}
-
-                    {success && (
-                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <p className="text-green-600 text-sm text-center">{success}</p>
-                        </div>
-                    )}
 
                     <div className="text-center text-gray-500 mt-6">
                         Remember your password?{' '}

@@ -6,7 +6,7 @@ const createTransactionTable = async () => {
             CREATE TABLE IF NOT EXISTS transactions (
                 id CHAR(64) PRIMARY KEY,  -- Hashed ID (SHA-256)
                 customer_id CHAR(64) NOT NULL,
-                vendor_id CHAR(64) NOT NULL,
+                vendor_id CHAR(64) ,
                 booking_id CHAR(64),
                 partner_id CHAR(64),  
                 payment_id CHAR(64) NOT NULL UNIQUE, 
