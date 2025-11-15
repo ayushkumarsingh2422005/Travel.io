@@ -26,7 +26,7 @@ const createTransactionTable = async () => {
                 INDEX (customer_id),
                 INDEX (vendor_id),
                 INDEX (booking_id),
-                INDEX (partner_id),
+                INDEX (partner_id), 
                 INDEX (payment_id),
                 INDEX (razorpay_order_id),
                 INDEX (status)

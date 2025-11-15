@@ -1,124 +1,206 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getAdminDashboardData, getAllPayments } from '../api/adminService'; // Import the API service
+import { getAdminStats, getWebsiteReachStats } from '../api/adminService'; // Import the new API services
 
 interface SummaryCard {
   title: string;
   value: number;
-  change?: number; // Change is optional as it might not always be available from backend
+  change?: number;
   icon: string;
   path: string;
 }
 
-interface DashboardData {
-  total_revenue: number;
-  admin_commission: number;
-  total_vendor_payments: number;
-  total_partner_payments: number;
-  pending_vendor_payments: number;
-  pending_partner_payments: number;
-  remaining_amount_to_pay: number;
+interface OverallStats {
+  total_users: number;
+  total_vendors: number;
+  active_vendors: number;
+  suspended_vendors: number;
+  total_drivers: number;
+  active_drivers: number;
+  total_partners: number;
+  total_vehicles: number;
+  active_vehicles: number;
   total_bookings: number;
   completed_bookings: number;
-  active_vendors: number;
-  active_partners: number;
+  cancelled_bookings: number;
+  total_revenue: number;
+  admin_commission: number;
 }
 
-// Keeping RecentActivity for now, as there's no direct backend equivalent in adminController.js
-interface RecentActivity {
+interface RecentActivityItem {
+  new_users: number;
+  new_vendors: number;
+  new_bookings: number;
+  completed_bookings: number;
+  revenue_7_days: number;
+}
+
+interface TopVendor {
   id: string;
-  type: 'booking' | 'user' | 'vendor' | 'payment';
-  description: string;
-  time: string;
-  status: 'success' | 'pending' | 'failed';
+  name: string;
+  email: string;
+  star_rating: number;
+  total_bookings: number;
+  completed_bookings: number;
+  total_earnings: number;
+}
+
+interface AdminStatsData {
+  overall: OverallStats;
+  recent_activity: RecentActivityItem;
+  top_vendors: TopVendor[];
+}
+
+interface WebsiteReachData {
+  period: string;
+  total_users: number;
+  new_users_in_period: number;
+  verified_users: {
+    total: number;
+    phone_verified: number;
+    profile_completed: number;
+  };
+  vendors: {
+    total: number;
+    active_vendors: number;
+    suspended_vendors: number;
+    new_this_month: number;
+  };
+  drivers: {
+    total: number;
+    active_drivers: number;
+    new_this_month: number;
+  };
+  partners: {
+    total: number;
+    verified_partners: number;
+  };
+  leads: {
+    unique_leads: number;
+    total_leads: number;
+  };
+  user_growth: Array<{
+    month: string;
+    month_name: string;
+    new_users: number;
+  }>;
 }
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [summaryCards, setSummaryCards] = useState<SummaryCard[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]); // Will map from backend data
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // TODO: Replace with actual token from authentication context
-        const token = localStorage.getItem('marcocabs_admin_token'); 
-        if(!token){
+        const token = localStorage.getItem('marcocabs_admin_token');
+        if (!token) {
           throw new Error('No authentication token found');
         }
-        const data: DashboardData = await getAdminDashboardData(token);
+
+        const adminStats: AdminStatsData = await getAdminStats(token);
+        const websiteReach: WebsiteReachData = await getWebsiteReachStats(token, 'month'); // Fetch monthly reach stats
+
+        const { overall, recent_activity, top_vendors } = adminStats;
 
         setSummaryCards([
           {
             title: 'Total Revenue',
-            value: data.total_revenue,
+            value: overall.total_revenue,
             icon: '💰',
-            path: '/payments'
+            path: '/payments',
           },
           {
             title: 'Admin Commission',
-            value: data.admin_commission,
+            value: overall.admin_commission,
             icon: '💼',
-            path: '/payments'
+            path: '/payments',
           },
           {
             title: 'Total Bookings',
-            value: data.total_bookings,
+            value: overall.total_bookings,
             icon: '📅',
-            path: '/bookings'
+            path: '/bookings',
           },
           {
             title: 'Completed Bookings',
-            value: data.completed_bookings,
+            value: overall.completed_bookings,
             icon: '✅',
-            path: '/bookings'
+            path: '/bookings',
           },
           {
             title: 'Active Vendors',
-            value: data.active_vendors,
+            value: overall.active_vendors,
             icon: '🏢',
-            path: '/vendors'
+            path: '/vendors',
           },
           {
-            title: 'Active Partners',
-            value: data.active_partners,
+            title: 'Active Drivers',
+            value: overall.active_drivers,
             icon: '🤝',
-            path: '/partners'
+            path: '/drivers',
           },
           {
-            title: 'Pending Vendor Payments',
-            value: data.pending_vendor_payments,
+            title: 'Total Users',
+            value: overall.total_users,
+            icon: '👤',
+            path: '/users',
+          },
+          {
+            title: 'New Users (This Month)',
+            value: websiteReach.new_users_in_period,
+            icon: '📈',
+            path: '/users',
+          },
+          {
+            title: 'Revenue (Last 7 Days)',
+            value: recent_activity.revenue_7_days,
             icon: '💸',
-            path: '/payments/pending-vendor'
-          },
-          {
-            title: 'Pending Partner Payments',
-            value: data.pending_partner_payments,
-            icon: '💳',
-            path: '/payments/pending-partner'
-          },
-          {
-            title: 'Remaining Amount to Pay',
-            value: data.remaining_amount_to_pay,
-            icon: '💲',
-            path: '/payments'
+            path: '/payments',
           },
         ]);
 
-        // Fetch recent payments for activity feed
-        const paymentsData = await getAllPayments(token, 1, 5); // Get latest 5 payments
-        const mappedRecentActivity: RecentActivity[] = paymentsData.payments.map((payment: any) => ({
-          id: payment.id,
-          type: payment.vendor_id ? 'payment' : 'payment', // Could be more specific if booking info is available
-          description: payment.vendor_name 
-            ? `Payment to vendor ${payment.vendor_name} for ₹${payment.amount.toLocaleString()}`
-            : payment.partner_name
-            ? `Payment to partner ${payment.partner_name} for ₹${payment.amount.toLocaleString()}`
-            : `Payment of ₹${payment.amount.toLocaleString()}`,
-          time: new Date(payment.created_at).toLocaleString(), // Format date nicely
-          status: payment.status === 'completed' ? 'success' : 'pending', // Assuming 'completed' is success
-        }));
+        // Map recent activity from adminStats.recent_activity
+        const mappedRecentActivity: any[] = [
+          {
+            id: 'new_users',
+            type: 'user',
+            description: `${recent_activity.new_users} new users registered`,
+            time: 'Last 7 days',
+            status: 'success',
+          },
+          {
+            id: 'new_vendors',
+            type: 'vendor',
+            description: `${recent_activity.new_vendors} new vendors joined`,
+            time: 'Last 7 days',
+            status: 'success',
+          },
+          {
+            id: 'new_bookings',
+            type: 'booking',
+            description: `${recent_activity.new_bookings} new bookings created`,
+            time: 'Last 7 days',
+            status: 'success',
+          },
+          {
+            id: 'completed_bookings',
+            type: 'booking',
+            description: `${recent_activity.completed_bookings} bookings completed`,
+            time: 'Last 7 days',
+            status: 'success',
+          },
+          // Add top vendors as recent activity for now, or create a separate section
+          ...top_vendors.slice(0, 3).map((vendor) => ({
+            id: vendor.id,
+            type: 'vendor',
+            description: `Top Vendor: ${vendor.name} (${vendor.total_bookings} bookings, ₹${vendor.total_earnings.toLocaleString()})`,
+            time: 'Overall',
+            status: 'success',
+          })),
+        ];
         setRecentActivity(mappedRecentActivity);
 
       } catch (err: any) {
@@ -149,7 +231,7 @@ const Dashboard = () => {
     return (
       <div className="animate-pulse">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {[...Array(9)].map((_, i) => ( // Adjusted to 9 cards
+          {[...Array(9)].map((_, i) => (
             <div key={i} className="bg-white rounded-lg p-6 shadow-sm">
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
               <div className="h-8 bg-gray-300 rounded mb-2"></div>
@@ -182,7 +264,7 @@ const Dashboard = () => {
   return (
     <div>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6"> {/* Adjusted grid layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         {summaryCards.map((card, index) => (
           <Link
             key={index}
@@ -191,7 +273,7 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <span className="text-2xl">{card.icon}</span>
-              {card.change !== undefined && ( // Only show change if available
+              {card.change !== undefined && (
                 <span className={`text-sm font-medium ${
                   card.change >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
 import { useSearch } from '../context/SearchContext';
+import { getAllDrivers, toggleDriverStatus } from '../api/adminService'; // Import API services
 
 interface Driver {
   id: string;
@@ -8,109 +9,188 @@ interface Driver {
   name: string;
   phone: string;
   address: string;
-  license: string;
-  is_active: number;
-  vehicle_id: string;
+  dl_number: string; // Driver's License Number
+  dl_data: string; // JSON string of DL data
+  is_active: number; // 0 or 1
+  vehicle_id: string | null;
   vendor_name: string;
-  vehicle_info: string;
+  vendor_email: string;
+  vendor_phone: string;
+  vehicle_model: string | null;
+  vehicle_registration: string | null;
+  total_bookings: number;
   created_at: string;
 }
 
-// Dummy driver data
-const dummyDrivers: Driver[] = [
-  {
-    id: '1',
-    vendor_id: 'vendor001',
-    name: 'Mike Johnson',
-    phone: '9876543210',
-    address: '123 Street, Delhi',
-    license: 'DL123456789',
-    is_active: 1,
-    vehicle_id: 'vehicle001',
-    vendor_name: 'Satyam Transport',
-    vehicle_info: 'Toyota Innova (DL01AB1234)',
-    created_at: '2024-01-15T00:00:00Z',
-  },
-  {
-    id: '2',
-    vendor_id: 'vendor002',
-    name: 'Aman Verma',
-    phone: '9876500000',
-    address: 'MG Road, Mumbai',
-    license: 'MH456789123',
-    is_active: 0,
-    vehicle_id: 'vehicle002',
-    vendor_name: 'SpeedX Services',
-    vehicle_info: 'Maruti Swift (MH12XY5678)',
-    created_at: '2024-03-10T00:00:00Z',
-  },
-  {
-    id: '3',
-    vendor_id: 'vendor003',
-    name: 'Priya Sen',
-    phone: '9876000000',
-    address: 'Salt Lake, Kolkata',
-    license: 'WB789654321',
-    is_active: 1,
-    vehicle_id: 'vehicle003',
-    vendor_name: 'GoFast Riders',
-    vehicle_info: 'Hyundai Aura (WB34YZ4321)',
-    created_at: '2024-04-05T00:00:00Z',
-  },
-];
-
-const columns = [
-  { id: 'name', label: 'Name', minWidth: 170 },
-  { id: 'phone', label: 'Phone', minWidth: 120 },
-  { id: 'vendor_name', label: 'Vendor', minWidth: 170 },
-  { id: 'vehicle_info', label: 'Assigned Vehicle', minWidth: 200 },
-  { id: 'license', label: 'License No', minWidth: 120 },
-  {
-    id: 'is_active',
-    label: 'Status',
-    minWidth: 100,
-    format: (value: number) => (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}
-      >
-        {value ? 'Active' : 'Inactive'}
-      </span>
-    ),
-  },
-  {
-    id: 'created_at',
-    label: 'Added On',
-    minWidth: 170,
-    format: (value: string) => new Date(value).toLocaleDateString(),
-  },
-];
+interface Column {
+  id: string;
+  label: string;
+  minWidth?: number;
+  format?: (value: any, row?: any) => React.ReactNode;
+}
 
 const Drivers: React.FC = () => {
   const { query } = useSearch();
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [filteredDrivers, setFilteredDrivers] = useState<Driver[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    per_page: 10,
+    total: 0,
+    total_pages: 1,
+  });
 
-  const [data, setData] = useState<Driver[]>(dummyDrivers);
-  const [filtered, setFiltered] = useState<Driver[]>([]);
-  const [isLoading] = useState(false);
+  const token = localStorage.getItem('marcocabs_admin_token');
+
+  const fetchDrivers = useCallback(async (page: number = 1, limit: number = 10, status?: string, vendor_id?: string, search?: string) => {
+    if (!token) {
+      setError('No authentication token found');
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getAllDrivers(token, page, limit, status, vendor_id, search);
+      setDrivers(response.drivers);
+      setPagination(response.pagination);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch drivers');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (!data) return;
+    fetchDrivers(pagination.current_page, pagination.per_page, undefined, undefined, query);
+  }, [fetchDrivers, pagination.current_page, pagination.per_page, query]);
+
+  useEffect(() => {
+    if (!drivers) return;
     const lower = query.toLowerCase();
-    setFiltered(
-      data.filter(
+    setFilteredDrivers(
+      drivers.filter(
         (d) =>
           d.name.toLowerCase().includes(lower) ||
           d.phone.toLowerCase().includes(lower) ||
           d.vendor_name.toLowerCase().includes(lower) ||
-          d.vehicle_info.toLowerCase().includes(lower)
+          d.dl_number.toLowerCase().includes(lower) ||
+          (d.vehicle_model?.toLowerCase().includes(lower)) ||
+          (d.is_active ? 'active' : 'inactive').includes(lower)
       )
     );
-  }, [query, data]);
+  }, [query, drivers]);
+
+  const handlePageChange = (newPage: number) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handleToggleStatus = async (id: string, currentStatus: number) => {
+    if (!token) {
+      setError('No authentication token found');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const newStatus = currentStatus === 1 ? false : true;
+      await toggleDriverStatus(token, id, newStatus);
+      alert(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      fetchDrivers(pagination.current_page, pagination.per_page, undefined, undefined, query); // Refresh data
+    } catch (err: any) {
+      setError(err.message || 'Failed to update driver status');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewDriver = (id: string) => {
+    // Navigate to driver details page or open a modal
+    console.log('View driver:', id);
+  };
 
   const handleExport = () => {
     // optional export logic
+    console.log('Exporting drivers...');
   };
+
+  const columns: Column[] = [
+    { id: 'name', label: 'Name', minWidth: 170 },
+    { id: 'phone', label: 'Phone', minWidth: 120 },
+    { id: 'vendor_name', label: 'Vendor', minWidth: 170 },
+    {
+      id: 'vehicle_model',
+      label: 'Assigned Vehicle',
+      minWidth: 200,
+      format: (value: string | null, row: Driver) =>
+        value ? `${value} (${row.vehicle_registration})` : 'N/A',
+    },
+    { id: 'dl_number', label: 'License No', minWidth: 120 },
+    {
+      id: 'is_active',
+      label: 'Status',
+      minWidth: 100,
+      format: (value: number) => (
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      id: 'created_at',
+      label: 'Added On',
+      minWidth: 170,
+      format: (value: string) => new Date(value).toLocaleDateString(),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      minWidth: 100,
+      format: (_: any, row: Driver) => (
+        <div className="flex space-x-2">
+          <button
+            className="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-colors duration-200"
+            onClick={() => handleViewDriver(row.id)}
+            title="View Details"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+          <button
+            className={`p-1.5 rounded-lg transition-colors duration-200 ${
+              row.is_active === 1
+                ? 'text-red-600 hover:text-white hover:bg-red-600'
+                : 'text-green-600 hover:text-white hover:bg-green-600'
+            }`}
+            onClick={() => handleToggleStatus(row.id, row.is_active)}
+            title={row.is_active === 1 ? 'Deactivate Driver' : 'Activate Driver'}
+          >
+            {row.is_active === 1 ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const totalActiveDrivers = drivers.filter((d) => d.is_active === 1).length;
+  const totalInactiveDrivers = drivers.filter((d) => d.is_active === 0).length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -124,7 +204,7 @@ const Drivers: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => {}}
+            onClick={() => {}} // TODO: Implement Add Driver functionality
             className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
           >
             <svg
@@ -166,7 +246,7 @@ const Drivers: React.FC = () => {
             </div>
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Drivers</p>
-              <p className="text-2xl font-bold mt-1">{filtered?.length || 0}</p>
+              <p className="text-2xl font-bold mt-1">{pagination.total || 0}</p>
             </div>
           </div>
         </div>
@@ -191,7 +271,7 @@ const Drivers: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Active Drivers</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter((d) => d.is_active === 1).length || 0}
+                {totalActiveDrivers}
               </p>
             </div>
           </div>
@@ -217,21 +297,25 @@ const Drivers: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Inactive Drivers</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter((d) => d.is_active === 0).length || 0}
+                {totalInactiveDrivers}
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">
         <Table
           columns={columns}
-          data={filtered || []}
+          data={filteredDrivers}
           isLoading={isLoading}
           title="Driver List"
           onExport={handleExport}
+          pagination={pagination}
+          onPageChange={handlePageChange}
         />
       </div>
     </div>

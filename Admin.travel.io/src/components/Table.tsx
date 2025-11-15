@@ -7,12 +7,21 @@ interface Column {
   format?: (value: any, row?: any) => React.ReactNode;
 }
 
+interface PaginationProps {
+  current_page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
 interface TableProps {
   columns: Column[];
   data: any[];
   isLoading?: boolean;
   title?: string;
   onExport?: () => void;
+  pagination?: PaginationProps; 
+  onPageChange?: (newPage: number) => void; 
 }
 
 const Table: React.FC<TableProps> = ({
@@ -21,14 +30,19 @@ const Table: React.FC<TableProps> = ({
   isLoading = false,
   title,
   onExport,
+  pagination,
+  onPageChange,
 }) => {
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: 'asc' | 'desc';
   } | null>(null);
-  // const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
+
+  // Determine pagination values based on props or internal defaults
+  const currentPage = pagination?.current_page || 1;
+  const rowsPerPage = pagination?.per_page || 10;
+  const totalItems = pagination?.total || data.length;
+  const totalPages = pagination?.total_pages || Math.ceil(data.length / rowsPerPage);
 
   // Sorting logic
   const sortedData = React.useMemo(() => {
@@ -53,23 +67,9 @@ const Table: React.FC<TableProps> = ({
     });
   }, [data, sortConfig]);
 
-  // // Search logic
-  // const filteredData = React.useMemo(() => {
-  //   if (!searchTerm) return sortedData;
-
-  //   return sortedData.filter((row) =>
-  //     Object.values(row).some(
-  //       (value) =>
-  //         value &&
-  //         value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-  //     )
-  //   );
-  // }, [sortedData, searchTerm]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(data.length / rowsPerPage);
+  // Pagination logic (now uses data directly, as filtering is handled externally)
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = data.slice(
+  const paginatedData = sortedData.slice(
     startIndex,
     startIndex + rowsPerPage
   );
@@ -86,8 +86,14 @@ const Table: React.FC<TableProps> = ({
     });
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleInternalPageChange = (page: number) => {
+    if (onPageChange) {
+      onPageChange(page);
+    } else {
+      // If no external handler, component manages its own page state (though not ideal with external data)
+      // For now, we'll just log a warning if this happens without an external handler
+      console.warn("Table component is trying to change page internally without an 'onPageChange' prop. Ensure pagination is handled externally.");
+    }
   };
 
   if (isLoading) {
@@ -110,28 +116,6 @@ const Table: React.FC<TableProps> = ({
       <div className="p-6 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          {/* <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-            />
-            <svg
-              className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div> */}
         </div>
       </div>
 
@@ -224,12 +208,12 @@ const Table: React.FC<TableProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
           <div className="text-sm text-gray-500 text-center sm:text-left">
             Showing {startIndex + 1} to{' '}
-            {Math.min(startIndex + rowsPerPage, data.length)} of{' '}
-            {data.length} results
+            {Math.min(startIndex + rowsPerPage, totalItems)} of{' '}
+            {totalItems} results
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
+              onClick={() => handleInternalPageChange(currentPage - 1)}
               disabled={currentPage === 1}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 ${
                 currentPage === 1
@@ -267,7 +251,7 @@ const Table: React.FC<TableProps> = ({
               return (
                 <button
                   key={page}
-                  onClick={() => handlePageChange(page)}
+                  onClick={() => handleInternalPageChange(page)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 ${
                     isCurrentPage
                       ? 'bg-red-600 text-white shadow-sm'
@@ -279,7 +263,7 @@ const Table: React.FC<TableProps> = ({
               );
             })}
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
+              onClick={() => handleInternalPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200 ${
                 currentPage === totalPages
@@ -296,4 +280,4 @@ const Table: React.FC<TableProps> = ({
   );
 };
 
-export default Table; 
+export default Table;
