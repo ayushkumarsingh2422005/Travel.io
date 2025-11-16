@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
-import useData from '../hooks/useData';
 import { useSearch } from '../context/SearchContext';
+import { getAdminStats } from '../api/adminService'; // Import getAdminStats
 
 interface Booking {
   id: string;
@@ -16,6 +16,7 @@ interface Booking {
   vehicleType: string;
 }
 
+// Dummy data for the table, as backend changes are not allowed for a generic "all bookings" endpoint
 const dummyBookings: Booking[] = [
   {
     id: 'b1',
@@ -79,7 +80,6 @@ const dummyBookings: Booking[] = [
   },
 ];
 
-
 interface Column {
   id: string;
   label: string;
@@ -88,32 +88,63 @@ interface Column {
 }
 
 const Bookings: React.FC = () => {
-  // const { data, isLoading } = useData<Booking[]>('/api/bookings');
-
   const { query } = useSearch();
-  // const { data, isLoading } = useData<User[]>('/api/users');
-  const [data, setData] = useState<Booking[]>(dummyBookings);
-  const [isLoading, setIsLoading] = useState(false);
+  const [bookingsData, setBookingsData] = useState<Booking[]>(dummyBookings);
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    total_bookings: 0,
+    completed_bookings: 0,
+    cancelled_bookings: 0,
+  });
 
-  const [filtered, setFiltered] = useState<Booking[]>([]);
+  const token = localStorage.getItem('marcocabs_admin_token');
+
+  const fetchBookingStats = useCallback(async () => {
+    if (!token) {
+      setError('No authentication token found');
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const adminStats = await getAdminStats(token);
+      setStats({
+        total_bookings: adminStats.overall.total_bookings,
+        completed_bookings: adminStats.overall.completed_bookings,
+        cancelled_bookings: adminStats.overall.cancelled_bookings,
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch booking statistics');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (!data) return;
+    fetchBookingStats();
+  }, [fetchBookingStats]);
+
+  useEffect(() => {
+    if (!bookingsData) return;
     const lower = query.toLowerCase();
-    setFiltered(
-      data.filter(
-        (u) =>
-          u.driverName.toLowerCase().includes(lower) ||
-          u.dropLocation.toLowerCase().includes(lower) ||
-          u.pickupLocation.toLowerCase().includes(lower) ||
-          u.vehicleType.toLowerCase().includes(lower) ||
-          u.status.toLowerCase().includes(lower) ||
-          u.amount.toString().includes(lower) ||
-          u.date.toLowerCase().includes(lower) ||
-          u.userName.toLowerCase().includes(lower)
+    setFilteredBookings(
+      bookingsData.filter(
+        (b) =>
+          b.driverName.toLowerCase().includes(lower) ||
+          b.dropLocation.toLowerCase().includes(lower) ||
+          b.pickupLocation.toLowerCase().includes(lower) ||
+          b.vehicleType.toLowerCase().includes(lower) ||
+          b.status.toLowerCase().includes(lower) ||
+          b.amount.toString().includes(lower) ||
+          b.date.toLowerCase().includes(lower) ||
+          b.userName.toLowerCase().includes(lower)
       )
     );
-  }, [query, data]);
+  }, [query, bookingsData]);
 
   const columns: Column[] = [
     { id: 'id', label: 'Booking ID', minWidth: 130 },
@@ -156,93 +187,12 @@ const Bookings: React.FC = () => {
       minWidth: 170,
       format: (value: string) => new Date(value).toLocaleString(),
     },
-    {
-      id: 'actions',
-      label: 'Actions',
-      minWidth: 100,
-      format: (_: any, row: Booking) => (
-        <div className="flex space-x-2">
-          <button 
-            className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleViewBooking(row.id)}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-          </button>
-          {row.status === 'pending' && (
-            <>
-              <button 
-                className="p-1.5 text-green-600 hover:text-white hover:bg-green-600 rounded-lg transition-colors duration-200"
-                onClick={() => handleUpdateStatus(row.id, 'confirmed')}
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </button>
-              <button 
-                className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-colors duration-200"
-                onClick={() => handleUpdateStatus(row.id, 'cancelled')}
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-      ),
-    },
+    // Removed actions column as there's no backend API for generic booking actions
   ];
-
-  const handleViewBooking = (id: string) => {
-    // View booking details
-    console.log('View booking:', id);
-  };
-
-  const handleUpdateStatus = (id: string, status: string) => {
-    // Update booking status
-    console.log('Update booking status:', id, status);
-  };
 
   const handleExport = () => {
     // Export logic here
+    console.log('Exporting bookings...');
   };
 
   return (
@@ -300,7 +250,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Bookings</p>
               <p className="text-2xl font-bold mt-1">
-                {filtered?.length || 0}
+                {stats.total_bookings.toLocaleString()}
               </p>
             </div>
           </div>
@@ -326,7 +276,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Pending</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter(booking => booking.status === 'pending').length || 0}
+                {stats.total_bookings - stats.completed_bookings - stats.cancelled_bookings}
               </p>
             </div>
           </div>
@@ -352,7 +302,7 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Completed</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter(booking => booking.status === 'completed').length || 0}
+                {stats.completed_bookings.toLocaleString()}
               </p>
             </div>
           </div>
@@ -378,18 +328,20 @@ const Bookings: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Cancelled</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter(booking => booking.status === 'cancelled').length || 0}
+                {stats.cancelled_bookings.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <Table
           columns={columns}
-          data={filtered || []}
+          data={filteredBookings || []}
           isLoading={isLoading}
           title="Booking List"
           onExport={handleExport}
@@ -399,4 +351,4 @@ const Bookings: React.FC = () => {
   );
 };
 
-export default Bookings; 
+export default Bookings;

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
+import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
-import { getAllVendors, toggleVendorStatus } from '../api/adminService'; // Import API services
+import { getAllVendors, toggleVendorStatus, applyVendorPenalty, suspendVendor } from '../api/adminService'; // Import API services
 
 interface Vendor {
   id: string;
@@ -48,6 +49,14 @@ const Vendors: React.FC = () => {
     total: 0,
     total_pages: 1,
   });
+
+  // State for modals
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [isPenaltyModalOpen, setIsPenaltyModalOpen] = useState(false);
+  const [penaltyDetails, setPenaltyDetails] = useState({ amount: '', reason: '' });
+
 
   const token = localStorage.getItem('marcocabs_admin_token');
 
@@ -99,9 +108,87 @@ const Vendors: React.FC = () => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
   };
 
-  const handleViewVendor = (id: string) => {
-    // Navigate to vendor details page or open a modal
-    console.log('View vendor:', id);
+  const handleViewVendor = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedVendor(null);
+  };
+
+  const handleOpenDeactivateModal = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsDeactivateModalOpen(true);
+  };
+
+  const handleCloseDeactivateModal = () => {
+    setIsDeactivateModalOpen(false);
+    setSelectedVendor(null);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!token || !selectedVendor) {
+      setError('No authentication token found or vendor not selected');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const newStatus = selectedVendor.is_active === 1 ? false : true;
+      await toggleVendorStatus(token, selectedVendor.id, newStatus);
+      alert(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+      handleCloseDeactivateModal();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update vendor status');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenPenaltyModal = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setIsPenaltyModalOpen(true);
+    setPenaltyDetails({ amount: '', reason: '' });
+  };
+
+  const handleClosePenaltyModal = () => {
+    setIsPenaltyModalOpen(false);
+    setSelectedVendor(null);
+    setPenaltyDetails({ amount: '', reason: '' });
+  };
+
+  const handlePenaltyInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setPenaltyDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleConfirmApplyPenalty = async () => {
+    if (!token || !selectedVendor) {
+      setError('No authentication token found or vendor not selected');
+      return;
+    }
+    const penaltyAmount = parseFloat(penaltyDetails.amount);
+    const penaltyReason = penaltyDetails.reason.trim();
+
+    if (penaltyAmount > 0 && penaltyReason) {
+      setIsLoading(true);
+      try {
+        await applyVendorPenalty(token, selectedVendor.id, penaltyAmount, penaltyReason);
+        alert('Penalty applied successfully!');
+        fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+        handleClosePenaltyModal();
+      } catch (err: any) {
+        setError(err.message || 'Failed to apply penalty');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      alert('Penalty amount must be greater than 0 and reason is required.');
+    }
   };
 
   const handleToggleStatus = async (id: string, currentStatus: number) => {
@@ -123,14 +210,68 @@ const Vendors: React.FC = () => {
     }
   };
 
-  const handleApplyPenalty = (id: string) => {
-    // Implement modal or navigation for applying penalty
-    console.log('Apply penalty to vendor:', id);
+  const handleApplyPenalty = async (id: string) => {
+    if (!token) {
+      setError('No authentication token found');
+      return;
+    }
+    const penaltyAmount = parseFloat(prompt('Enter penalty amount:') || '0');
+    const penaltyReason = prompt('Enter penalty reason:');
+
+    if (penaltyAmount > 0 && penaltyReason) {
+      setIsLoading(true);
+      try {
+        await applyVendorPenalty(token, id, penaltyAmount, penaltyReason);
+        alert('Penalty applied successfully!');
+        fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+      } catch (err: any) {
+        setError(err.message || 'Failed to apply penalty');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      alert('Penalty amount must be greater than 0 and reason is required.');
+    }
   };
 
-  const handleSuspendVendor = (id: string, currentSuspendedStatus: number) => {
-    // Implement modal or navigation for suspending/unsuspending vendor
-    console.log('Suspend/Unsuspend vendor:', id, currentSuspendedStatus);
+  const handleSuspendVendor = async (id: string, currentSuspendedStatus: number) => {
+    if (!token) {
+      setError('No authentication token found');
+      return;
+    }
+    const newSuspendedStatus = currentSuspendedStatus === 1 ? false : true;
+    let suspensionReason: string | undefined;
+    let suspensionUntil: string | undefined;
+
+    if (newSuspendedStatus) {
+      suspensionReason = prompt('Enter suspension reason:') || undefined;
+      if (!suspensionReason) {
+        alert('Suspension reason is required.');
+        return;
+      }
+      const untilDateInput = prompt('Enter suspension end date (YYYY-MM-DD, optional:)');
+      if (untilDateInput) {
+        const date = new Date(untilDateInput);
+        if (!isNaN(date.getTime())) { // Check if date is valid
+          suspensionUntil = date.toISOString();
+        } else {
+          alert('Invalid date format. Suspension until date will not be set.');
+        }
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      await suspendVendor(token, id, newSuspendedStatus, suspensionReason, suspensionUntil);
+      alert(`Vendor ${newSuspendedStatus ? 'suspended' : 'unsuspended'} successfully!`);
+      fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+    } catch (err: any) {
+      setError(err.message || 'Failed to update suspension status');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -238,7 +379,9 @@ const Vendors: React.FC = () => {
               />
             </svg>
           ))}
-          <span className="ml-1 text-sm text-gray-600">{value.toFixed(1)}</span>
+          <span className="ml-1 text-sm text-gray-600">
+            {typeof value === 'number' ? value.toFixed(1) : 'N/A'}
+          </span>
         </div>
       ),
     },
@@ -256,7 +399,7 @@ const Vendors: React.FC = () => {
         <div className="flex space-x-2">
           <button
             className="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleViewVendor(row.id)}
+            onClick={() => handleViewVendor(row)}
             title="View Details"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +413,7 @@ const Vendors: React.FC = () => {
                 ? 'text-red-600 hover:text-white hover:bg-red-600'
                 : 'text-green-600 hover:text-white hover:bg-green-600'
             }`}
-            onClick={() => handleToggleStatus(row.id, row.is_active)}
+            onClick={() => handleOpenDeactivateModal(row)}
             title={row.is_active === 1 ? 'Deactivate Vendor' : 'Activate Vendor'}
           >
             {row.is_active === 1 ? (
@@ -285,7 +428,7 @@ const Vendors: React.FC = () => {
           </button>
           <button
             className="p-1.5 text-yellow-600 hover:text-white hover:bg-yellow-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleApplyPenalty(row.id)}
+            onClick={() => handleOpenPenaltyModal(row)}
             title="Apply Penalty"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,6 +620,120 @@ const Vendors: React.FC = () => {
           onPageChange={handlePageChange}
         />
       </div>
+
+      {/* View Vendor Details Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={handleCloseViewModal} title="Vendor Details" size="lg">
+        {selectedVendor && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {selectedVendor.name}</p>
+              <p><strong>Email:</strong> {selectedVendor.email}</p>
+              <p><strong>Phone:</strong> {selectedVendor.phone}</p>
+              <p><strong>Status:</strong> {selectedVendor.suspended_by_admin ? 'Suspended' : (selectedVendor.is_active ? 'Active' : 'Inactive')}</p>
+              <p><strong>Profile Completed:</strong> {selectedVendor.is_profile_completed ? 'Yes' : 'No'}</p>
+              <p><strong>Phone Verified:</strong> {selectedVendor.is_phone_verified ? 'Yes' : 'No'}</p>
+              <p><strong>Email Verified:</strong> {selectedVendor.is_email_verified ? 'Yes' : 'No'}</p>
+              <p><strong>Star Rating:</strong> {typeof selectedVendor.star_rating === 'number' ? selectedVendor.star_rating.toFixed(1) : 'N/A'}</p>
+              <p><strong>Joined Date:</strong> {new Date(selectedVendor.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="space-y-2">
+              <p><strong>Total Earnings:</strong> ₹{selectedVendor.total_earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Current Balance:</strong> ₹{selectedVendor.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Total Penalties:</strong> ₹{selectedVendor.total_penalties.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              {selectedVendor.penalty_reason && <p><strong>Last Penalty Reason:</strong> {selectedVendor.penalty_reason}</p>}
+              <p><strong>Total Vehicles:</strong> {selectedVendor.total_vehicles}</p>
+              <p><strong>Total Drivers:</strong> {selectedVendor.total_drivers}</p>
+              <p><strong>Total Bookings:</strong> {selectedVendor.total_bookings}</p>
+              <p><strong>Completed Bookings:</strong> {selectedVendor.completed_bookings}</p>
+              {selectedVendor.suspended_by_admin === 1 && (
+                <>
+                  <p><strong>Suspension Reason:</strong> {selectedVendor.suspension_reason}</p>
+                  <p><strong>Suspension Date:</strong> {selectedVendor.suspension_date ? new Date(selectedVendor.suspension_date).toLocaleDateString() : 'N/A'}</p>
+                  <p><strong>Suspension Until:</strong> {selectedVendor.suspension_until ? new Date(selectedVendor.suspension_until).toLocaleDateString() : 'N/A'}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Deactivate/Activate Vendor Modal */}
+      <Modal isOpen={isDeactivateModalOpen} onClose={handleCloseDeactivateModal} title={selectedVendor?.is_active === 1 ? 'Deactivate Vendor' : 'Activate Vendor'} size="sm">
+        {selectedVendor && (
+          <div className="text-center">
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to {selectedVendor.is_active === 1 ? 'deactivate' : 'activate'} vendor <strong>{selectedVendor.name}</strong>?
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleCloseDeactivateModal}
+              >
+                Cancel
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${
+                  selectedVendor.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                }`}
+                onClick={handleConfirmToggleStatus}
+              >
+                {selectedVendor.is_active === 1 ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Apply Penalty Modal */}
+      <Modal isOpen={isPenaltyModalOpen} onClose={handleClosePenaltyModal} title="Apply Penalty" size="md">
+        {selectedVendor && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="penaltyAmount" className="block text-sm font-medium text-gray-700">
+                Penalty Amount (₹)
+              </label>
+              <input
+                type="number"
+                id="penaltyAmount"
+                name="amount"
+                value={penaltyDetails.amount}
+                onChange={handlePenaltyInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                placeholder="e.g., 500"
+                min="0"
+              />
+            </div>
+            <div>
+              <label htmlFor="penaltyReason" className="block text-sm font-medium text-gray-700">
+                Reason for Penalty
+              </label>
+              <textarea
+                id="penaltyReason"
+                name="reason"
+                value={penaltyDetails.reason}
+                onChange={handlePenaltyInputChange}
+                rows={3}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                placeholder="e.g., Violation of terms, late delivery"
+              ></textarea>
+            </div>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleClosePenaltyModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                onClick={handleConfirmApplyPenalty}
+              >
+                Apply Penalty
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

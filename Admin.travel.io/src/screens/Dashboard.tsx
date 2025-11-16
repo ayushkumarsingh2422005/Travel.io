@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getAdminStats, getWebsiteReachStats } from '../api/adminService'; // Import the new API services
+import Modal from '../components/Modal'; // Import Modal component
+import { getAdminStats, getWebsiteReachStats, applyVendorPenalty } from '../api/adminService'; // Import the new API services
 
 interface SummaryCard {
   title: string;
@@ -86,133 +87,195 @@ interface WebsiteReachData {
   }>;
 }
 
+interface MappedRecentActivityItem {
+  id: string;
+  type: 'user' | 'vendor' | 'booking' | 'payment';
+  description: string;
+  time: string;
+  status: string;
+  vendorData?: TopVendor; // Optional vendor data for penalty modal
+}
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [summaryCards, setSummaryCards] = useState<SummaryCard[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]); // Will map from backend data
+  const [recentActivity, setRecentActivity] = useState<MappedRecentActivityItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // State for modals
+  const [isPenaltyModalOpen, setIsPenaltyModalOpen] = useState(false);
+  const [selectedVendorForPenalty, setSelectedVendorForPenalty] = useState<TopVendor | null>(null);
+  const [penaltyDetails, setPenaltyDetails] = useState({ amount: '', reason: '' });
+
+  const token = localStorage.getItem('marcocabs_admin_token');
+
+  const handleOpenPenaltyModal = (vendor: TopVendor) => {
+    setSelectedVendorForPenalty(vendor);
+    setIsPenaltyModalOpen(true);
+    setPenaltyDetails({ amount: '', reason: '' });
+  };
+
+  const handleClosePenaltyModal = () => {
+    setIsPenaltyModalOpen(false);
+    setSelectedVendorForPenalty(null);
+    setPenaltyDetails({ amount: '', reason: '' });
+  };
+
+  const handlePenaltyInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setPenaltyDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!token) {
+      setError('No authentication token found');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const adminStats: AdminStatsData = await getAdminStats(token);
+      const websiteReach: WebsiteReachData = await getWebsiteReachStats(token, 'month'); // Fetch monthly reach stats
+
+      const { overall, recent_activity, top_vendors } = adminStats;
+
+      setSummaryCards([
+        {
+          title: 'Total Revenue',
+          value: overall.total_revenue,
+          icon: '💰',
+          path: '/payments',
+        },
+        {
+          title: 'Admin Commission',
+          value: overall.admin_commission,
+          icon: '💼',
+          path: '/payments',
+        },
+        {
+          title: 'Total Bookings',
+          value: overall.total_bookings,
+          icon: '📅',
+          path: '/bookings',
+        },
+        {
+          title: 'Completed Bookings',
+          value: overall.completed_bookings,
+          icon: '✅',
+          path: '/bookings',
+        },
+        {
+          title: 'Active Vendors',
+          value: overall.active_vendors,
+          icon: '🏢',
+          path: '/vendors',
+        },
+        {
+          title: 'Active Drivers',
+          value: overall.active_drivers,
+          icon: '🤝',
+          path: '/drivers',
+        },
+        {
+          title: 'Total Users',
+          value: overall.total_users,
+          icon: '👤',
+          path: '/users',
+        },
+        {
+          title: 'New Users (This Month)',
+          value: websiteReach.new_users_in_period,
+          icon: '📈',
+          path: '/users',
+        },
+        {
+          title: 'Revenue (Last 7 Days)',
+          value: recent_activity.revenue_7_days,
+          icon: '💸',
+          path: '/payments',
+        },
+      ]);
+
+      // Map recent activity from adminStats.recent_activity
+      const mappedRecentActivity: MappedRecentActivityItem[] = [
+        {
+          id: 'new_users',
+          type: 'user',
+          description: `${recent_activity.new_users} new users registered`,
+          time: 'Last 7 days',
+          status: 'success',
+        },
+        {
+          id: 'new_vendors',
+          type: 'vendor',
+          description: `${recent_activity.new_vendors} new vendors joined`,
+          time: 'Last 7 days',
+          status: 'success',
+        },
+        {
+          id: 'new_bookings',
+          type: 'booking',
+          description: `${recent_activity.new_bookings} new bookings created`,
+          time: 'Last 7 days',
+          status: 'success',
+        },
+        {
+          id: 'completed_bookings',
+          type: 'booking',
+          description: `${recent_activity.completed_bookings} bookings completed`,
+          time: 'Last 7 days',
+          status: 'success',
+        },
+        // Add top vendors as recent activity for now, or create a separate section
+        ...top_vendors.slice(0, 3).map((vendor) => ({
+          id: vendor.id,
+          type: 'vendor' as const, // Explicitly cast to literal type
+          description: `Top Vendor: ${vendor.name} (${vendor.total_bookings} bookings, ₹${vendor.total_earnings.toLocaleString()})`,
+          time: 'Overall',
+          status: 'success',
+          vendorData: vendor, // Pass vendor data for penalty modal
+        })),
+      ];
+      setRecentActivity(mappedRecentActivity);
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch dashboard data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]); // Add token to useCallback dependencies
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleConfirmApplyPenalty = async () => {
+    if (!token || !selectedVendorForPenalty) {
+      setError('No authentication token found or vendor not selected');
+      return;
+    }
+    const penaltyAmount = parseFloat(penaltyDetails.amount);
+    const penaltyReason = penaltyDetails.reason.trim();
+
+    if (penaltyAmount > 0 && penaltyReason) {
+      setLoading(true); // Use dashboard's loading state
       try {
-        const token = localStorage.getItem('marcocabs_admin_token');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const adminStats: AdminStatsData = await getAdminStats(token);
-        const websiteReach: WebsiteReachData = await getWebsiteReachStats(token, 'month'); // Fetch monthly reach stats
-
-        const { overall, recent_activity, top_vendors } = adminStats;
-
-        setSummaryCards([
-          {
-            title: 'Total Revenue',
-            value: overall.total_revenue,
-            icon: '💰',
-            path: '/payments',
-          },
-          {
-            title: 'Admin Commission',
-            value: overall.admin_commission,
-            icon: '💼',
-            path: '/payments',
-          },
-          {
-            title: 'Total Bookings',
-            value: overall.total_bookings,
-            icon: '📅',
-            path: '/bookings',
-          },
-          {
-            title: 'Completed Bookings',
-            value: overall.completed_bookings,
-            icon: '✅',
-            path: '/bookings',
-          },
-          {
-            title: 'Active Vendors',
-            value: overall.active_vendors,
-            icon: '🏢',
-            path: '/vendors',
-          },
-          {
-            title: 'Active Drivers',
-            value: overall.active_drivers,
-            icon: '🤝',
-            path: '/drivers',
-          },
-          {
-            title: 'Total Users',
-            value: overall.total_users,
-            icon: '👤',
-            path: '/users',
-          },
-          {
-            title: 'New Users (This Month)',
-            value: websiteReach.new_users_in_period,
-            icon: '📈',
-            path: '/users',
-          },
-          {
-            title: 'Revenue (Last 7 Days)',
-            value: recent_activity.revenue_7_days,
-            icon: '💸',
-            path: '/payments',
-          },
-        ]);
-
-        // Map recent activity from adminStats.recent_activity
-        const mappedRecentActivity: any[] = [
-          {
-            id: 'new_users',
-            type: 'user',
-            description: `${recent_activity.new_users} new users registered`,
-            time: 'Last 7 days',
-            status: 'success',
-          },
-          {
-            id: 'new_vendors',
-            type: 'vendor',
-            description: `${recent_activity.new_vendors} new vendors joined`,
-            time: 'Last 7 days',
-            status: 'success',
-          },
-          {
-            id: 'new_bookings',
-            type: 'booking',
-            description: `${recent_activity.new_bookings} new bookings created`,
-            time: 'Last 7 days',
-            status: 'success',
-          },
-          {
-            id: 'completed_bookings',
-            type: 'booking',
-            description: `${recent_activity.completed_bookings} bookings completed`,
-            time: 'Last 7 days',
-            status: 'success',
-          },
-          // Add top vendors as recent activity for now, or create a separate section
-          ...top_vendors.slice(0, 3).map((vendor) => ({
-            id: vendor.id,
-            type: 'vendor',
-            description: `Top Vendor: ${vendor.name} (${vendor.total_bookings} bookings, ₹${vendor.total_earnings.toLocaleString()})`,
-            time: 'Overall',
-            status: 'success',
-          })),
-        ];
-        setRecentActivity(mappedRecentActivity);
-
+        await applyVendorPenalty(token, selectedVendorForPenalty.id, penaltyAmount, penaltyReason);
+        alert('Penalty applied successfully!');
+        fetchDashboardData(); // Call the function to refresh data
+        handleClosePenaltyModal();
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch dashboard data');
+        setError(err.message || 'Failed to apply penalty');
         console.error(err);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchDashboardData();
-  }, []);
+    } else {
+      alert('Penalty amount must be greater than 0 and reason is required.');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -307,12 +370,74 @@ const Dashboard = () => {
                   <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${getStatusColor(activity.status)}`}>
                     {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
                   </span>
+                  {activity.type === 'vendor' && activity.vendorData && (
+                    <button
+                      className="ml-2 p-1.5 text-yellow-600 hover:text-white hover:bg-yellow-600 rounded-lg transition-colors duration-200"
+                      onClick={() => handleOpenPenaltyModal(activity.vendorData as TopVendor)}
+                      title="Apply Penalty"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Apply Penalty Modal (for Dashboard) */}
+      <Modal isOpen={isPenaltyModalOpen} onClose={handleClosePenaltyModal} title="Apply Penalty" size="md">
+        {selectedVendorForPenalty && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="penaltyAmount" className="block text-sm font-medium text-gray-700">
+                Penalty Amount (₹)
+              </label>
+              <input
+                type="number"
+                id="penaltyAmount"
+                name="amount"
+                value={penaltyDetails.amount}
+                onChange={handlePenaltyInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                placeholder="e.g., 500"
+                min="0"
+              />
+            </div>
+            <div>
+              <label htmlFor="penaltyReason" className="block text-sm font-medium text-gray-700">
+                Reason for Penalty
+              </label>
+              <textarea
+                id="penaltyReason"
+                name="reason"
+                value={penaltyDetails.reason}
+                onChange={handlePenaltyInputChange}
+                rows={3}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                placeholder="e.g., Violation of terms, late delivery"
+              ></textarea>
+            </div>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleClosePenaltyModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                onClick={handleConfirmApplyPenalty}
+              >
+                Apply Penalty
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

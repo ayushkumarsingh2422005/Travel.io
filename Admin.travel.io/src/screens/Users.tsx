@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
+import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
 import { getAllUsers, deleteUser } from '../api/adminService'; // Import API services
 
@@ -38,6 +39,11 @@ const Users: React.FC = () => {
     total: 0,
     total_pages: 1,
   });
+
+  // State for modals
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const token = localStorage.getItem('marcocabs_admin_token');
 
@@ -84,9 +90,43 @@ const Users: React.FC = () => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
   };
 
-  const handleViewUser = (id: string) => {
-    // Navigate to user details page or open a modal
-    console.log('View user:', id);
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleOpenDeleteModal = (user: User) => {
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!token || !selectedUser) {
+      setError('No authentication token found or user not selected');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await deleteUser(token, selectedUser.id);
+      alert('User deleted successfully!');
+      fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+      handleCloseDeleteModal();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete user');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteUser = async (id: string) => {
@@ -160,7 +200,7 @@ const Users: React.FC = () => {
         <div className="flex space-x-2">
           <button
             className="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleViewUser(row.id)}
+            onClick={() => handleViewUser(row)}
             title="View Details"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +210,7 @@ const Users: React.FC = () => {
           </button>
           <button
             className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleDeleteUser(row.id)}
+            onClick={() => handleOpenDeleteModal(row)}
             title="Delete User"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,6 +353,54 @@ const Users: React.FC = () => {
           onPageChange={handlePageChange}
         />
       </div>
+
+      {/* View User Details Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={handleCloseViewModal} title="User Details" size="lg">
+        {selectedUser && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {selectedUser.name}</p>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+              <p><strong>Phone:</strong> {selectedUser.phone}</p>
+              <p><strong>Gender:</strong> {selectedUser.gender || 'N/A'}</p>
+              <p><strong>Age:</strong> {selectedUser.age || 'N/A'}</p>
+              <p><strong>Joined Date:</strong> {new Date(selectedUser.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="space-y-2">
+              <p><strong>Phone Verified:</strong> {selectedUser.is_phone_verified ? 'Yes' : 'No'}</p>
+              <p><strong>Profile Completed:</strong> {selectedUser.is_profile_completed ? 'Yes' : 'No'}</p>
+              <p><strong>Total Bookings:</strong> {selectedUser.total_bookings}</p>
+              <p><strong>Completed Bookings:</strong> {selectedUser.completed_bookings}</p>
+              <p><strong>Total Spent:</strong> ₹{selectedUser.total_spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete User Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={handleCloseDeleteModal} title="Delete User" size="sm">
+        {selectedUser && (
+          <div className="text-center">
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to delete user <strong>{selectedUser.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleCloseDeleteModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                onClick={handleConfirmDeleteUser}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

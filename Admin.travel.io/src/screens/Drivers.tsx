@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
+import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
 import { getAllDrivers, toggleDriverStatus } from '../api/adminService'; // Import API services
 
@@ -41,6 +42,11 @@ const Drivers: React.FC = () => {
     total: 0,
     total_pages: 1,
   });
+
+  // State for modals
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
 
   const token = localStorage.getItem('marcocabs_admin_token');
 
@@ -88,28 +94,44 @@ const Drivers: React.FC = () => {
     setPagination((prev) => ({ ...prev, current_page: newPage }));
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: number) => {
-    if (!token) {
-      setError('No authentication token found');
+  const handleViewDriver = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedDriver(null);
+  };
+
+  const handleOpenDeactivateModal = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setIsDeactivateModalOpen(true);
+  };
+
+  const handleCloseDeactivateModal = () => {
+    setIsDeactivateModalOpen(false);
+    setSelectedDriver(null);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!token || !selectedDriver) {
+      setError('No authentication token found or driver not selected');
       return;
     }
     setIsLoading(true);
     try {
-      const newStatus = currentStatus === 1 ? false : true;
-      await toggleDriverStatus(token, id, newStatus);
+      const newStatus = selectedDriver.is_active === 1 ? false : true;
+      await toggleDriverStatus(token, selectedDriver.id, newStatus);
       alert(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`);
       fetchDrivers(pagination.current_page, pagination.per_page, undefined, undefined, query); // Refresh data
+      handleCloseDeactivateModal();
     } catch (err: any) {
       setError(err.message || 'Failed to update driver status');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleViewDriver = (id: string) => {
-    // Navigate to driver details page or open a modal
-    console.log('View driver:', id);
   };
 
   const handleExport = () => {
@@ -157,7 +179,7 @@ const Drivers: React.FC = () => {
         <div className="flex space-x-2">
           <button
             className="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-colors duration-200"
-            onClick={() => handleViewDriver(row.id)}
+            onClick={() => handleViewDriver(row)}
             title="View Details"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +193,7 @@ const Drivers: React.FC = () => {
                 ? 'text-red-600 hover:text-white hover:bg-red-600'
                 : 'text-green-600 hover:text-white hover:bg-green-600'
             }`}
-            onClick={() => handleToggleStatus(row.id, row.is_active)}
+            onClick={() => handleOpenDeactivateModal(row)}
             title={row.is_active === 1 ? 'Deactivate Driver' : 'Activate Driver'}
           >
             {row.is_active === 1 ? (
@@ -318,6 +340,64 @@ const Drivers: React.FC = () => {
           onPageChange={handlePageChange}
         />
       </div>
+
+      {/* View Driver Details Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={handleCloseViewModal} title="Driver Details" size="lg">
+        {selectedDriver && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {selectedDriver.name}</p>
+              <p><strong>Phone:</strong> {selectedDriver.phone}</p>
+              <p><strong>Address:</strong> {selectedDriver.address}</p>
+              <p><strong>DL Number:</strong> {selectedDriver.dl_number}</p>
+              <p><strong>Status:</strong> {selectedDriver.is_active ? 'Active' : 'Inactive'}</p>
+              <p><strong>Added On:</strong> {new Date(selectedDriver.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="space-y-2">
+              <p><strong>Vendor Name:</strong> {selectedDriver.vendor_name}</p>
+              <p><strong>Vendor Email:</strong> {selectedDriver.vendor_email}</p>
+              <p><strong>Vendor Phone:</strong> {selectedDriver.vendor_phone}</p>
+              <p><strong>Assigned Vehicle:</strong> {selectedDriver.vehicle_model || 'N/A'} ({selectedDriver.vehicle_registration || 'N/A'})</p>
+              <p><strong>Total Bookings:</strong> {selectedDriver.total_bookings}</p>
+              {selectedDriver.dl_data && (
+                <div>
+                  <strong>DL Data:</strong>
+                  <pre className="bg-gray-100 p-2 rounded-md text-xs overflow-auto max-h-32">
+                    {JSON.stringify(JSON.parse(selectedDriver.dl_data), null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Deactivate/Activate Driver Modal */}
+      <Modal isOpen={isDeactivateModalOpen} onClose={handleCloseDeactivateModal} title={selectedDriver?.is_active === 1 ? 'Deactivate Driver' : 'Activate Driver'} size="sm">
+        {selectedDriver && (
+          <div className="text-center">
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to {selectedDriver.is_active === 1 ? 'deactivate' : 'activate'} driver <strong>{selectedDriver.name}</strong>?
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleCloseDeactivateModal}
+              >
+                Cancel
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${
+                  selectedDriver.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                }`}
+                onClick={handleConfirmToggleStatus}
+              >
+                {selectedDriver.is_active === 1 ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
