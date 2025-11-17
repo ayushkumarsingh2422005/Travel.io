@@ -305,9 +305,9 @@ const payVendor = async (req, res) => {
         const paymentId = generatePaymentId();
         await db.execute(`
             INSERT INTO payments (
-                id, vendor_id, amount, status, type, created_at
-            ) VALUES (?, ?, ?, 'completed', 'withdrawal', CURRENT_TIMESTAMP)
-        `, [paymentId, vendor_id, amount]);
+                id, vendor_id, booking_id, amount, status, type, created_at
+            ) VALUES (?, ?, ?, ?, 'completed', 'withdrawal', CURRENT_TIMESTAMP)
+        `, [paymentId, vendor_id, booking_id, amount]);
         
         // Update vendor's total earnings
         await db.execute(`
@@ -521,13 +521,17 @@ const getFinancialAnalytics = async (req, res) => {
     try {
         const { period = 'month' } = req.query; // month, week, year
         
-        let dateFilter = '';
+        let bookingDateFilter = '';
+        let partnerTxnDateFilter = '';
         if (period === 'week') {
-            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+            bookingDateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+            partnerTxnDateFilter = ' AND pt.created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
         } else if (period === 'month') {
-            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+            bookingDateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+            partnerTxnDateFilter = ' AND pt.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
         } else if (period === 'year') {
-            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+            bookingDateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+            partnerTxnDateFilter = ' AND pt.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         }
         
         // Get revenue breakdown
@@ -539,7 +543,7 @@ const getFinancialAnalytics = async (req, res) => {
                 COALESCE(SUM(pt.commission_amount), 0) as partner_commissions
             FROM prevbookings pb
             LEFT JOIN partner_transactions pt ON pb.id = pt.booking_id
-            WHERE pb.status = 'completed'${dateFilter}
+            WHERE pb.status = 'completed'${bookingDateFilter}
         `);
         
         // Get monthly revenue trend (last 12 months)
@@ -566,7 +570,7 @@ const getFinancialAnalytics = async (req, res) => {
                 COALESCE(SUM(pb.price), 0) as total_earnings,
                 COALESCE(SUM(pb.price * 0.9), 0) as vendor_share
             FROM vendors v
-            LEFT JOIN prevbookings pb ON v.id = pb.vendor_id AND pb.status = 'completed'${dateFilter}
+            LEFT JOIN prevbookings pb ON v.id = pb.vendor_id AND pb.status = 'completed'${bookingDateFilter}
             GROUP BY v.id, v.name, v.email
             ORDER BY total_earnings DESC
             LIMIT 10
@@ -582,7 +586,7 @@ const getFinancialAnalytics = async (req, res) => {
                 COUNT(pt.id) as referrals_count,
                 COALESCE(SUM(pt.commission_amount), 0) as total_commission
             FROM partners p
-            LEFT JOIN partner_transactions pt ON p.id = pt.partner_id AND pt.status = 'completed'${dateFilter}
+            LEFT JOIN partner_transactions pt ON p.id = pt.partner_id AND pt.status = 'completed'${partnerTxnDateFilter}
             GROUP BY p.id, p.name, p.email, p.company_name
             ORDER BY total_commission DESC
             LIMIT 10
