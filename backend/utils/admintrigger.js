@@ -3,7 +3,6 @@ const db = require("../config/db");
 const createPaymentTriggers = async () => {
     try {
         // First, drop existing triggers one by one
-        await db.query("use cabbook;");
         await db.query("DROP TRIGGER IF EXISTS after_withdrawal_update;");
         await db.query("DROP TRIGGER IF EXISTS after_penalty_insert;");
 
@@ -16,12 +15,11 @@ const createPaymentTriggers = async () => {
                 -- Deduct amount only when withdrawal status is updated to 'completed'
                 IF NEW.type = 'withdrawal' AND NEW.status = 'completed' THEN
                 
-                    -- If vendor_id is present, update vendor's wallet balance
+                    -- If vendor_id is present, update vendor's payable amount
                     IF NEW.vendor_id IS NOT NULL THEN
                         UPDATE vendors 
-                        SET wallet_balance = wallet_balance - NEW.amount 
-                        WHERE id = NEW.vendor_id 
-                        AND wallet_balance >= NEW.amount; -- Ensure sufficient balance
+                        SET amount = GREATEST(amount - NEW.amount, 0) 
+                        WHERE id = NEW.vendor_id;
                     END IF;
 
                     -- If partner_id is present, update partner's wallet balance
@@ -43,8 +41,10 @@ const createPaymentTriggers = async () => {
             FOR EACH ROW 
             BEGIN
                 -- Deduct immediately when penalty is inserted
-                IF NEW.type = 'penalty' THEN
-                    UPDATE vendors SET wallet_balance = wallet_balance - NEW.amount WHERE id = NEW.vendor_id;
+                IF NEW.type = 'penalty' AND NEW.vendor_id IS NOT NULL THEN
+                    UPDATE vendors 
+                    SET amount = GREATEST(amount - NEW.amount, 0)
+                    WHERE id = NEW.vendor_id;
                 END IF;
             END;
         `);

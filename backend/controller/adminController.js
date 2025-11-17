@@ -6,6 +6,14 @@ const generatePaymentId = () => {
     return crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
 };
 
+const formatToMySQLDateTime = (dateInput) => {
+    if (!dateInput) return null;
+    const date = new Date(dateInput);
+    if (Number.isNaN(date.getTime())) return null;
+    const pad = (num) => num.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
 // Get admin dashboard statistics
 const getAdminDashboard = async (req, res) => {
     try {
@@ -859,12 +867,13 @@ const toggleVendorStatus = async (req, res) => {
 const applyVendorPenalty = async (req, res) => {
     try {
         const { vendorId } = req.params;
-        const { penalty_amount, penalty_reason } = req.body;
+        const { penalty_amount, penalty_reason } = req.body || {};
         
-        if (!penalty_amount || !penalty_reason) {
+        const parsedPenaltyAmount = Number(penalty_amount);
+        if (!Number.isFinite(parsedPenaltyAmount) || parsedPenaltyAmount <= 0 || !penalty_reason || penalty_reason.trim().length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Penalty amount and reason are required'
+                message: 'Valid penalty amount and reason are required'
             });
         }
         
@@ -884,7 +893,7 @@ const applyVendorPenalty = async (req, res) => {
         const vendor = vendors[0];
         
         // Deduct penalty from vendor's amount
-        const newAmount = Math.max(0, (vendor.amount || 0) - penalty_amount);
+        const newAmount = Math.max(0, (vendor.amount || 0) - parsedPenaltyAmount);
         
         // Update vendor with penalty details
         await db.execute(`
@@ -895,7 +904,7 @@ const applyVendorPenalty = async (req, res) => {
                 total_penalties = total_penalties + 1,
                 amount = ?
             WHERE id = ?
-        `, [penalty_reason, penalty_amount, newAmount, vendorId]);
+        `, [penalty_reason.trim(), parsedPenaltyAmount, newAmount, vendorId]);
         
         // Create penalty payment record
         const paymentId = generatePaymentId();
@@ -903,15 +912,15 @@ const applyVendorPenalty = async (req, res) => {
             INSERT INTO payments (
                 id, vendor_id, amount, status, type, created_at
             ) VALUES (?, ?, ?, 'completed', 'penalty', NOW())
-        `, [paymentId, vendorId, penalty_amount]);
+        `, [paymentId, vendorId, parsedPenaltyAmount]);
         
         res.status(200).json({
             success: true,
             message: 'Penalty applied to vendor successfully',
             data: {
                 vendor_id: vendorId,
-                penalty_amount,
-                penalty_reason,
+                penalty_amount: parsedPenaltyAmount,
+                penalty_reason: penalty_reason.trim(),
                 remaining_amount: newAmount,
                 payment_id: paymentId
             }
@@ -930,7 +939,7 @@ const applyVendorPenalty = async (req, res) => {
 const suspendVendor = async (req, res) => {
     try {
         const { vendorId } = req.params;
-        const { suspended, suspension_reason, suspension_until } = req.body;
+        const { suspended, suspension_reason, suspension_until } = req.body || {};
         
         if (typeof suspended !== 'boolean') {
             return res.status(400).json({
@@ -960,6 +969,14 @@ const suspendVendor = async (req, res) => {
                 });
             }
             
+            const suspensionUntilDate = formatToMySQLDateTime(suspension_until);
+            if (suspension_until && !suspensionUntilDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid suspension_until datetime format'
+                });
+            }
+
             // Suspend vendor
             await db.execute(`
                 UPDATE vendors 
@@ -969,7 +986,7 @@ const suspendVendor = async (req, res) => {
                     suspension_until = ?,
                     is_active = 0
                 WHERE id = ?
-            `, [suspension_reason, suspension_until || null, vendorId]);
+            `, [suspension_reason.trim(), suspensionUntilDate, vendorId]);
             
             // Also deactivate all their drivers
             await db.execute(
@@ -1143,7 +1160,7 @@ const getAllDrivers = async (req, res) => {
             params.push(searchParam, searchParam, searchParam);
         }
         
-        query += ' GROUP BY d.id ORDER BY d.created_at DESC';
+        query += ' GROUP BY d.id ORDER BY d.name ASC';
         
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
@@ -1522,16 +1539,16 @@ const getAnnualBookingsStats = async (req, res) => {
         // Get monthly bookings breakdown for the year
         const [monthlyStats] = await db.execute(`
             SELECT 
-                DATE_FORMAT(created_at, '%Y-%m') as month,
-                DATE_FORMAT(created_at, '%M %Y') as month_name,
+                DATE_FORMAT(pickup_date, '%Y-%m') as month,
+                DATE_FORMAT(pickup_date, '%M %Y') as month_name,
                 COUNT(*) as total_bookings,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_bookings,
                 COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
                 COALESCE(SUM(CASE WHEN status = 'completed' THEN price ELSE 0 END), 0) as total_revenue,
                 COALESCE(AVG(CASE WHEN status = 'completed' THEN price ELSE NULL END), 0) as avg_booking_value
             FROM prevbookings
-            WHERE YEAR(created_at) = ?
-            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            WHERE YEAR(pickup_date) = ?
+            GROUP BY DATE_FORMAT(pickup_date, '%Y-%m'), DATE_FORMAT(pickup_date, '%M %Y')
             ORDER BY month ASC
         `, [currentYear]);
         
@@ -1545,7 +1562,7 @@ const getAnnualBookingsStats = async (req, res) => {
                 COALESCE(AVG(CASE WHEN status = 'completed' THEN price ELSE NULL END), 0) as avg_booking_value,
                 COALESCE(SUM(CASE WHEN status = 'completed' THEN price * 0.1 ELSE 0 END), 0) as admin_commission
             FROM prevbookings
-            WHERE YEAR(created_at) = ?
+            WHERE YEAR(pickup_date) = ?
         `, [currentYear]);
         
         // Get bookings by status
@@ -1555,7 +1572,7 @@ const getAnnualBookingsStats = async (req, res) => {
                 COUNT(*) as count,
                 COALESCE(SUM(price), 0) as total_revenue
             FROM prevbookings
-            WHERE YEAR(created_at) = ?
+            WHERE YEAR(pickup_date) = ?
             GROUP BY status
         `, [currentYear]);
         
@@ -1622,12 +1639,12 @@ const getWebsiteReachStats = async (req, res) => {
             FROM vendors
         `);
         
-        // Total drivers
+        // Total drivers (driver table doesn't track timestamps, so new_this_month is approximated)
         const [totalDrivers] = await db.execute(`
             SELECT 
                 COUNT(*) as total,
                 COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_drivers,
-                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN 1 END) as new_this_month
+                0 as new_this_month
             FROM drivers
         `);
         
@@ -1656,7 +1673,7 @@ const getWebsiteReachStats = async (req, res) => {
                 COUNT(*) as new_users
             FROM users
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
             ORDER BY month ASC
         `);
         
@@ -1712,9 +1729,9 @@ const getAdminStats = async (req, res) => {
             SELECT 
                 (SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_users,
                 (SELECT COUNT(*) FROM vendors WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_vendors,
-                (SELECT COUNT(*) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_bookings,
-                (SELECT COUNT(*) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as completed_bookings,
-                (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as revenue_7_days
+                (SELECT COUNT(*) FROM prevbookings WHERE pickup_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as new_bookings,
+                (SELECT COUNT(*) FROM prevbookings WHERE pickup_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as completed_bookings,
+                (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE pickup_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as revenue_7_days
         `);
         
         // Top performing vendors
