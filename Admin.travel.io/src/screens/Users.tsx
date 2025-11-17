@@ -1,70 +1,160 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
-import useData from '../hooks/useData';
+import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
+import { getAllUsers, deleteUser } from '../api/adminService'; // Import API services
 
 interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  status: 'active' | 'inactive';
-  totalSpent: number;
-  joinedDate: string;
+  is_phone_verified: number; // 0 or 1
+  is_profile_completed: number; // 0 or 1
+  gender: string | null;
+  age: number | null;
+  amount_spent: number; // This is total_spent from backend
+  total_bookings: number;
+  completed_bookings: number;
+  total_spent: number;
+  created_at: string;
 }
 
-const dummyUsers: User[] = [
-  {
-    id: '1',
-    name: 'Satyam Tiwari',
-    email: 'satyam@example.com',
-    phone: '9876543210',
-    status: 'active',
-    totalSpent: 10250,
-    joinedDate: '2024-02-10T00:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Aman Gupta',
-    email: 'aman@example.com',
-    phone: '9876500000',
-    status: 'inactive',
-    totalSpent: 5500,
-    joinedDate: '2023-11-12T00:00:00Z',
-  },
-  {
-    id: '3',
-    name: 'Priya Sharma',
-    email: 'priya@example.com',
-    phone: '9876000000',
-    status: 'active',
-    totalSpent: 7800,
-    joinedDate: '2023-08-01T00:00:00Z',
-  },
-];
+interface Column {
+  id: string;
+  label: string;
+  minWidth?: number;
+  format?: (value: any, row?: any) => React.ReactNode;
+}
 
 const Users: React.FC = () => {
   const { query } = useSearch();
-  // const { data, isLoading } = useData<User[]>('/api/users');
-  const [data, setData] = useState<User[]>(dummyUsers);
-  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    per_page: 10,
+    total: 0,
+    total_pages: 1,
+  });
 
-  const [filtered, setFiltered] = useState<User[]>([]);
+  // State for modals
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const token = localStorage.getItem('marcocabs_admin_token');
+
+  const fetchUsers = useCallback(async (page: number = 1, limit: number = 10, verified?: 'phone' | 'profile', search?: string) => {
+    if (!token) {
+      setError('No authentication token found');
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getAllUsers(token, page, limit, verified, search);
+      setUsers(response.users);
+      setPagination(response.pagination);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch users');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (!data) return;
+    fetchUsers(pagination.current_page, pagination.per_page, undefined, query);
+  }, [fetchUsers, pagination.current_page, pagination.per_page, query]);
+
+  useEffect(() => {
+    if (!users) return;
     const lower = query.toLowerCase();
-    setFiltered(
-      data.filter(
+    setFilteredUsers(
+      users.filter(
         (u) =>
           u.name.toLowerCase().includes(lower) ||
-          u.email.toLowerCase().includes(lower)
+          u.email.toLowerCase().includes(lower) ||
+          u.phone.toLowerCase().includes(lower) ||
+          (u.is_phone_verified ? 'phone verified' : '').includes(lower) ||
+          (u.is_profile_completed ? 'profile completed' : '').includes(lower)
       )
     );
-  }, [query, data]);
-  
+  }, [query, users]);
 
-  const columns = [
+  const handlePageChange = (newPage: number) => {
+    setPagination((prev) => ({ ...prev, current_page: newPage }));
+  };
+
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleOpenDeleteModal = (user: User) => {
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!token || !selectedUser) {
+      setError('No authentication token found or user not selected');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await deleteUser(token, selectedUser.id);
+      alert('User deleted successfully!');
+      fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+      handleCloseDeleteModal();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete user');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!token) {
+      setError('No authentication token found');
+      return;
+    }
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      setIsLoading(true);
+      try {
+        await deleteUser(token, id);
+        alert('User deleted successfully!');
+        fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+      } catch (err: any) {
+        setError(err.message || 'Failed to delete user');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleExport = () => {
+    // Export logic here
+    console.log('Exporting users...');
+  };
+
+  const columns: Column[] = [
     { id: 'name', label: 'Name', minWidth: 170 },
     { id: 'email', label: 'Email', minWidth: 170 },
     { id: 'phone', label: 'Phone', minWidth: 130 },
@@ -72,26 +162,32 @@ const Users: React.FC = () => {
       id: 'status',
       label: 'Status',
       minWidth: 100,
-      format: (value: string) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            value === 'active'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {value}
-        </span>
-      ),
+      format: (_: any, row: User) => {
+        const statusText = row.is_profile_completed ? 'Profile Completed' : (row.is_phone_verified ? 'Phone Verified' : 'Pending');
+        const statusStyles = {
+          'Profile Completed': 'bg-green-100 text-green-800',
+          'Phone Verified': 'bg-blue-100 text-blue-800',
+          'Pending': 'bg-yellow-100 text-yellow-800',
+        };
+        return (
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              statusStyles[statusText as keyof typeof statusStyles]
+            }`}
+          >
+            {statusText}
+          </span>
+        );
+      },
     },
     {
-      id: 'totalSpent',
+      id: 'total_spent',
       label: 'Total Spent',
       minWidth: 120,
-      format: (value: number) => `$${value.toFixed(2)}`,
+      format: (value: number) => `₹${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     },
     {
-      id: 'joinedDate',
+      id: 'created_at',
       label: 'Joined Date',
       minWidth: 170,
       format: (value: string) => new Date(value).toLocaleDateString(),
@@ -100,42 +196,25 @@ const Users: React.FC = () => {
       id: 'actions',
       label: 'Actions',
       minWidth: 100,
-      format: () => (
+      format: (_: any, row: User) => (
         <div className="flex space-x-2">
-          <button className="p-1 text-blue-600 hover:text-blue-800 transition-colors duration-200">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
+          <button
+            className="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-colors duration-200"
+            onClick={() => handleViewUser(row)}
+            title="View Details"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </button>
-          <button className="p-1 text-red-600 hover:text-red-800 transition-colors duration-200">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
+          <button
+            className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-colors duration-200"
+            onClick={() => handleOpenDeleteModal(row)}
+            title="Delete User"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
         </div>
@@ -143,9 +222,8 @@ const Users: React.FC = () => {
     },
   ];
 
-  const handleExport = () => {
-    // Export logic here
-  };
+  const totalActiveUsers = filteredUsers.filter(user => user.is_profile_completed === 1).length; // Assuming profile completed means active
+  const totalRevenue = filteredUsers.reduce((sum, user) => sum + user.total_spent, 0);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -159,7 +237,7 @@ const Users: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => {}}
+            onClick={() => {}} // TODO: Implement Add User functionality
             className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
           >
             <svg
@@ -202,7 +280,7 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-white/80">Total Users</p>
               <p className="text-2xl font-bold mt-1">
-                {filtered?.length || 0}
+                {pagination.total || 0}
               </p>
             </div>
           </div>
@@ -228,7 +306,7 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Active Users</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filtered?.filter(user => user.status === 'active').length || 0}
+                {totalActiveUsers}
               </p>
             </div>
           </div>
@@ -254,25 +332,77 @@ const Users: React.FC = () => {
             <div className="ml-5">
               <p className="text-sm font-medium text-gray-500">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{filtered?.reduce((sum, user) => sum + user.totalSpent, 0).toFixed(2) || '0.00'}
+                ₹{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">
         <Table
           columns={columns}
-          data={filtered || []}
+          data={filteredUsers}
           isLoading={isLoading}
           title="User List"
           onExport={handleExport}
+          pagination={pagination}
+          onPageChange={handlePageChange}
         />
       </div>
+
+      {/* View User Details Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={handleCloseViewModal} title="User Details" size="lg">
+        {selectedUser && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {selectedUser.name}</p>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+              <p><strong>Phone:</strong> {selectedUser.phone}</p>
+              <p><strong>Gender:</strong> {selectedUser.gender || 'N/A'}</p>
+              <p><strong>Age:</strong> {selectedUser.age || 'N/A'}</p>
+              <p><strong>Joined Date:</strong> {new Date(selectedUser.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="space-y-2">
+              <p><strong>Phone Verified:</strong> {selectedUser.is_phone_verified ? 'Yes' : 'No'}</p>
+              <p><strong>Profile Completed:</strong> {selectedUser.is_profile_completed ? 'Yes' : 'No'}</p>
+              <p><strong>Total Bookings:</strong> {selectedUser.total_bookings}</p>
+              <p><strong>Completed Bookings:</strong> {selectedUser.completed_bookings}</p>
+              <p><strong>Total Spent:</strong> ₹{selectedUser.total_spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete User Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={handleCloseDeleteModal} title="Delete User" size="sm">
+        {selectedUser && (
+          <div className="text-center">
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to delete user <strong>{selectedUser.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                onClick={handleCloseDeleteModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                onClick={handleConfirmDeleteUser}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
 
-export default Users; 
+export default Users;
