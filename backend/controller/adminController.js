@@ -119,7 +119,7 @@ const getPendingVendorPayments = async (req, res) => {
                 pb.dropoff_location,
                 pb.pickup_date,
                 pb.price as amount,
-                pb.created_at,
+                pb.pickup_date as created_at,
                 v.id as vendor_id,
                 v.name as vendor_name,
                 v.email as vendor_email,
@@ -136,7 +136,7 @@ const getPendingVendorPayments = async (req, res) => {
                 FROM payments 
                 WHERE vendor_id IS NOT NULL AND status = 'completed'
             )
-            ORDER BY pb.created_at DESC
+            ORDER BY pb.pickup_date DESC
         `;
         
         // Pagination
@@ -515,11 +515,11 @@ const getFinancialAnalytics = async (req, res) => {
         
         let dateFilter = '';
         if (period === 'week') {
-            dateFilter = ' AND pb.created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
+            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
         } else if (period === 'month') {
-            dateFilter = ' AND pb.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
         } else if (period === 'year') {
-            dateFilter = ' AND pb.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+            dateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         }
         
         // Get revenue breakdown
@@ -537,14 +537,14 @@ const getFinancialAnalytics = async (req, res) => {
         // Get monthly revenue trend (last 12 months)
         const [monthlyTrend] = await db.execute(`
             SELECT 
-                DATE_FORMAT(pb.created_at, '%Y-%m') as month,
+                DATE_FORMAT(pb.pickup_date, '%Y-%m') as month,
                 COUNT(*) as bookings_count,
                 COALESCE(SUM(pb.price), 0) as revenue,
                 COALESCE(SUM(pb.price * 0.1), 0) as admin_commission,
                 COALESCE(SUM(pb.price * 0.9), 0) as vendor_earnings
             FROM prevbookings pb
-            WHERE pb.status = 'completed' AND pb.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(pb.created_at, '%Y-%m')
+            WHERE pb.status = 'completed' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(pb.pickup_date, '%Y-%m')
             ORDER BY month DESC
         `);
         
@@ -757,24 +757,24 @@ const getVendorDetails = async (req, res) => {
             LEFT JOIN vehicles veh ON pb.vehicle_id = veh.id
             LEFT JOIN drivers d ON pb.driver_id = d.id
             WHERE pb.vendor_id = ?
-            ORDER BY pb.created_at DESC
+            ORDER BY pb.pickup_date DESC
             LIMIT 20
         `, [vendorId]);
         
         // Get vehicles for this vendor
         const [vehicles] = await db.execute(`
-            SELECT id, model, registration_no, is_active, per_km_charge, no_of_seats, created_at
+            SELECT id, model, registration_no, is_active, per_km_charge, no_of_seats
             FROM vehicles
             WHERE vendor_id = ?
-            ORDER BY created_at DESC
+            ORDER BY model ASC
         `, [vendorId]);
         
         // Get drivers for this vendor
         const [drivers] = await db.execute(`
-            SELECT id, name, phone, dl_number, is_active, created_at
+            SELECT id, name, phone, dl_number, is_active
             FROM drivers
             WHERE vendor_id = ?
-            ORDER BY created_at DESC
+            ORDER BY name ASC
         `, [vendorId]);
         
         res.status(200).json({
@@ -1037,16 +1037,16 @@ const getVendorBookings = async (req, res) => {
         }
         
         if (start_date) {
-            query += ' AND pb.created_at >= ?';
+            query += ' AND pb.pickup_date >= ?';
             params.push(start_date);
         }
         
         if (end_date) {
-            query += ' AND pb.created_at <= ?';
+            query += ' AND pb.pickup_date <= ?';
             params.push(end_date);
         }
         
-        query += ' ORDER BY pb.created_at DESC';
+        query += ' ORDER BY pb.pickup_date DESC';
         
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
@@ -1066,12 +1066,12 @@ const getVendorBookings = async (req, res) => {
         }
         
         if (start_date) {
-            countQuery += ' AND created_at >= ?';
+            countQuery += ' AND pickup_date >= ?';
             countParams.push(start_date);
         }
         
         if (end_date) {
-            countQuery += ' AND created_at <= ?';
+            countQuery += ' AND pickup_date <= ?';
             countParams.push(end_date);
         }
         
@@ -1384,7 +1384,7 @@ const getUserDetails = async (req, res) => {
             LEFT JOIN vehicles veh ON pb.vehicle_id = veh.id
             LEFT JOIN drivers d ON pb.driver_id = d.id
             WHERE pb.customer_id = ?
-            ORDER BY pb.created_at DESC
+            ORDER BY pb.pickup_date DESC
             LIMIT 50
         `, [userId]);
         
