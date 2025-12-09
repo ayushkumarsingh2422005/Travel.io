@@ -3,6 +3,7 @@ import Table from '../components/Table';
 import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
 import { getAllDrivers, toggleDriverStatus } from '../api/adminService'; // Import API services
+import { toast } from 'react-toastify';
 
 interface Driver {
   id: string;
@@ -35,7 +36,6 @@ const Drivers: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [filteredDrivers, setFilteredDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     current_page: 1,
     per_page: 10,
@@ -52,18 +52,17 @@ const Drivers: React.FC = () => {
 
   const fetchDrivers = useCallback(async (page: number = 1, limit: number = 10, status?: string, vendor_id?: string, search?: string) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError(null);
     try {
       const response = await getAllDrivers(token, page, limit, status, vendor_id, search);
       setDrivers(response.drivers);
       setPagination(response.pagination);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch drivers');
+      toast.error(err.message || 'Failed to fetch drivers');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -116,18 +115,18 @@ const Drivers: React.FC = () => {
 
   const handleConfirmToggleStatus = async () => {
     if (!token || !selectedDriver) {
-      setError('No authentication token found or driver not selected');
+      toast.error('No authentication token found or driver not selected');
       return;
     }
     setIsLoading(true);
     try {
       const newStatus = selectedDriver.is_active === 1 ? false : true;
       await toggleDriverStatus(token, selectedDriver.id, newStatus);
-      alert(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      toast.success(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`);
       fetchDrivers(pagination.current_page, pagination.per_page, undefined, undefined, query); // Refresh data
       handleCloseDeactivateModal();
     } catch (err: any) {
-      setError(err.message || 'Failed to update driver status');
+      toast.error(err.message || 'Failed to update driver status');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -157,9 +156,8 @@ const Drivers: React.FC = () => {
       minWidth: 100,
       format: (value: number) => (
         <span
-          className={`px-2 py-1 text-xs font-medium rounded-full ${
-            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}
+          className={`px-2 py-1 text-xs font-medium rounded-full ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}
         >
           {value ? 'Active' : 'Inactive'}
         </span>
@@ -188,11 +186,10 @@ const Drivers: React.FC = () => {
             </svg>
           </button>
           <button
-            className={`p-1.5 rounded-lg transition-colors duration-200 ${
-              row.is_active === 1
-                ? 'text-red-600 hover:text-white hover:bg-red-600'
-                : 'text-green-600 hover:text-white hover:bg-green-600'
-            }`}
+            className={`p-1.5 rounded-lg transition-colors duration-200 ${row.is_active === 1
+              ? 'text-red-600 hover:text-white hover:bg-red-600'
+              : 'text-green-600 hover:text-white hover:bg-green-600'
+              }`}
             onClick={() => handleOpenDeactivateModal(row)}
             title={row.is_active === 1 ? 'Deactivate Driver' : 'Activate Driver'}
           >
@@ -226,7 +223,7 @@ const Drivers: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => {}} // TODO: Implement Add Driver functionality
+            onClick={() => { }} // TODO: Implement Add Driver functionality
             className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
           >
             <svg
@@ -326,7 +323,7 @@ const Drivers: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
+
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">
@@ -387,9 +384,8 @@ const Drivers: React.FC = () => {
                 Cancel
               </button>
               <button
-                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${
-                  selectedDriver.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${selectedDriver.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                  }`}
                 onClick={handleConfirmToggleStatus}
               >
                 {selectedDriver.is_active === 1 ? 'Deactivate' : 'Activate'}
@@ -398,7 +394,7 @@ const Drivers: React.FC = () => {
           </div>
         )}
       </Modal>
-    </div>
+    </div >
   );
 };
 

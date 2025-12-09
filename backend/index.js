@@ -6,22 +6,23 @@ const createDriversTable = require('./models/driverModel');
 const createBookingsTable = require('./models/bookingModel');
 const createPrevBookingsTable = require('./models/prevbookingModel');
 const createPaymentsTable = require('./models/paymentModel');
-const createVendorBankTable=require('./models/vendorbankModel');
-const createPartnerTables=require('./models/partnerModel');
+const createVendorBankTable = require('./models/vendorbankModel');
+const createPartnerTables = require('./models/partnerModel');
 const createPromocodeTable = require('./models/promocodeModel');
-const ratingModel=require('./models/ratingModel');
-const transactionModel=require('./models/transactionModel');
-const AdminTrigger=require('./utils/admintrigger');
-const BookingTrigger=require('./utils/BookingTrigger');
-const transactiontrigger=require('./utils/transactionTrigger');
-const createvendorbanktale=require('./models/vendorbankModel');
-const createCabCategoriesTable=require('./models/cabCategoryModel');
-const makeid=require('./utils/createidtrigger')
+const ratingModel = require('./models/ratingModel');
+const transactionModel = require('./models/transactionModel');
+const AdminTrigger = require('./utils/admintrigger');
+const BookingTrigger = require('./utils/BookingTrigger');
+const transactiontrigger = require('./utils/transactionTrigger');
+const createvendorbanktale = require('./models/vendorbankModel');
+const createCabCategoriesTable = require('./models/cabCategoryModel');
+const makeid = require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
 const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
 const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
 const addIsActiveToVendors = require('./migrate_vendors_add_is_active');
+const addBookingIdToPayments = require('./migrate_payments_add_booking_id');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -50,29 +51,30 @@ app.use(cors());
 // Mount auth routes
 
 const createTables = async () => {
-    await createUsersTable();
-    await addResetFieldsToUsers(); // Add reset password fields to existing users table
-    await createvendorbanktale();
-    await createVendorsTable();
-    await createVendorBankTable();
-    await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
-    await createVehiclesTable();
-    await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
-    await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
-    await createDriversTable();
-    await createPartnerTables();
-    await createBookingsTable();
-    await createPrevBookingsTable();
-    await createPaymentsTable();
-    await createVendorBankTable();
-    await createPromocodeTable();
-    await ratingModel();
-    await transactionModel();
-    await transactiontrigger();
-    await AdminTrigger();
-    await BookingTrigger();
-    await makeid();
-    await createCabCategoriesTable();
+  await createUsersTable();
+  await addResetFieldsToUsers(); // Add reset password fields to existing users table
+  await createvendorbanktale();
+  await createVendorsTable();
+  await createVendorBankTable();
+  await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
+  await createVehiclesTable();
+  await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
+  await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
+  await createDriversTable();
+  await createPartnerTables();
+  await createBookingsTable();
+  await createPrevBookingsTable();
+  await createPaymentsTable();
+  await addBookingIdToPayments(); // Add booking_id to payments table
+  await createVendorBankTable();
+  await createPromocodeTable();
+  await ratingModel();
+  await transactionModel();
+  await transactiontrigger();
+  await AdminTrigger();
+  await BookingTrigger();
+  await makeid();
+  await createCabCategoriesTable();
 };
 createTables();
 
@@ -93,6 +95,6 @@ app.get("/", (req, res) => {
 });
 
 app.listen(5000, () => {
-    console.log('🚀 Server running on port 5000');
+  console.log('🚀 Server running on port 5000');
 });
 

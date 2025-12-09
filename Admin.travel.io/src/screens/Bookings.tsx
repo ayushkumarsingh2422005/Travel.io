@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
 import { useSearch } from '../context/SearchContext';
+import { toast } from 'react-toastify';
 import { getAdminStats } from '../api/adminService'; // Import getAdminStats
 
 interface Booking {
@@ -89,10 +90,9 @@ interface Column {
 
 const Bookings: React.FC = () => {
   const { query } = useSearch();
-  const [bookingsData, setBookingsData] = useState<Booking[]>(dummyBookings);
+  const [bookingsData] = useState<Booking[]>(dummyBookings);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     total_bookings: 0,
     completed_bookings: 0,
@@ -103,12 +103,11 @@ const Bookings: React.FC = () => {
 
   const fetchBookingStats = useCallback(async () => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError(null);
     try {
       const adminStats = await getAdminStats(token);
       setStats({
@@ -117,7 +116,7 @@ const Bookings: React.FC = () => {
         cancelled_bookings: adminStats.overall.cancelled_bookings,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch booking statistics');
+      toast.error(err.message || 'Failed to fetch booking statistics');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -162,9 +161,8 @@ const Bookings: React.FC = () => {
         };
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              statusStyles[value as keyof typeof statusStyles]
-            }`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[value as keyof typeof statusStyles]
+              }`}
           >
             {value.charAt(0).toUpperCase() + value.slice(1)}
           </span>
@@ -335,7 +333,7 @@ const Bookings: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
+
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -347,7 +345,7 @@ const Bookings: React.FC = () => {
           onExport={handleExport}
         />
       </div>
-    </div>
+    </div >
   );
 };
 

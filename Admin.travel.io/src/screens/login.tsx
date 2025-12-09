@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from '../api/axios';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [message, setMessage] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,12 +15,11 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     try {
       const res = await axios.post('/auth/login', form);
       console.log(res.data);
       localStorage.setItem('marcocabs_admin_token', res.data.token); // Store token in local storage
-      setMessage('Login successful!');
+      toast.success('Login successful!');
       window.location.reload();
       // Extract redirect info
       const from = location.state?.from || '/';
@@ -29,7 +28,7 @@ export default function Login() {
       // Redirect to original page (with state if any)
       navigate(from, { state: pageState });
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Login failed');
     }
   };
 
@@ -63,8 +62,9 @@ export default function Login() {
             Login
           </button>
         </form>
-        {message && <div className="text-red-600 text-center mt-2">{message}</div>}
+        {/* {message && <div className="text-red-600 text-center mt-2">{message}</div>} */}
       </div>
+      <ToastContainer position="top-center" />
     </div>
   );
 }

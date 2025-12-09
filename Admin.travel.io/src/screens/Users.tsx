@@ -3,6 +3,7 @@ import Table from '../components/Table';
 import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
 import { getAllUsers, deleteUser } from '../api/adminService'; // Import API services
+import { toast } from 'react-toastify';
 
 interface User {
   id: string;
@@ -32,7 +33,6 @@ const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     current_page: 1,
     per_page: 10,
@@ -49,18 +49,17 @@ const Users: React.FC = () => {
 
   const fetchUsers = useCallback(async (page: number = 1, limit: number = 10, verified?: 'phone' | 'profile', search?: string) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError(null);
     try {
       const response = await getAllUsers(token, page, limit, verified, search);
       setUsers(response.users);
       setPagination(response.pagination);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch users');
+      toast.error(err.message || 'Failed to fetch users');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -112,42 +111,42 @@ const Users: React.FC = () => {
 
   const handleConfirmDeleteUser = async () => {
     if (!token || !selectedUser) {
-      setError('No authentication token found or user not selected');
+      toast.error('No authentication token found or user not selected');
       return;
     }
     setIsLoading(true);
     try {
       await deleteUser(token, selectedUser.id);
-      alert('User deleted successfully!');
+      toast.success('User deleted successfully!');
       fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
       handleCloseDeleteModal();
     } catch (err: any) {
-      setError(err.message || 'Failed to delete user');
+      toast.error(err.message || 'Failed to delete user');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
-    if (!token) {
-      setError('No authentication token found');
-      return;
-    }
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setIsLoading(true);
-      try {
-        await deleteUser(token, id);
-        alert('User deleted successfully!');
-        fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
-      } catch (err: any) {
-        setError(err.message || 'Failed to delete user');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
+  // const handleDeleteUser = async (id: string) => {
+  //   if (!token) {
+  //     toast.error('No authentication token found');
+  //     return;
+  //   }
+  //   if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  //     setIsLoading(true);
+  //     try {
+  //       await deleteUser(token, id);
+  //       toast.success('User deleted successfully!');
+  //       fetchUsers(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
+  //     } catch (err: any) {
+  //       toast.error(err.message || 'Failed to delete user');
+  //       console.error(err);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
 
   const handleExport = () => {
     // Export logic here
@@ -171,9 +170,8 @@ const Users: React.FC = () => {
         };
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              statusStyles[statusText as keyof typeof statusStyles]
-            }`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[statusText as keyof typeof statusStyles]
+              }`}
           >
             {statusText}
           </span>
@@ -237,7 +235,7 @@ const Users: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => {}} // TODO: Implement Add User functionality
+            onClick={() => { }} // TODO: Implement Add User functionality
             className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
           >
             <svg
@@ -339,7 +337,6 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">
