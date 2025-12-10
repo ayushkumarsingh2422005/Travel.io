@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Modal from '../components/Modal'; // Import Modal component
 import { getAdminStats, getWebsiteReachStats, applyVendorPenalty } from '../api/adminService'; // Import the new API services
+import { toast } from 'react-toastify';
 
 interface SummaryCard {
   title: string;
@@ -100,9 +101,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [summaryCards, setSummaryCards] = useState<SummaryCard[]>([]);
   const [recentActivity, setRecentActivity] = useState<MappedRecentActivityItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // State for modals
   const [isPenaltyModalOpen, setIsPenaltyModalOpen] = useState(false);
   const [selectedVendorForPenalty, setSelectedVendorForPenalty] = useState<TopVendor | null>(null);
   const [penaltyDetails, setPenaltyDetails] = useState({ amount: '', reason: '' });
@@ -128,12 +126,11 @@ const Dashboard = () => {
 
   const fetchDashboardData = useCallback(async () => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setLoading(false);
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       const adminStats: AdminStatsData = await getAdminStats(token);
       const websiteReach: WebsiteReachData = await getWebsiteReachStats(token, 'month'); // Fetch monthly reach stats
@@ -240,7 +237,7 @@ const Dashboard = () => {
       setRecentActivity(mappedRecentActivity);
 
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch dashboard data');
+      toast.error(err.message || 'Failed to fetch dashboard data');
       console.error(err);
     } finally {
       setLoading(false);
@@ -253,7 +250,7 @@ const Dashboard = () => {
 
   const handleConfirmApplyPenalty = async () => {
     if (!token || !selectedVendorForPenalty) {
-      setError('No authentication token found or vendor not selected');
+      toast.error('No authentication token found or vendor not selected');
       return;
     }
     const penaltyAmount = parseFloat(penaltyDetails.amount);
@@ -263,17 +260,17 @@ const Dashboard = () => {
       setLoading(true); // Use dashboard's loading state
       try {
         await applyVendorPenalty(token, selectedVendorForPenalty.id, penaltyAmount, penaltyReason);
-        alert('Penalty applied successfully!');
+        toast.success('Penalty applied successfully!');
         fetchDashboardData(); // Call the function to refresh data
         handleClosePenaltyModal();
       } catch (err: any) {
-        setError(err.message || 'Failed to apply penalty');
+        toast.error(err.message || 'Failed to apply penalty');
         console.error(err);
       } finally {
         setLoading(false);
       }
     } else {
-      alert('Penalty amount must be greater than 0 and reason is required.');
+      toast.warn('Penalty amount must be greater than 0 and reason is required.');
     }
   };
 
@@ -320,9 +317,6 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
-    return <div className="text-red-600 p-4 bg-red-100 rounded-lg">Error: {error}</div>;
-  }
 
   return (
     <div>
@@ -337,9 +331,8 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <span className="text-2xl">{card.icon}</span>
               {card.change !== undefined && (
-                <span className={`text-sm font-medium ${
-                  card.change >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <span className={`text-sm font-medium ${card.change >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   {card.change >= 0 ? '+' : ''}{card.change}%
                 </span>
               )}
@@ -360,8 +353,8 @@ const Dashboard = () => {
             <div key={activity.id} className="flex items-start">
               <span className="flex-shrink-0 w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-lg">
                 {activity.type === 'booking' ? '📅' :
-                 activity.type === 'payment' ? '💳' :
-                 activity.type === 'vendor' ? '🏢' : '👤'}
+                  activity.type === 'payment' ? '💳' :
+                    activity.type === 'vendor' ? '🏢' : '👤'}
               </span>
               <div className="ml-4 flex-1">
                 <p className="text-sm text-gray-900">{activity.description}</p>

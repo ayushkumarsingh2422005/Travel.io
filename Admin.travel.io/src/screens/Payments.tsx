@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
 import { useSearch } from '../context/SearchContext';
+import { toast } from 'react-toastify';
 import { getAllPayments, getPendingVendorPayments, getPendingPartnerPayments, payVendor, payPartner, getFinancialAnalytics } from '../api/adminService';
 
 interface Payment {
@@ -50,20 +51,18 @@ const Payments: React.FC = () => {
 
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending-vendor' | 'pending-partner'>('all');
 
   const token = localStorage.getItem('marcocabs_admin_token');
 
   const fetchData = useCallback(async () => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    setError(null);
     try {
       const [allPaymentsRes, pendingVendorRes, pendingPartnerRes, financialAnalyticsRes] = await Promise.all([
         getAllPayments(token),
@@ -78,7 +77,7 @@ const Payments: React.FC = () => {
       setFinancialAnalytics(financialAnalyticsRes.revenue_breakdown);
 
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch payments data');
+      toast.error(err.message || 'Failed to fetch payments data');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -116,30 +115,30 @@ const Payments: React.FC = () => {
 
   const handlePayVendor = async (booking_id: string, vendor_id: string, amount: number) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       return;
     }
     try {
       await payVendor(token, booking_id, vendor_id, amount);
-      alert('Vendor paid successfully!');
+      toast.success('Vendor paid successfully!');
       fetchData(); // Refresh data
     } catch (err: any) {
-      setError(err.message || 'Failed to pay vendor');
+      toast.error(err.message || 'Failed to pay vendor');
       console.error(err);
     }
   };
 
   const handlePayPartner = async (transaction_id: string, partner_id: string, amount: number) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       return;
     }
     try {
       await payPartner(token, transaction_id, partner_id, amount);
-      alert('Partner paid successfully!');
+      toast.success('Partner paid successfully!');
       fetchData(); // Refresh data
     } catch (err: any) {
-      setError(err.message || 'Failed to pay partner');
+      toast.error(err.message || 'Failed to pay partner');
       console.error(err);
     }
   };
@@ -334,31 +333,28 @@ const Payments: React.FC = () => {
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('all')}
-            className={`${
-              activeTab === 'all'
-                ? 'border-red-500 text-red-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'all'
+              ? 'border-red-500 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             All Payments
           </button>
           <button
             onClick={() => setActiveTab('pending-vendor')}
-            className={`${
-              activeTab === 'pending-vendor'
-                ? 'border-red-500 text-red-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'pending-vendor'
+              ? 'border-red-500 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Pending Vendor Payments
           </button>
           <button
             onClick={() => setActiveTab('pending-partner')}
-            className={`${
-              activeTab === 'pending-partner'
-                ? 'border-red-500 text-red-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'pending-partner'
+              ? 'border-red-500 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Pending Partner Payments
           </button>
@@ -396,7 +392,6 @@ const Payments: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">

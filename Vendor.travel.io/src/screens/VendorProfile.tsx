@@ -11,24 +11,24 @@ interface VendorInfo {
   mobile: string;
   city: string;
   numberOfCars: number;
-  
+
   // Identity Details (from registration form)
   panNumber: string;
 
-  aadhar_number:string;
-  
+  aadhar_number: string;
+
   // Business Details (from registration form)
   businessName: string;
   businessType: string;
   gstNumber: string;
   businessAddress: string;
-  
+
   // Bank Details (from registration form)
   bankName: string;
   accountNumber: string;
   ifscCode: string;
   accountHolderName: string;
-  
+
   // Additional backend data
   profilePic?: string;
   totalEarnings: number;
@@ -40,10 +40,10 @@ interface VendorInfo {
   isPhoneVerified: boolean;
   isEmailVerified: boolean;
   is_aadhar_verified: boolean;
-  is_pan_verified:boolean;
+  is_pan_verified: boolean;
   is_profile_completed: boolean; // Added based on user feedback
   joinDate: string;
-  
+
   // KYC Status
   kycStatus: 'Verified' | 'Pending' | 'Incomplete';
   description?: string;
@@ -59,72 +59,71 @@ const VendorProfile: React.FC = () => {
   const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
   const [AadharOtp, setAadharOtp] = useState<string>('');
   const [phoneOtp, setPhoneOtp] = useState<string>('');
-  const [emailOtp, setEmailOtp] = useState<string>('');
+  // emailOtp removed as we use magic link now
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
   const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
   const [showAadharOtp, setShowAadharOtp] = useState<boolean>(false);
   const [lastAadharOtpRequestTime, setLastAadharOtpRequestTime] = useState<number | null>(null);
 
+  const fetchVendorData = async (silent: boolean = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const response = await axios.get('/profile', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
+        },
+      });
+
+      console.log(response.data);
+
+      if (response.data && response.data.vendor) {
+        const vendorData = response.data.vendor;
+        const formattedData: VendorInfo = {
+          id: vendorData.id,
+          fullName: vendorData.name,
+          email: vendorData.email,
+          mobile: vendorData.phone,
+          city: vendorData.city || '', // Assuming city might not be there
+          numberOfCars: vendorData.number_of_cars || 0,
+          is_profile_completed: vendorData.is_profile_completed || false,
+          panNumber: vendorData.pan_number || '',
+          aadhar_number: vendorData.aadhar_number || '',
+          businessName: vendorData.business_name || '',
+          businessType: vendorData.business_type || '',
+          gstNumber: vendorData.gst_number || '',
+          businessAddress: vendorData.business_address || '',
+          bankName: vendorData.bank_name || '', // Assuming backend provides this
+          accountNumber: vendorData.account_number || '', // Assuming backend provides this
+          ifscCode: vendorData.ifsc_code || '', // Assuming backend provides this
+          accountHolderName: vendorData.account_holder_name || '', // Assuming backend provides this
+          profilePic: vendorData.profile_pic,
+          totalEarnings: vendorData.total_earnings,
+          walletBalance: vendorData.amount, // Mapping amount to walletBalance
+          starRating: vendorData.star_rating,
+          age: vendorData.age,
+          gender: vendorData.gender,
+          currentAddress: vendorData.current_address === 'Address to be updated' ? '' : vendorData.current_address, // Handle placeholder
+          isPhoneVerified: !!vendorData.is_phone_verified,
+          isEmailVerified: !!vendorData.is_email_verified,
+          is_aadhar_verified: !!vendorData.is_aadhaar_verified,
+          is_pan_verified: !!vendorData.is_pan_verified,
+          joinDate: vendorData.created_at,
+          kycStatus: (vendorData.is_profile_completed) ? 'Verified' : 'Incomplete',
+        };
+        setVendorInfo(formattedData);
+        setEditedInfo(formattedData);
+      }
+      if (!silent) setLoading(false);
+    } catch (error) {
+      console.error('Error fetching vendor data:', error);
+      toast.error('Failed to fetch vendor data. Please try again.');
+      if (!silent) setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
-    const fetchVendorData = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get('/profile', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
-          },
-        });
-
-        console.log(response.data);
-        
-        if (response.data && response.data.vendor) {
-          const vendorData = response.data.vendor;
-          const formattedData: VendorInfo = {
-            id: vendorData.id,
-            fullName: vendorData.name,
-            email: vendorData.email,
-            mobile: vendorData.phone,
-            city: vendorData.city || '', // Assuming city might not be there
-            numberOfCars: vendorData.number_of_cars || 0,
-            is_profile_completed:vendorData.is_profile_completed|| false,
-            panNumber: vendorData.pan_number || '',
-            aadhar_number: vendorData.aadhar_number || '',
-            businessName: vendorData.business_name || '',
-            businessType: vendorData.business_type || '',
-            gstNumber: vendorData.gst_number || '',
-            businessAddress: vendorData.business_address || '',
-            bankName: vendorData.bank_name || '', // Assuming backend provides this
-            accountNumber: vendorData.account_number || '', // Assuming backend provides this
-            ifscCode: vendorData.ifsc_code || '', // Assuming backend provides this
-            accountHolderName: vendorData.account_holder_name || '', // Assuming backend provides this
-            profilePic: vendorData.profile_pic,
-            totalEarnings: vendorData.total_earnings,
-            walletBalance: vendorData.amount, // Mapping amount to walletBalance
-            starRating: vendorData.star_rating,
-            age: vendorData.age,
-            gender: vendorData.gender,
-            currentAddress: vendorData.current_address === 'Address to be updated' ? '' : vendorData.current_address, // Handle placeholder
-            isPhoneVerified: !!vendorData.is_phone_verified,
-            isEmailVerified: !!vendorData.is_email_verified,
-            is_aadhar_verified: !!vendorData.is_aadhaar_verified,
-            is_pan_verified: !!vendorData.is_pan_verified,
-            joinDate: vendorData.created_at,
-            kycStatus: (vendorData.is_profile_completed) ? 'Verified' :  'Incomplete',
-          };
-          setVendorInfo(formattedData);
-          setEditedInfo(formattedData);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching vendor data:', error);
-        toast.error('Failed to fetch vendor data. Please try again.');
-        setLoading(false);
-      }
-    };
-
-    fetchVendorData();
+    fetchVendorData(false);
   }, []);
 
 
@@ -141,7 +140,7 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-     
+
       const response = await axios.post(
         '/auth/send-phone-otp',
         {
@@ -154,13 +153,13 @@ const VendorProfile: React.FC = () => {
         }
       );
 
-      if(response){
+      if (response) {
         toast.success('OTP sent successfully to your phone number. It will be valid for 10 minutes.');
         setShowPhoneOtp(true);
-        }
-        else{
+      }
+      else {
         toast.error('Failed to send OTP. Please try again.');
-        }
+      }
 
 
     } catch (error) {
@@ -182,7 +181,7 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-     
+
       const response = await axios.post(
         '/auth/verify-phone-otp',
         {
@@ -195,17 +194,19 @@ const VendorProfile: React.FC = () => {
         }
       );
 
-      if(response){
+      if (response) {
         toast.success("phone number verified successfully.");
-        setPhoneOtp(''); 
+        setPhoneOtp('');
         setShowPhoneOtp(false);
-        setVendorInfo(prev => prev ? { ...prev, isPhoneVerified: true } : null); // Update state
+        // Refetch to ensure state sync
+        // Refetch to ensure state sync
+        await fetchVendorData(true);
       }
-      else{
+      else {
         toast.error('Failed to verify OTP. Please check the OTP and try again.');
       }
 
- 
+
 
     } catch (error) {
       console.log('Error verifying phone OTP:', error);
@@ -239,65 +240,21 @@ const VendorProfile: React.FC = () => {
         }
       );
 
-      if(response){
-        toast.success('OTP sent successfully to your email. It will be valid for 10 minutes.');
-        setShowEmailOtp(true);
+      if (response) {
+        toast.success('Verification link sent successfully to your email.');
+        // No OTP logic for email - it's valid link based
       }
-      else{
-        toast.error('Otp Was Not Send Try Again');
-        setShowEmailOtp(false);
+      else {
+        toast.error('Failed to send verification link. Try Again');
       }
 
 
     } catch (error) {
-      console.log('Error sending email OTP:', error);
-      toast.error('Failed to send OTP. Please try again.');
+      console.log('Error sending email verification:', error);
+      toast.error('Failed to send verification link. Please try again.');
     }
   };
 
-  const handleVerifyEmailOtp = async () => {
-    try {
-      if (!emailOtp) {
-        toast.error('Please enter the OTP sent to your email.');
-        return;
-      }
-
-      const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        toast.error('You must be logged in to verify your email.');
-        return;
-      }
-
-      const response = await axios.post(
-        '/auth/verify-email',
-        {
-          otp: emailOtp,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-     if(response){ 
-        toast.success("Email verified successfully.");
-        setEmailOtp('');
-        setShowEmailOtp(false);
-        setVendorInfo(prev => prev ? { ...prev, isEmailVerified: true } : null); // Update state
-      }
-      else{
-        toast.error('Failed to verify OTP. Please check the OTP and try again.');
-        setEmailOtp('');
-        setShowEmailOtp(false);
-      }
-
-    } catch (error) {
-      console.log('Error verifying email OTP:', error);
-      toast.error('Failed to verify OTP. Please try again.');
-      setShowEmailOtp(false);
-    }
-  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -307,56 +264,56 @@ const VendorProfile: React.FC = () => {
     }));
   };
 
-  const handleVerifyAadhar=async()=>{
-   try {
+  const handleVerifyAadhar = async () => {
+    try {
 
-     
-     const token = localStorage.getItem("marcocabs_vendor_token");
-     if (!token) {
-       toast.error('You must be logged in to verify your Aadhar.');
-       return;
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        toast.error('You must be logged in to verify your Aadhar.');
+        return;
       }
-      
-      if(!editedInfo?.aadhar_number){ // Use editedInfo for input field
+
+      if (!editedInfo?.aadhar_number) { // Use editedInfo for input field
         toast.error("Enter Your Aadhar Number First ");
         return;
       }
-      
-      const response=await axios.post('/auth/generate-aadhaar-otp',{
-        aadhaar_number:editedInfo?.aadhar_number // Use editedInfo for input field
+
+      const response = await axios.post('/auth/generate-aadhaar-otp', {
+        aadhaar_number: editedInfo?.aadhar_number // Use editedInfo for input field
       },
-       {
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
-    )
+      )
 
-    console.log('Aadhar verification OTP response:', response.data.message);
+      console.log('Aadhar verification OTP response:', response.data.message);
 
-    if(response.data.status){
-      toast.success('Aadhar verification OTP generated successfully. Please check your email.');
-      setShowAadharOtp(true);
-      setLastAadharOtpRequestTime(Date.now()); // Set timestamp on successful OTP generation
-    }
-    else{
+      if (response.data.status) {
+        toast.success('Aadhar verification OTP generated successfully. Please check your email.');
+        setShowAadharOtp(true);
+        setLastAadharOtpRequestTime(Date.now()); // Set timestamp on successful OTP generation
+      }
+      else {
+        toast.error('Failed to generate Aadhar verification link. Please try again.');
+        setShowAadharOtp(false);
+      }
+
+    } catch (error) {
+      console.error('Error generating Aadhar verification link:', error);
       toast.error('Failed to generate Aadhar verification link. Please try again.');
       setShowAadharOtp(false);
     }
-    
-   } catch (error) {
-     console.error('Error generating Aadhar verification link:', error);
-     toast.error('Failed to generate Aadhar verification link. Please try again.');
-     setShowAadharOtp(false);
-   }
   }
 
   const handleVerifyAadharOtp = async () => {
     try {
 
-      if(!AadharOtp){
+      if (!AadharOtp) {
         toast.error("Enter The OTP for verification");
-        return ;
+        return;
       }
 
       const token = localStorage.getItem("marcocabs_vendor_token");
@@ -365,31 +322,31 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-      const response = await axios.post('/auth/verify-aadhaar-otp',{
-        otp:AadharOtp
-      },{
+      const response = await axios.post('/auth/verify-aadhaar-otp', {
+        otp: AadharOtp
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      const responseData = response.data ;
+      const responseData = response.data;
 
-      if (responseData.status===1) {
+      if (responseData.status === 1) {
         toast.success("Aadhar verified successfully.");
         setAadharOtp('');
         setShowAadharOtp(false);
-        setVendorInfo(prev => prev ? { ...prev, is_aadhar_verified: true, aadhar_number: editedInfo.aadhar_number || '' } : null); // Update state
-        setLastAadharOtpRequestTime(null); // Clear cooldown on successful verification
+        // Refetch to ensure state sync with backend (which has stored the number)
+        await fetchVendorData(true);
       }
-      else{
+      else {
         toast.error('Failed to verify OTP. Please check the OTP and try again.');
         setAadharOtp('');
         // Keep showAadharOtp true to allow retry
       }
-      
+
     } catch (error) {
-      
+
       console.error('Error confirming Aadhar verification:', error);
       toast.error('Failed to verify OTP. Please try again.');
       setAadharOtp('');
@@ -407,7 +364,7 @@ const VendorProfile: React.FC = () => {
   //       return;
   //     }
 
-      
+
   //     const token = localStorage.getItem("marcocabs_vendor_token");
   //     if (!token) {
   //       toast.error('You must be logged in to verify your Aadhar.');
@@ -427,7 +384,7 @@ const VendorProfile: React.FC = () => {
   //       console.log(response.data.aadhar_data);
   //     }
 
-      
+
   //   } catch (error) {
   //     console.log("Something went Wring While Fetching Aadhar details");
   //     toast.error("Something Went Wrong");
@@ -436,40 +393,42 @@ const VendorProfile: React.FC = () => {
 
 
 
-  const handleVerifyPan=async()=>{
+  const handleVerifyPan = async () => {
     try {
-    
 
-        const token = localStorage.getItem("marcocabs_vendor_token");
+
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to verify your PAN.');
         return;
       }
 
-      if(!editedInfo?.panNumber){ // Use editedInfo for input field
+      if (!editedInfo?.panNumber) { // Use editedInfo for input field
         toast.error("Enter Your PAN Number First ");
         return;
       }
 
-      const response = await axios.post('/auth/fetch-pan',{
-        pan_number:editedInfo?.panNumber // Use editedInfo for input field
-      },{
+      const response = await axios.post('/auth/fetch-pan', {
+        pan_number: editedInfo?.panNumber // Use editedInfo for input field
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if(response.data.status){
+      if (response.data.status) {
         toast.success('Pan Verification SuccessFull');
         console.log(response.data);
-        setVendorInfo(prev => prev ? { ...prev, is_pan_verified: true, panNumber: editedInfo.panNumber || '' } : null); // Update state
+        // Refetch to ensure state sync
+        // Refetch to ensure state sync
+        await fetchVendorData(true);
       }
-      else{
+      else {
         toast.error('Pan Verification Unsuccessfull make sure the details are Up To Date');
       }
 
 
-      
+
     } catch (error) {
       toast.error('Pan Verification Failed Please Try After Some Time');
       console.log(error);
@@ -491,7 +450,7 @@ const VendorProfile: React.FC = () => {
   //       toast.error('You must be logged in to verify your Aadhar.');
   //       return;
   //     }
-      
+
   //     const response = await axios.get('/auth/verify-aadhar-otp',{
   //       headers: {
   //         Authorization: `Bearer ${token}`,
@@ -505,7 +464,7 @@ const VendorProfile: React.FC = () => {
   //       console.log(response.data);
   //     }
 
-      
+
   //   } catch (error) {
   //     console.log(error);
   //     toast.error("Something Went Wrong"); 
@@ -547,8 +506,8 @@ const VendorProfile: React.FC = () => {
       }
 
       const response = await axios.put(
-        '/profile', 
-        updateData, 
+        '/profile',
+        updateData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -557,11 +516,10 @@ const VendorProfile: React.FC = () => {
       );
 
       if (response.data && response.data.success) {
-        // Update vendorInfo with the data that was sent, and then merge any additional data from the backend response
-        setVendorInfo(prev => ({ ...prev, ...updateData, ...response.data.vendor } as VendorInfo));
-        setEditedInfo(prev => ({ ...prev, ...updateData, ...response.data.vendor } as VendorInfo)); // Also update editedInfo
         toast.success('Profile updated successfully!');
         setIsEditing(false);
+        // Refresh data silently to ensure correct formatting and map keys correctly (e.g., phone -> mobile)
+        await fetchVendorData(true);
       } else {
         toast.error(response.data.message || 'Failed to update profile.');
       }
@@ -646,9 +604,9 @@ const VendorProfile: React.FC = () => {
         <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
           <div className="w-32 h-32 rounded-full bg-gray-100 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-md overflow-hidden ring-4 ring-green-200">
             {vendorInfo.profilePic ? (
-              <img 
-                src={vendorInfo.profilePic} 
-                alt="Profile" 
+              <img
+                src={vendorInfo.profilePic}
+                alt="Profile"
                 className="w-full h-full object-cover rounded-full"
               />
             ) : (
@@ -659,12 +617,12 @@ const VendorProfile: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">{vendorInfo.fullName}</h1>
             <p className="text-gray-700 text-base sm:text-lg mb-1">{vendorInfo.email}</p>
             <p className="text-gray-700 text-base sm:text-lg">{vendorInfo.mobile}</p>
-            
+
             <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
               <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getKycStatusClass(vendorInfo.kycStatus)}`}>
                 KYC: {vendorInfo.kycStatus}
@@ -677,9 +635,9 @@ const VendorProfile: React.FC = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
-            <Link 
+            <Link
               to="/dashboard"
               className="px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-2 text-base font-medium shadow-md"
             >
@@ -688,9 +646,9 @@ const VendorProfile: React.FC = () => {
               </svg>
               Dashboard
             </Link>
-            
+
             {!isEditing && (
-              <button 
+              <button
                 onClick={() => setIsEditing(true)}
                 className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 flex items-center justify-center gap-2 text-base font-medium shadow-md"
               >
@@ -736,31 +694,28 @@ const VendorProfile: React.FC = () => {
         <div className="flex overflow-x-auto space-x-1 p-2">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'profile'
-                ? 'bg-green-50 text-green-800'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'profile'
+              ? 'bg-green-50 text-green-800'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
           >
             Profile Details
           </button>
           <button
             onClick={() => setActiveTab('business')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'business'
-                ? 'bg-green-50 text-green-800'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'business'
+              ? 'bg-green-50 text-green-800'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
           >
             Business Details
           </button>
           <button
             onClick={() => setActiveTab('bank')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'bank'
-                ? 'bg-green-50 text-green-800'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'bank'
+              ? 'bg-green-50 text-green-800'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
           >
             Bank Details
           </button>
@@ -791,7 +746,7 @@ const VendorProfile: React.FC = () => {
             <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
               <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
               <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.email || 'No email address added'}</p>
-              
+
               {vendorInfo.email && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.isEmailVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -806,18 +761,9 @@ const VendorProfile: React.FC = () => {
                     </button>
                   )}
                   {showEmailOtp && (
-                    <div className="flex flex-col sm:flex-row gap-2 mt-3 w-full">
-                      <input
-                        type="text"
-                        value={emailOtp}
-                        onChange={(e) => setEmailOtp(e.target.value)}
-                        placeholder="Enter OTP"
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                      />
-                      <button onClick={handleVerifyEmailOtp} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-colors">
-                        Verify OTP
-                      </button>
-                    </div>
+                    <p className="text-gray-500 text-sm italic mt-2">
+                      Please check your email for the verification link.
+                    </p>
                   )}
                 </div>
               )}
@@ -840,7 +786,7 @@ const VendorProfile: React.FC = () => {
               ) : (
                 <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.mobile || 'No phone number added'}</p>
               )}
-              
+
               {vendorInfo.mobile && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.isPhoneVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

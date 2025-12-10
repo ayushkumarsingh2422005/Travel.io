@@ -3,6 +3,7 @@ import Table from '../components/Table';
 import Modal from '../components/Modal'; // Import Modal component
 import { useSearch } from '../context/SearchContext';
 import { getAllVendors, toggleVendorStatus, applyVendorPenalty, suspendVendor } from '../api/adminService'; // Import API services
+import { toast } from 'react-toastify';
 
 interface Vendor {
   id: string;
@@ -42,7 +43,6 @@ const Vendors: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     current_page: 1,
     per_page: 10,
@@ -62,18 +62,17 @@ const Vendors: React.FC = () => {
 
   const fetchVendors = useCallback(async (page: number = 1, limit: number = 10, status?: string, search?: string) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    setError(null);
     try {
       const response = await getAllVendors(token, page, limit, status, search);
       setVendors(response.vendors);
       setPagination(response.pagination);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch vendors');
+      toast.error(err.message || 'Failed to fetch vendors');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -130,18 +129,18 @@ const Vendors: React.FC = () => {
 
   const handleConfirmToggleStatus = async () => {
     if (!token || !selectedVendor) {
-      setError('No authentication token found or vendor not selected');
+      toast.error('No authentication token found or vendor not selected');
       return;
     }
     setIsLoading(true);
     try {
       const newStatus = selectedVendor.is_active === 1 ? false : true;
       await toggleVendorStatus(token, selectedVendor.id, newStatus);
-      alert(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      toast.success(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully!`);
       fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
       handleCloseDeactivateModal();
     } catch (err: any) {
-      setError(err.message || 'Failed to update vendor status');
+      toast.error(err.message || 'Failed to update vendor status');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -167,7 +166,7 @@ const Vendors: React.FC = () => {
 
   const handleConfirmApplyPenalty = async () => {
     if (!token || !selectedVendor) {
-      setError('No authentication token found or vendor not selected');
+      toast.error('No authentication token found or vendor not selected');
       return;
     }
     const penaltyAmount = parseFloat(penaltyDetails.amount);
@@ -177,67 +176,24 @@ const Vendors: React.FC = () => {
       setIsLoading(true);
       try {
         await applyVendorPenalty(token, selectedVendor.id, penaltyAmount, penaltyReason);
-        alert('Penalty applied successfully!');
+        toast.success('Penalty applied successfully!');
         fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
         handleClosePenaltyModal();
       } catch (err: any) {
-        setError(err.message || 'Failed to apply penalty');
+        toast.error(err.message || 'Failed to apply penalty');
         console.error(err);
       } finally {
         setIsLoading(false);
       }
     } else {
-      alert('Penalty amount must be greater than 0 and reason is required.');
+      toast.warn('Penalty amount must be greater than 0 and reason is required.');
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: number) => {
-    if (!token) {
-      setError('No authentication token found');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const newStatus = currentStatus === 1 ? false : true;
-      await toggleVendorStatus(token, id, newStatus);
-      alert(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully!`);
-      fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
-    } catch (err: any) {
-      setError(err.message || 'Failed to update vendor status');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApplyPenalty = async (id: string) => {
-    if (!token) {
-      setError('No authentication token found');
-      return;
-    }
-    const penaltyAmount = parseFloat(prompt('Enter penalty amount:') || '0');
-    const penaltyReason = prompt('Enter penalty reason:');
-
-    if (penaltyAmount > 0 && penaltyReason) {
-      setIsLoading(true);
-      try {
-        await applyVendorPenalty(token, id, penaltyAmount, penaltyReason);
-        alert('Penalty applied successfully!');
-        fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
-      } catch (err: any) {
-        setError(err.message || 'Failed to apply penalty');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      alert('Penalty amount must be greater than 0 and reason is required.');
-    }
-  };
 
   const handleSuspendVendor = async (id: string, currentSuspendedStatus: number) => {
     if (!token) {
-      setError('No authentication token found');
+      toast.error('No authentication token found');
       return;
     }
     const newSuspendedStatus = currentSuspendedStatus === 1 ? false : true;
@@ -247,7 +203,7 @@ const Vendors: React.FC = () => {
     if (newSuspendedStatus) {
       suspensionReason = prompt('Enter suspension reason:') || undefined;
       if (!suspensionReason) {
-        alert('Suspension reason is required.');
+        toast.warn('Suspension reason is required.');
         return;
       }
       const untilDateInput = prompt('Enter suspension end date (YYYY-MM-DD, optional:)');
@@ -256,7 +212,7 @@ const Vendors: React.FC = () => {
         if (!isNaN(date.getTime())) { // Check if date is valid
           suspensionUntil = date.toISOString();
         } else {
-          alert('Invalid date format. Suspension until date will not be set.');
+          toast.warn('Invalid date format. Suspension until date will not be set.');
         }
       }
     }
@@ -264,10 +220,10 @@ const Vendors: React.FC = () => {
     setIsLoading(true);
     try {
       await suspendVendor(token, id, newSuspendedStatus, suspensionReason, suspensionUntil);
-      alert(`Vendor ${newSuspendedStatus ? 'suspended' : 'unsuspended'} successfully!`);
+      toast.success(`Vendor ${newSuspendedStatus ? 'suspended' : 'unsuspended'} successfully!`);
       fetchVendors(pagination.current_page, pagination.per_page, undefined, query); // Refresh data
     } catch (err: any) {
-      setError(err.message || 'Failed to update suspension status');
+      toast.error(err.message || 'Failed to update suspension status');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -296,9 +252,8 @@ const Vendors: React.FC = () => {
         };
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              statusStyles[statusText as keyof typeof statusStyles]
-            }`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[statusText as keyof typeof statusStyles]
+              }`}
           >
             {statusText}
           </span>
@@ -366,11 +321,10 @@ const Vendors: React.FC = () => {
           {[...Array(5)].map((_, index) => (
             <svg
               key={index}
-              className={`w-4 h-4 ${
-                index < value
-                  ? 'text-yellow-400'
-                  : 'text-gray-300'
-              }`}
+              className={`w-4 h-4 ${index < value
+                ? 'text-yellow-400'
+                : 'text-gray-300'
+                }`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -408,11 +362,10 @@ const Vendors: React.FC = () => {
             </svg>
           </button>
           <button
-            className={`p-1.5 rounded-lg transition-colors duration-200 ${
-              row.is_active === 1
-                ? 'text-red-600 hover:text-white hover:bg-red-600'
-                : 'text-green-600 hover:text-white hover:bg-green-600'
-            }`}
+            className={`p-1.5 rounded-lg transition-colors duration-200 ${row.is_active === 1
+              ? 'text-red-600 hover:text-white hover:bg-red-600'
+              : 'text-green-600 hover:text-white hover:bg-green-600'
+              }`}
             onClick={() => handleOpenDeactivateModal(row)}
             title={row.is_active === 1 ? 'Deactivate Vendor' : 'Activate Vendor'}
           >
@@ -436,11 +389,10 @@ const Vendors: React.FC = () => {
             </svg>
           </button>
           <button
-            className={`p-1.5 rounded-lg transition-colors duration-200 ${
-              row.suspended_by_admin === 1
-                ? 'text-green-600 hover:text-white hover:bg-green-600'
-                : 'text-orange-600 hover:text-white hover:bg-orange-600'
-            }`}
+            className={`p-1.5 rounded-lg transition-colors duration-200 ${row.suspended_by_admin === 1
+              ? 'text-green-600 hover:text-white hover:bg-green-600'
+              : 'text-orange-600 hover:text-white hover:bg-orange-600'
+              }`}
             onClick={() => handleSuspendVendor(row.id, row.suspended_by_admin)}
             title={row.suspended_by_admin === 1 ? 'Unsuspend Vendor' : 'Suspend Vendor'}
           >
@@ -465,6 +417,7 @@ const Vendors: React.FC = () => {
   const totalEarnings = vendors.reduce((sum, vendor) => sum + vendor.total_earnings, 0);
   const totalVehicles = vendors.reduce((sum, vendor) => sum + vendor.total_vehicles, 0);
 
+  console.log(totalInactiveVendors, totalVehicles);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -478,7 +431,7 @@ const Vendors: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => {}} // TODO: Implement Add Vendor functionality
+            onClick={() => { }} // TODO: Implement Add Vendor functionality
             className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
           >
             <svg
@@ -606,7 +559,6 @@ const Vendors: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="text-red-600 p-4 bg-red-100 rounded-lg mb-4">Error: {error}</div>}
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm">
@@ -672,9 +624,8 @@ const Vendors: React.FC = () => {
                 Cancel
               </button>
               <button
-                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${
-                  selectedVendor.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className={`px-4 py-2 rounded-lg text-white transition-colors duration-200 ${selectedVendor.is_active === 1 ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                  }`}
                 onClick={handleConfirmToggleStatus}
               >
                 {selectedVendor.is_active === 1 ? 'Deactivate' : 'Activate'}

@@ -6,17 +6,17 @@ const createDriversTable = require('./models/driverModel');
 const createBookingsTable = require('./models/bookingModel');
 const createPrevBookingsTable = require('./models/prevbookingModel');
 const createPaymentsTable = require('./models/paymentModel');
-const createVendorBankTable=require('./models/vendorbankModel');
-const createPartnerTables=require('./models/partnerModel');
+const createVendorBankTable = require('./models/vendorbankModel');
+const createPartnerTables = require('./models/partnerModel');
 const createPromocodeTable = require('./models/promocodeModel');
-const ratingModel=require('./models/ratingModel');
-const transactionModel=require('./models/transactionModel');
-const AdminTrigger=require('./utils/admintrigger');
-const BookingTrigger=require('./utils/BookingTrigger');
-const transactiontrigger=require('./utils/transactionTrigger');
-const createvendorbanktale=require('./models/vendorbankModel');
-const createCabCategoriesTable=require('./models/cabCategoryModel');
-const makeid=require('./utils/createidtrigger')
+const ratingModel = require('./models/ratingModel');
+const transactionModel = require('./models/transactionModel');
+const AdminTrigger = require('./utils/admintrigger');
+const BookingTrigger = require('./utils/BookingTrigger');
+const transactiontrigger = require('./utils/transactionTrigger');
+const createvendorbanktale = require('./models/vendorbankModel');
+const createCabCategoriesTable = require('./models/cabCategoryModel');
+const makeid = require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
 const addPerKmChargeToVehicles = require('./migrate_vehicles_add_per_km_charge');
@@ -95,6 +95,6 @@ app.get("/", (req, res) => {
 });
 
 app.listen(5000, () => {
-    console.log('🚀 Server running on port 5000');
+  console.log('🚀 Server running on port 5000');
 });
 

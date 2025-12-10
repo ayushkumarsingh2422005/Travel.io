@@ -341,3 +341,75 @@ export const getAdminStats = async (token: string) => {
     throw error;
   }
 };
+
+// ==================== CAB CATEGORY MANAGEMENT ====================
+
+export const getCabCategories = async (token: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/cab-categories`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data.cab_categories; // Note: Controller returns { success: true, count: n, cab_categories: [...] }
+  } catch (error) {
+    console.error('Error fetching cab categories:', error);
+    throw error;
+  }
+};
+
+export const getCabCategory = async (token: string, id: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/cab-categories/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data.cab_category;
+  } catch (error) {
+    console.error('Error fetching cab category:', error);
+    throw error;
+  }
+};
+
+export const addCabCategory = async (token: string, data: any) => {
+  try {
+    const response = await axios.post(`${API_URL}/cab-categories`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding cab category:', error);
+    throw error;
+  }
+};
+
+export const updateCabCategory = async (token: string, id: string, data: any) => {
+  try {
+    const response = await axios.put(`${API_URL}/cab-categories/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating cab category:', error);
+    throw error;
+  }
+};
+
+export const deleteCabCategory = async (token: string, id: string) => {
+  try {
+    const response = await axios.delete(`${API_URL}/cab-categories/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting cab category:', error);
+    throw error;
+  }
+};

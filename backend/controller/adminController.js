@@ -23,24 +23,24 @@ const getAdminDashboard = async (req, res) => {
             FROM prevbookings 
             WHERE status = 'completed'
         `);
-        
+
         // Get admin commission (10% of total revenue)
         const adminCommission = Math.round(totalRevenue[0].total * 0.1);
-        
+
         // Get total vendor payments made
         const [totalVendorPayments] = await db.execute(`
             SELECT COALESCE(SUM(amount), 0) as total
             FROM payments 
             WHERE vendor_id IS NOT NULL AND status = 'completed'
         `);
-        
+
         // Get total partner payments made
         const [totalPartnerPayments] = await db.execute(`
             SELECT COALESCE(SUM(amount), 0) as total
             FROM payments 
             WHERE partner_id IS NOT NULL AND status = 'completed'
         `);
-        
+
         // Get pending vendor payments
         const [pendingVendorPayments] = await db.execute(`
             SELECT COALESCE(SUM(pb.price), 0) as total
@@ -52,42 +52,42 @@ const getAdminDashboard = async (req, res) => {
                 WHERE vendor_id IS NOT NULL AND status = 'completed'
             )
         `);
-        
+
         // Get pending partner payments
         const [pendingPartnerPayments] = await db.execute(`
             SELECT COALESCE(SUM(pt.commission_amount), 0) as total
             FROM partner_transactions pt
             WHERE pt.status = 'pending'
         `);
-        
+
         // Get total bookings count
         const [totalBookings] = await db.execute(`
             SELECT COUNT(*) as count
             FROM prevbookings
         `);
-        
+
         // Get completed bookings count
         const [completedBookings] = await db.execute(`
             SELECT COUNT(*) as count
             FROM prevbookings 
             WHERE status = 'completed'
         `);
-        
+
         // Get active vendors count
         const [activeVendors] = await db.execute(`
             SELECT COUNT(*) as count
             FROM vendors
         `);
-        
+
         // Get active partners count
         const [activePartners] = await db.execute(`
             SELECT COUNT(*) as count
             FROM partners
         `);
-        
+
         // Calculate remaining amount to be paid
         const remainingAmount = pendingVendorPayments[0].total + pendingPartnerPayments[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Admin dashboard data retrieved successfully',
@@ -119,7 +119,7 @@ const getAdminDashboard = async (req, res) => {
 const getPendingVendorPayments = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        
+
         const query = `
             SELECT 
                 pb.id as booking_id,
@@ -146,15 +146,15 @@ const getPendingVendorPayments = async (req, res) => {
             )
             ORDER BY pb.pickup_date DESC
         `;
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         const paginatedQuery = query + ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [payments] = await db.execute(paginatedQuery);
-        
+
         // Count total pending payments
         const [countResult] = await db.execute(`
             SELECT COUNT(*) as total
@@ -167,7 +167,7 @@ const getPendingVendorPayments = async (req, res) => {
             )
         `);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Pending vendor payments retrieved successfully',
@@ -195,7 +195,7 @@ const getPendingVendorPayments = async (req, res) => {
 const getPendingPartnerPayments = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        
+
         const query = `
             SELECT 
                 pt.id as transaction_id,
@@ -221,15 +221,15 @@ const getPendingPartnerPayments = async (req, res) => {
             WHERE pt.status = 'pending'
             ORDER BY pt.created_at DESC
         `;
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         const paginatedQuery = query + ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [payments] = await db.execute(paginatedQuery);
-        
+
         // Count total pending payments
         const [countResult] = await db.execute(`
             SELECT COUNT(*) as total
@@ -237,7 +237,7 @@ const getPendingPartnerPayments = async (req, res) => {
             WHERE status = 'pending'
         `);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Pending partner payments retrieved successfully',
@@ -265,42 +265,42 @@ const getPendingPartnerPayments = async (req, res) => {
 const payVendor = async (req, res) => {
     try {
         const { booking_id, vendor_id, amount, payment_method = 'bank_transfer', notes } = req.body;
-        
+
         if (!booking_id || !vendor_id || !amount) {
             return res.status(400).json({
                 success: false,
                 message: 'Booking ID, vendor ID, and amount are required'
             });
         }
-        
+
         // Verify the booking exists and is completed
         const [bookings] = await db.execute(`
             SELECT * FROM prevbookings 
             WHERE id = ? AND vendor_id = ? AND status = 'completed'
         `, [booking_id, vendor_id]);
-        
+
         if (bookings.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Completed booking not found for this vendor'
             });
         }
-        
+
         const booking = bookings[0];
-        
+
         // Check if already paid
         const [existingPayments] = await db.execute(`
             SELECT * FROM payments 
             WHERE booking_id = ? AND vendor_id = ? AND status = 'completed'
         `, [booking_id, vendor_id]);
-        
+
         if (existingPayments.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'This booking has already been paid'
             });
         }
-        
+
         // Create payment record
         const paymentId = generatePaymentId();
         await db.execute(`
@@ -315,7 +315,7 @@ const payVendor = async (req, res) => {
             SET total_earnings = total_earnings + ?, amount = amount + ?
             WHERE id = ?
         `, [amount, amount, vendor_id]);
-        
+
         res.status(200).json({
             success: true,
             message: 'Vendor payment completed successfully',
@@ -342,36 +342,36 @@ const payVendor = async (req, res) => {
 const payPartner = async (req, res) => {
     try {
         const { transaction_id, partner_id, amount, payment_method = 'bank_transfer', notes } = req.body;
-        
+
         if (!transaction_id || !partner_id || !amount) {
             return res.status(400).json({
                 success: false,
                 message: 'Transaction ID, partner ID, and amount are required'
             });
         }
-        
+
         // Verify the transaction exists and is pending
         const [transactions] = await db.execute(`
             SELECT * FROM partner_transactions 
             WHERE id = ? AND partner_id = ? AND status = 'pending'
         `, [transaction_id, partner_id]);
-        
+
         if (transactions.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Pending partner transaction not found'
             });
         }
-        
+
         const transaction = transactions[0];
-        
+
         // Update transaction status to completed
         await db.execute(`
             UPDATE partner_transactions 
             SET status = 'completed' 
             WHERE id = ?
         `, [transaction_id]);
-        
+
         // Create payment record
         const paymentId = generatePaymentId();
         await db.execute(`
@@ -379,14 +379,14 @@ const payPartner = async (req, res) => {
                 id, partner_id, amount, status, type, created_at
             ) VALUES (?, ?, ?, 'completed', 'withdrawal', CURRENT_TIMESTAMP)
         `, [paymentId, partner_id, amount]);
-        
+
         // Update partner's total earnings and wallet balance
         await db.execute(`
             UPDATE partners 
             SET total_earnings = total_earnings + ?, wallet_balance = wallet_balance + ?
             WHERE id = ?
         `, [amount, amount, partner_id]);
-        
+
         res.status(200).json({
             success: true,
             message: 'Partner payment completed successfully',
@@ -413,7 +413,7 @@ const payPartner = async (req, res) => {
 const getAllPayments = async (req, res) => {
     try {
         const { page = 1, limit = 10, type, status, start_date, end_date } = req.query;
-        
+
         let query = `
             SELECT 
                 p.id,
@@ -433,66 +433,66 @@ const getAllPayments = async (req, res) => {
             LEFT JOIN partners pt ON p.partner_id = pt.id
             WHERE 1=1
         `;
-        
+
         const params = [];
-        
+
         if (type) {
             query += ' AND p.type = ?';
             params.push(type);
         }
-        
+
         if (status) {
             query += ' AND p.status = ?';
             params.push(status);
         }
-        
+
         if (start_date) {
             query += ' AND p.created_at >= ?';
             params.push(start_date);
         }
-        
+
         if (end_date) {
             query += ' AND p.created_at <= ?';
             params.push(end_date);
         }
-        
+
         query += ' ORDER BY p.created_at DESC';
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [payments] = await db.execute(query, params);
-        
+
         // Count total payments
         let countQuery = 'SELECT COUNT(*) as total FROM payments WHERE 1=1';
         const countParams = [];
-        
+
         if (type) {
             countQuery += ' AND type = ?';
             countParams.push(type);
         }
-        
+
         if (status) {
             countQuery += ' AND status = ?';
             countParams.push(status);
         }
-        
+
         if (start_date) {
             countQuery += ' AND created_at >= ?';
             countParams.push(start_date);
         }
-        
+
         if (end_date) {
             countQuery += ' AND created_at <= ?';
             countParams.push(end_date);
         }
-        
+
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'All payments retrieved successfully',
@@ -533,7 +533,7 @@ const getFinancialAnalytics = async (req, res) => {
             bookingDateFilter = ' AND pb.pickup_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
             partnerTxnDateFilter = ' AND pt.created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         }
-        
+
         // Get revenue breakdown
         const [revenueBreakdown] = await db.execute(`
             SELECT 
@@ -545,7 +545,7 @@ const getFinancialAnalytics = async (req, res) => {
             LEFT JOIN partner_transactions pt ON pb.id = pt.booking_id
             WHERE pb.status = 'completed'${bookingDateFilter}
         `);
-        
+
         // Get monthly revenue trend (last 12 months)
         const [monthlyTrend] = await db.execute(`
             SELECT 
@@ -559,7 +559,7 @@ const getFinancialAnalytics = async (req, res) => {
             GROUP BY DATE_FORMAT(pb.pickup_date, '%Y-%m')
             ORDER BY month DESC
         `);
-        
+
         // Get top vendors by earnings
         const [topVendors] = await db.execute(`
             SELECT 
@@ -575,7 +575,7 @@ const getFinancialAnalytics = async (req, res) => {
             ORDER BY total_earnings DESC
             LIMIT 10
         `);
-        
+
         // Get top partners by commission
         const [topPartners] = await db.execute(`
             SELECT 
@@ -591,7 +591,7 @@ const getFinancialAnalytics = async (req, res) => {
             ORDER BY total_commission DESC
             LIMIT 10
         `);
-        
+
         res.status(200).json({
             success: true,
             message: 'Financial analytics retrieved successfully',
@@ -619,7 +619,7 @@ const getFinancialAnalytics = async (req, res) => {
 const getAllVendors = async (req, res) => {
     try {
         const { page = 1, limit = 10, status, search } = req.query;
-        
+
         let query = `
             SELECT 
                 v.id,
@@ -651,9 +651,9 @@ const getAllVendors = async (req, res) => {
             LEFT JOIN prevbookings pb ON v.id = pb.vendor_id
             WHERE 1=1
         `;
-        
+
         const params = [];
-        
+
         if (status === 'active') {
             query += ' AND v.is_active = 1';
         } else if (status === 'inactive') {
@@ -661,27 +661,27 @@ const getAllVendors = async (req, res) => {
         } else if (status === 'suspended') {
             query += ' AND v.suspended_by_admin = 1';
         }
-        
+
         if (search) {
             query += ' AND (v.name LIKE ? OR v.email LIKE ? OR v.phone LIKE ?)';
             const searchParam = `%${search}%`;
             params.push(searchParam, searchParam, searchParam);
         }
-        
+
         query += ' GROUP BY v.id ORDER BY v.created_at DESC';
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [vendors] = await db.execute(query, params);
-        
+
         // Count total vendors
         let countQuery = 'SELECT COUNT(DISTINCT v.id) as total FROM vendors v WHERE 1=1';
         const countParams = [];
-        
+
         if (status === 'active') {
             countQuery += ' AND v.is_active = 1';
         } else if (status === 'inactive') {
@@ -689,16 +689,16 @@ const getAllVendors = async (req, res) => {
         } else if (status === 'suspended') {
             countQuery += ' AND v.suspended_by_admin = 1';
         }
-        
+
         if (search) {
             countQuery += ' AND (v.name LIKE ? OR v.email LIKE ? OR v.phone LIKE ?)';
             const searchParam = `%${search}%`;
             countParams.push(searchParam, searchParam, searchParam);
         }
-        
+
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Vendors retrieved successfully',
@@ -726,7 +726,7 @@ const getAllVendors = async (req, res) => {
 const getVendorDetails = async (req, res) => {
     try {
         const { vendorId } = req.params;
-        
+
         // Get vendor details
         const [vendors] = await db.execute(`
             SELECT 
@@ -743,16 +743,16 @@ const getVendorDetails = async (req, res) => {
             WHERE v.id = ?
             GROUP BY v.id
         `, [vendorId]);
-        
+
         if (vendors.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendor not found'
             });
         }
-        
+
         const vendor = vendors[0];
-        
+
         // Get recent bookings for this vendor
         const [bookings] = await db.execute(`
             SELECT 
@@ -772,7 +772,7 @@ const getVendorDetails = async (req, res) => {
             ORDER BY pb.pickup_date DESC
             LIMIT 20
         `, [vendorId]);
-        
+
         // Get vehicles for this vendor
         const [vehicles] = await db.execute(`
             SELECT id, model, registration_no, is_active, per_km_charge, no_of_seats
@@ -780,7 +780,7 @@ const getVendorDetails = async (req, res) => {
             WHERE vendor_id = ?
             ORDER BY model ASC
         `, [vendorId]);
-        
+
         // Get drivers for this vendor
         const [drivers] = await db.execute(`
             SELECT id, name, phone, dl_number, is_active
@@ -788,7 +788,7 @@ const getVendorDetails = async (req, res) => {
             WHERE vendor_id = ?
             ORDER BY name ASC
         `, [vendorId]);
-        
+
         res.status(200).json({
             success: true,
             message: 'Vendor details retrieved successfully',
@@ -814,33 +814,33 @@ const toggleVendorStatus = async (req, res) => {
     try {
         const { vendorId } = req.params;
         const { is_active } = req.body;
-        
+
         if (typeof is_active !== 'boolean') {
             return res.status(400).json({
                 success: false,
                 message: 'is_active must be a boolean value'
             });
         }
-        
+
         // Verify vendor exists
         const [vendors] = await db.execute(
             'SELECT id, name FROM vendors WHERE id = ?',
             [vendorId]
         );
-        
+
         if (vendors.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendor not found'
             });
         }
-        
+
         // Update vendor status
         await db.execute(
             'UPDATE vendors SET is_active = ? WHERE id = ?',
             [is_active ? 1 : 0, vendorId]
         );
-        
+
         // If deactivating vendor, also deactivate all their drivers
         if (!is_active) {
             await db.execute(
@@ -848,7 +848,7 @@ const toggleVendorStatus = async (req, res) => {
                 [vendorId]
             );
         }
-        
+
         res.status(200).json({
             success: true,
             message: `Vendor ${is_active ? 'activated' : 'deactivated'} successfully`,
@@ -872,7 +872,7 @@ const applyVendorPenalty = async (req, res) => {
     try {
         const { vendorId } = req.params;
         const { penalty_amount, penalty_reason } = req.body || {};
-        
+
         const parsedPenaltyAmount = Number(penalty_amount);
         if (!Number.isFinite(parsedPenaltyAmount) || parsedPenaltyAmount <= 0 || !penalty_reason || penalty_reason.trim().length === 0) {
             return res.status(400).json({
@@ -880,25 +880,25 @@ const applyVendorPenalty = async (req, res) => {
                 message: 'Valid penalty amount and reason are required'
             });
         }
-        
+
         // Verify vendor exists
         const [vendors] = await db.execute(
             'SELECT id, name, amount FROM vendors WHERE id = ?',
             [vendorId]
         );
-        
+
         if (vendors.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendor not found'
             });
         }
-        
+
         const vendor = vendors[0];
-        
+
         // Deduct penalty from vendor's amount
         const newAmount = Math.max(0, (vendor.amount || 0) - parsedPenaltyAmount);
-        
+
         // Update vendor with penalty details
         await db.execute(`
             UPDATE vendors 
@@ -909,7 +909,7 @@ const applyVendorPenalty = async (req, res) => {
                 amount = ?
             WHERE id = ?
         `, [penalty_reason.trim(), parsedPenaltyAmount, newAmount, vendorId]);
-        
+
         // Create penalty payment record
         const paymentId = generatePaymentId();
         await db.execute(`
@@ -917,7 +917,7 @@ const applyVendorPenalty = async (req, res) => {
                 id, vendor_id, amount, status, type, created_at
             ) VALUES (?, ?, ?, 'completed', 'penalty', NOW())
         `, [paymentId, vendorId, parsedPenaltyAmount]);
-        
+
         res.status(200).json({
             success: true,
             message: 'Penalty applied to vendor successfully',
@@ -944,27 +944,27 @@ const suspendVendor = async (req, res) => {
     try {
         const { vendorId } = req.params;
         const { suspended, suspension_reason, suspension_until } = req.body || {};
-        
+
         if (typeof suspended !== 'boolean') {
             return res.status(400).json({
                 success: false,
                 message: 'suspended must be a boolean value'
             });
         }
-        
+
         // Verify vendor exists
         const [vendors] = await db.execute(
             'SELECT id, name FROM vendors WHERE id = ?',
             [vendorId]
         );
-        
+
         if (vendors.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendor not found'
             });
         }
-        
+
         if (suspended) {
             if (!suspension_reason) {
                 return res.status(400).json({
@@ -972,7 +972,7 @@ const suspendVendor = async (req, res) => {
                     message: 'Suspension reason is required'
                 });
             }
-            
+
             const suspensionUntilDate = formatToMySQLDateTime(suspension_until);
             if (suspension_until && !suspensionUntilDate) {
                 return res.status(400).json({
@@ -991,7 +991,7 @@ const suspendVendor = async (req, res) => {
                     is_active = 0
                 WHERE id = ?
             `, [suspension_reason.trim(), suspensionUntilDate, vendorId]);
-            
+
             // Also deactivate all their drivers
             await db.execute(
                 'UPDATE drivers SET is_active = 0 WHERE vendor_id = ?',
@@ -1008,7 +1008,7 @@ const suspendVendor = async (req, res) => {
                 WHERE id = ?
             `, [vendorId]);
         }
-        
+
         res.status(200).json({
             success: true,
             message: `Vendor ${suspended ? 'suspended' : 'unsuspended'} successfully`,
@@ -1032,7 +1032,7 @@ const getVendorBookings = async (req, res) => {
     try {
         const { vendorId } = req.params;
         const { page = 1, limit = 20, status, start_date, end_date } = req.query;
-        
+
         let query = `
             SELECT 
                 pb.*,
@@ -1049,56 +1049,56 @@ const getVendorBookings = async (req, res) => {
             LEFT JOIN drivers d ON pb.driver_id = d.id
             WHERE pb.vendor_id = ?
         `;
-        
+
         const params = [vendorId];
-        
+
         if (status) {
             query += ' AND pb.status = ?';
             params.push(status);
         }
-        
+
         if (start_date) {
             query += ' AND pb.pickup_date >= ?';
             params.push(start_date);
         }
-        
+
         if (end_date) {
             query += ' AND pb.pickup_date <= ?';
             params.push(end_date);
         }
-        
+
         query += ' ORDER BY pb.pickup_date DESC';
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [bookings] = await db.execute(query, params);
-        
+
         // Count total bookings
         let countQuery = 'SELECT COUNT(*) as total FROM prevbookings WHERE vendor_id = ?';
         const countParams = [vendorId];
-        
+
         if (status) {
             countQuery += ' AND status = ?';
             countParams.push(status);
         }
-        
+
         if (start_date) {
             countQuery += ' AND pickup_date >= ?';
             countParams.push(start_date);
         }
-        
+
         if (end_date) {
             countQuery += ' AND pickup_date <= ?';
             countParams.push(end_date);
         }
-        
+
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Vendor bookings retrieved successfully',
@@ -1128,7 +1128,7 @@ const getVendorBookings = async (req, res) => {
 const getAllDrivers = async (req, res) => {
     try {
         const { page = 1, limit = 10, status, vendor_id, search } = req.query;
-        
+
         let query = `
             SELECT 
                 d.*,
@@ -1144,60 +1144,60 @@ const getAllDrivers = async (req, res) => {
             LEFT JOIN prevbookings pb ON d.id = pb.driver_id
             WHERE 1=1
         `;
-        
+
         const params = [];
-        
+
         if (status === 'active') {
             query += ' AND d.is_active = 1';
         } else if (status === 'inactive') {
             query += ' AND d.is_active = 0';
         }
-        
+
         if (vendor_id) {
             query += ' AND d.vendor_id = ?';
             params.push(vendor_id);
         }
-        
+
         if (search) {
             query += ' AND (d.name LIKE ? OR d.phone LIKE ? OR d.dl_number LIKE ?)';
             const searchParam = `%${search}%`;
             params.push(searchParam, searchParam, searchParam);
         }
-        
+
         query += ' GROUP BY d.id ORDER BY d.name ASC';
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [drivers] = await db.execute(query, params);
-        
+
         // Count total drivers
         let countQuery = 'SELECT COUNT(*) as total FROM drivers WHERE 1=1';
         const countParams = [];
-        
+
         if (status === 'active') {
             countQuery += ' AND is_active = 1';
         } else if (status === 'inactive') {
             countQuery += ' AND is_active = 0';
         }
-        
+
         if (vendor_id) {
             countQuery += ' AND vendor_id = ?';
             countParams.push(vendor_id);
         }
-        
+
         if (search) {
             countQuery += ' AND (name LIKE ? OR phone LIKE ? OR dl_number LIKE ?)';
             const searchParam = `%${search}%`;
             countParams.push(searchParam, searchParam, searchParam);
         }
-        
+
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Drivers retrieved successfully',
@@ -1226,36 +1226,36 @@ const toggleDriverStatus = async (req, res) => {
     try {
         const { driverId } = req.params;
         const { is_active } = req.body;
-        
+
         if (typeof is_active !== 'boolean') {
             return res.status(400).json({
                 success: false,
                 message: 'is_active must be a boolean value'
             });
         }
-        
+
         // Verify driver exists
         const [drivers] = await db.execute(
             'SELECT id, name, vendor_id FROM drivers WHERE id = ?',
             [driverId]
         );
-        
+
         if (drivers.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Driver not found'
             });
         }
-        
+
         const driver = drivers[0];
-        
+
         // Check if vendor is active/suspended
         if (is_active) {
             const [vendors] = await db.execute(
                 'SELECT is_active, suspended_by_admin FROM vendors WHERE id = ?',
                 [driver.vendor_id]
             );
-            
+
             if (vendors.length > 0 && (!vendors[0].is_active || vendors[0].suspended_by_admin)) {
                 return res.status(400).json({
                     success: false,
@@ -1263,13 +1263,13 @@ const toggleDriverStatus = async (req, res) => {
                 });
             }
         }
-        
+
         // Update driver status
         await db.execute(
             'UPDATE drivers SET is_active = ? WHERE id = ?',
             [is_active ? 1 : 0, driverId]
         );
-        
+
         res.status(200).json({
             success: true,
             message: `Driver ${is_active ? 'activated' : 'deactivated'} successfully`,
@@ -1294,7 +1294,7 @@ const toggleDriverStatus = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10, search, verified } = req.query;
-        
+
         let query = `
             SELECT 
                 u.*,
@@ -1305,50 +1305,50 @@ const getAllUsers = async (req, res) => {
             LEFT JOIN prevbookings pb ON u.id = pb.customer_id
             WHERE 1=1
         `;
-        
+
         const params = [];
-        
+
         if (verified === 'phone') {
             query += ' AND u.is_phone_verified = 1';
         } else if (verified === 'profile') {
             query += ' AND u.is_profile_completed = 1';
         }
-        
+
         if (search) {
             query += ' AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)';
             const searchParam = `%${search}%`;
             params.push(searchParam, searchParam, searchParam);
         }
-        
+
         query += ' GROUP BY u.id ORDER BY u.created_at DESC';
-        
+
         // Pagination
         const pageNum = Math.max(1, parseInt(page));
         const pageLimit = Math.max(1, parseInt(limit));
         const offset = (pageNum - 1) * pageLimit;
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
-        
+
         const [users] = await db.execute(query, params);
-        
+
         // Count total users
         let countQuery = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
         const countParams = [];
-        
+
         if (verified === 'phone') {
             countQuery += ' AND is_phone_verified = 1';
         } else if (verified === 'profile') {
             countQuery += ' AND is_profile_completed = 1';
         }
-        
+
         if (search) {
             countQuery += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)';
             const searchParam = `%${search}%`;
             countParams.push(searchParam, searchParam, searchParam);
         }
-        
+
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0].total;
-        
+
         res.status(200).json({
             success: true,
             message: 'Users retrieved successfully',
@@ -1376,22 +1376,22 @@ const getAllUsers = async (req, res) => {
 const getUserDetails = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Get user details
         const [users] = await db.execute(
             'SELECT * FROM users WHERE id = ?',
             [userId]
         );
-        
+
         if (users.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-        
+
         const user = users[0];
-        
+
         // Get user bookings
         const [bookings] = await db.execute(`
             SELECT 
@@ -1408,7 +1408,7 @@ const getUserDetails = async (req, res) => {
             ORDER BY pb.pickup_date DESC
             LIMIT 50
         `, [userId]);
-        
+
         res.status(200).json({
             success: true,
             message: 'User details retrieved successfully',
@@ -1432,23 +1432,23 @@ const updateUserData = async (req, res) => {
     try {
         const { userId } = req.params;
         const { name, email, phone, is_phone_verified, is_profile_completed } = req.body;
-        
+
         // Verify user exists
         const [users] = await db.execute(
             'SELECT id FROM users WHERE id = ?',
             [userId]
         );
-        
+
         if (users.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-        
+
         const updates = [];
         const params = [];
-        
+
         if (name !== undefined) {
             updates.push('name = ?');
             params.push(name);
@@ -1469,20 +1469,20 @@ const updateUserData = async (req, res) => {
             updates.push('is_profile_completed = ?');
             params.push(is_profile_completed ? 1 : 0);
         }
-        
+
         if (updates.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'No fields to update'
             });
         }
-        
+
         params.push(userId);
         await db.execute(
             `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
             params
         );
-        
+
         res.status(200).json({
             success: true,
             message: 'User data updated successfully'
@@ -1501,23 +1501,23 @@ const updateUserData = async (req, res) => {
 const deleteUser = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Verify user exists
         const [users] = await db.execute(
             'SELECT id, name FROM users WHERE id = ?',
             [userId]
         );
-        
+
         if (users.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
-        
+
         // Delete user (cascade will handle related records)
         await db.execute('DELETE FROM users WHERE id = ?', [userId]);
-        
+
         res.status(200).json({
             success: true,
             message: 'User deleted successfully'
@@ -1539,7 +1539,7 @@ const getAnnualBookingsStats = async (req, res) => {
     try {
         const { year } = req.query;
         const currentYear = year || new Date().getFullYear();
-        
+
         // Get monthly bookings breakdown for the year
         const [monthlyStats] = await db.execute(`
             SELECT 
@@ -1555,7 +1555,7 @@ const getAnnualBookingsStats = async (req, res) => {
             GROUP BY DATE_FORMAT(pickup_date, '%Y-%m'), DATE_FORMAT(pickup_date, '%M %Y')
             ORDER BY month ASC
         `, [currentYear]);
-        
+
         // Get yearly summary
         const [yearlySummary] = await db.execute(`
             SELECT 
@@ -1568,7 +1568,7 @@ const getAnnualBookingsStats = async (req, res) => {
             FROM prevbookings
             WHERE YEAR(pickup_date) = ?
         `, [currentYear]);
-        
+
         // Get bookings by status
         const [statusBreakdown] = await db.execute(`
             SELECT 
@@ -1579,7 +1579,7 @@ const getAnnualBookingsStats = async (req, res) => {
             WHERE YEAR(pickup_date) = ?
             GROUP BY status
         `, [currentYear]);
-        
+
         res.status(200).json({
             success: true,
             message: 'Annual bookings statistics retrieved successfully',
@@ -1604,7 +1604,7 @@ const getAnnualBookingsStats = async (req, res) => {
 const getWebsiteReachStats = async (req, res) => {
     try {
         const { period = 'year' } = req.query; // week, month, year
-        
+
         let dateFilter = '';
         if (period === 'week') {
             dateFilter = ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)';
@@ -1613,17 +1613,17 @@ const getWebsiteReachStats = async (req, res) => {
         } else if (period === 'year') {
             dateFilter = ' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         }
-        
+
         // Total users registered
         const [totalUsers] = await db.execute(`
             SELECT COUNT(*) as total FROM users
         `);
-        
+
         // New users in period
         const [newUsers] = await db.execute(`
             SELECT COUNT(*) as total FROM users WHERE 1=1${dateFilter}
         `);
-        
+
         // Verified users
         const [verifiedUsers] = await db.execute(`
             SELECT 
@@ -1632,7 +1632,7 @@ const getWebsiteReachStats = async (req, res) => {
                 COUNT(CASE WHEN is_profile_completed = 1 THEN 1 END) as profile_completed
             FROM users
         `);
-        
+
         // Total vendors
         const [totalVendors] = await db.execute(`
             SELECT 
@@ -1642,7 +1642,7 @@ const getWebsiteReachStats = async (req, res) => {
                 COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN 1 END) as new_this_month
             FROM vendors
         `);
-        
+
         // Total drivers (driver table doesn't track timestamps, so new_this_month is approximated)
         const [totalDrivers] = await db.execute(`
             SELECT 
@@ -1651,7 +1651,7 @@ const getWebsiteReachStats = async (req, res) => {
                 0 as new_this_month
             FROM drivers
         `);
-        
+
         // Total partners
         const [totalPartners] = await db.execute(`
             SELECT 
@@ -1659,7 +1659,7 @@ const getWebsiteReachStats = async (req, res) => {
                 COUNT(CASE WHEN is_phone_verified = 1 THEN 1 END) as verified_partners
             FROM partners
         `);
-        
+
         // Leads (potential bookings that didn't complete)
         const [leads] = await db.execute(`
             SELECT 
@@ -1668,7 +1668,7 @@ const getWebsiteReachStats = async (req, res) => {
             FROM bookings
             WHERE status = 'waiting' OR status = 'cancelled'
         `);
-        
+
         // User growth over time (monthly for the last 12 months)
         const [userGrowth] = await db.execute(`
             SELECT 
@@ -1680,7 +1680,7 @@ const getWebsiteReachStats = async (req, res) => {
             GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
             ORDER BY month ASC
         `);
-        
+
         res.status(200).json({
             success: true,
             message: 'Website reach statistics retrieved successfully',
@@ -1727,7 +1727,7 @@ const getAdminStats = async (req, res) => {
                 (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE status = 'completed') as total_revenue,
                 (SELECT COALESCE(SUM(price * 0.1), 0) FROM prevbookings WHERE status = 'completed') as admin_commission
         `);
-        
+
         // Recent activity (last 7 days)
         const [recentActivity] = await db.execute(`
             SELECT 
@@ -1737,7 +1737,7 @@ const getAdminStats = async (req, res) => {
                 (SELECT COUNT(*) FROM prevbookings WHERE pickup_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as completed_bookings,
                 (SELECT COALESCE(SUM(price), 0) FROM prevbookings WHERE pickup_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed') as revenue_7_days
         `);
-        
+
         // Top performing vendors
         const [topVendors] = await db.execute(`
             SELECT 
@@ -1754,7 +1754,7 @@ const getAdminStats = async (req, res) => {
             ORDER BY total_earnings DESC
             LIMIT 10
         `);
-        
+
         res.status(200).json({
             success: true,
             message: 'Admin statistics retrieved successfully',
