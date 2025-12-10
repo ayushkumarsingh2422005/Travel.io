@@ -22,36 +22,36 @@ function generateRandomToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-const verifytoken=(req,res)=>{
-    try{
-      const token = req.headers.authorization?.split(' ')[1];
+const verifytoken = (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
         if (!token) {
-            return res.status(401).json({ message: 'No token provided.',success:false });
+            return res.status(401).json({ message: 'No token provided.', success: false });
         }
         jwt.verify(token, JWT_SECRET, (err, decoded) => {
             if (err) {
-                return res.status(401).json({ message: 'Invalid token.',success:false });
+                return res.status(401).json({ message: 'Invalid token.', success: false });
             }
             // Token is valid, you can access decoded data
-            res.status(200).json({ message: 'Token is valid',success:true, customer: decoded });
+            res.status(200).json({ message: 'Token is valid', success: true, customer: decoded });
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
-        res.status(500).json({ message: 'Token verification failed',success:false, error: err.message });
+        res.status(500).json({ message: 'Token verification failed', success: false, error: err.message });
     }
 }
 
 const signup = async (req, res) => {
     try {
         const { name, email, phone, password, gender, age, current_address, description } = req.body;
-        
+
         console.log(`Vendor signup request for: ${email}`);
-        
+
         if (!name || !email || !phone || !password || !gender || !age || !current_address) {
             return res.status(400).json({ message: 'All required fields are missing.' });
         }
-        
+
         const [existing] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
 
         if (existing.length > 0) {
@@ -67,34 +67,34 @@ const signup = async (req, res) => {
 
         const password_hash = await bcrypt.hash(password, 10);
         const id = crypto.randomBytes(32).toString('hex');
-        
+
         // Generate email verification token
         const email_verification_token = generateRandomToken();
         const email_verification_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-        
+
         console.log(`Creating new vendor account with ID: ${id}`);
-        
+
         await db.execute(
             `INSERT INTO vendors (id, name, email, phone, password_hash, gender, age, current_address, description, 
             email_verification_token, email_verification_expiry, is_email_verified) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, name, email, phone, password_hash, gender, age, current_address, description || null, 
-            email_verification_token, email_verification_expiry, 0]
+            [id, name, email, phone, password_hash, gender, age, current_address, description || null,
+                email_verification_token, email_verification_expiry, 0]
         );
-        
+
         console.log(`Vendor account created, sending verification email to: ${email}`);
-        
+
         // Send verification email
         const emailSent = await sendVerificationEmail(email, email_verification_token, 'vendor');
-        
+
         if (!emailSent) {
             console.warn(`Warning: Verification email could not be sent to ${email}`);
         }
-        
+
         const token = generateToken({ id, email });
         console.log(`Vendor signup successful for: ${email}`);
-        
-        res.status(201).json({ 
+
+        res.status(201).json({
             token,
             message: 'Account created successfully. Please verify your email address.'
         });
@@ -108,14 +108,14 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ message: 'Email and password required.' });
-        
+
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
         if (vendors.length === 0) return res.status(401).json({ message: 'Invalid credentials.' });
-        
+
         const vendor = vendors[0];
         const valid = await bcrypt.compare(password, vendor.password_hash);
         if (!valid) return res.status(401).json({ message: 'Invalid credentials.' });
-        
+
         const token = generateToken(vendor);
         res.json({ token });
     } catch (err) {
@@ -127,16 +127,16 @@ const google = async (req, res) => {
     try {
         const { id_token } = req.body;
         if (!id_token) return res.status(400).json({ message: 'No Google token provided.' });
-        
+
         const ticket = await googleClient.verifyIdToken({ idToken: id_token, audience: GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         const { sub: google_id, email, name, picture } = payload;
-        
+
         console.log('Google auth for vendor:', { google_id, email, name, picture });
-        
+
         let [vendors] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
         let vendor;
-        
+
         if (vendors.length > 0) {
             vendor = vendors[0];
             // If vendor exists but doesn't have profile pic, update it
@@ -144,7 +144,7 @@ const google = async (req, res) => {
                 await db.execute('UPDATE vendors SET profile_pic = ? WHERE id = ?', [picture, vendor.id]);
                 vendor.profile_pic = picture;
             }
-            
+
             // Mark email as verified since Google already verified it
             if (!vendor.is_email_verified) {
                 await db.execute('UPDATE vendors SET is_email_verified = 1 WHERE id = ?', [vendor.id]);
@@ -154,21 +154,21 @@ const google = async (req, res) => {
                 // Create new vendor with Google info
                 const id = crypto.randomBytes(32).toString('hex');
                 console.log('Creating new Google vendor:', { id, name, email, picture, google_id });
-                
+
                 // For Google signup, we'll need additional required fields
                 // You might want to redirect to a profile completion page
                 await db.execute(
                     `INSERT INTO vendors (id, name, email, profile_pic, password_hash, gender, age, current_address, is_email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [id, name, email, picture, '', 'Other', 18, 'Address to be updated', 1]
                 );
-                
+
                 vendor = { id, email, name, profile_pic: picture };
             } catch (err) {
                 console.error('Error creating Google vendor:', err);
                 return res.status(500).json({ message: 'Failed to create Google vendor', error: err.message });
             }
         }
-        
+
         const token = generateToken(vendor);
         res.json({ token });
     } catch (err) {
@@ -180,29 +180,29 @@ const google = async (req, res) => {
 const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
-        
+
         if (!token) {
             return res.status(400).json({ message: 'Verification token is required.' });
         }
-        
+
         // Find vendor with this token
         const [vendors] = await db.execute(
             'SELECT * FROM vendors WHERE email_verification_token = ? AND email_verification_expiry > NOW()',
             [token]
         );
-        
+
         if (vendors.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired verification token.' });
         }
-        
+
         const vendor = vendors[0];
-        
+
         // Mark email as verified and clear token
         await db.execute(
             'UPDATE vendors SET is_email_verified = 1, email_verification_token = NULL, email_verification_expiry = NULL WHERE id = ?',
             [vendor.id]
         );
-        
+
         res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
     } catch (err) {
         console.error(err);
@@ -214,41 +214,41 @@ const verifyEmail = async (req, res) => {
 const resendVerificationEmail = async (req, res) => {
     try {
         const { email } = req.body;
-        
+
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
         }
-        
+
         // Find vendor with this email
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
-        
+
         if (vendors.length === 0) {
             return res.status(404).json({ message: 'Vendor not found.' });
         }
-        
+
         console.log("Resending verification email");
-        
+
         const vendor = vendors[0];
-        
+
         // Check if email is already verified
         if (vendor.is_email_verified) {
             return res.status(400).json({ message: 'Email is already verified.' });
         }
-        
+
         // Generate new verification token
         const email_verification_token = generateRandomToken();
         const email_verification_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-        
+
         // Update vendor with new token
         await db.execute(
             'UPDATE vendors SET email_verification_token = ?, email_verification_expiry = ? WHERE id = ?',
             [email_verification_token, email_verification_expiry, vendor.id]
         );
-        
-        
+
+
         // Send verification email
         await sendVerificationEmail(email, email_verification_token, 'vendor');
-        
+
         res.status(200).json({ message: 'Verification email sent successfully.' });
     } catch (err) {
         console.error(err);
@@ -260,19 +260,19 @@ const resendVerificationEmail = async (req, res) => {
 const sendPhoneVerificationOTP = async (req, res) => {
     try {
         const { phone } = req.body;
-        const vendorId = req.user.id ; // From auth middleware
-        
+        const vendorId = req.user.id; // From auth middleware
+
         if (!phone) {
             return res.status(400).json({ message: 'Phone number is required.' });
         }
-        
+
         // Generate OTP
         const otp = generateOTP();
         const otp_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         // Update vendor with OTP
         // Check if the phone number matches the vendor's registered phone
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
-        console.log('Vendors found:', vendors[0],phone);
+        console.log('Vendors found:', vendors[0], phone);
         if (!vendors.length || vendors[0].phone !== phone) {
             return res.status(400).json({ message: 'Phone number does not match our records.' });
         }
@@ -284,10 +284,10 @@ const sendPhoneVerificationOTP = async (req, res) => {
         const formattedPhone = phone.replace(/^\+91|^91/, '');
 
         console.log(`Sending OTP ${otp} to phone ${formattedPhone}`);
-        
+
         // Send OTP via SMS
         const sent = await sendOTP(phone, otp);
-        
+
         res.status(200).json({ message: 'OTP sent successfully to your phone.' });
     } catch (err) {
         console.error(err);
@@ -300,27 +300,27 @@ const verifyPhoneOTP = async (req, res) => {
     try {
         const { otp } = req.body;
         const vendorId = req.user.id; // From auth middleware
-        
+
         if (!otp) {
             return res.status(400).json({ message: 'OTP is required.' });
         }
-        
+
         // Find vendor with this OTP
         const [vendors] = await db.execute(
             'SELECT * FROM vendors WHERE id = ? AND phone_otp = ? AND phone_otp_expiration > NOW()',
             [vendorId, otp]
         );
-        
+
         if (vendors.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
-        
+
         // Mark phone as verified and clear OTP
         await db.execute(
             'UPDATE vendors SET is_phone_verified = 1, phone_otp = NULL, phone_otp_expiration = NULL WHERE id = ?',
             [vendorId]
         );
-        
+
         res.status(200).json({ message: 'Phone verified successfully.' });
     } catch (err) {
         console.error(err);
@@ -334,37 +334,37 @@ const forgotPassword = async (req, res) => {
         const { email } = req.body;
 
         console.log("Password reset request received for:", email);
-        
+
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
         }
-        
+
         // Find vendor with this email
         const [vendors] = await db.execute('SELECT * FROM vendors WHERE email = ?', [email]);
-        
+
         if (vendors.length === 0) {
             console.log(`No vendor found with email: ${email}`);
             return res.status(404).json({ message: 'No account found with this email.' });
         }
-        
+
         const vendor = vendors[0];
         console.log(`Vendor found: ${vendor.id}`);
-        
+
         // Generate reset token
         const reset_password_token = generateRandomToken();
         const reset_password_expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-        
+
         // Update vendor with reset token
         await db.execute(
             'UPDATE vendors SET reset_password_token = ?, reset_password_expiry = ? WHERE id = ?',
             [reset_password_token, reset_password_expiry, vendor.id]
         );
-        
+
         console.log(`Reset token generated for vendor: ${vendor.id}`);
-        
+
         // Send password reset email
         const emailResult = await sendPasswordResetEmail(email, reset_password_token, 'vendor');
-        
+
         if (emailResult) {
             console.log(`Password reset email sent successfully to: ${email}`);
             res.status(200).json({ message: 'Password reset link sent to your email.' });
@@ -383,35 +383,35 @@ const resetPassword = async (req, res) => {
     try {
         const { token, password } = req.body;
 
-        
+
         if (!token || !password) {
             return res.status(400).json({ message: 'Token and new password are required.' });
         }
 
-        
+
         // Find vendor with this token
         const [vendors] = await db.execute(
             'SELECT * FROM vendors WHERE reset_password_token = ? AND reset_password_expiry > NOW()',
             [token]
         );
 
-        console.log("Resetting password with token:", token,password);
-        
+        console.log("Resetting password with token:", token, password);
+
         if (vendors.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired reset token.' });
         }
-        
+
         const vendor = vendors[0];
-        
+
         // Hash new password
         const password_hash = await bcrypt.hash(password, 10);
-        
+
         // Update password and clear token
         await db.execute(
             'UPDATE vendors SET password_hash = ?, reset_password_token = NULL, reset_password_expiry = NULL WHERE id = ?',
             [password_hash, vendor.id]
         );
-        
+
         res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
     } catch (err) {
         console.error(err);
@@ -426,34 +426,54 @@ const resetPassword = async (req, res) => {
 const generateAadhaarOtp = async (req, res) => {
     try {
         const vendorId = req.user.id;
-        const {aadhaar_number} = req.body;
+        const { aadhaar_number } = req.body;
 
         // Call ekycHub API to generate Aadhaar OTP
         const ekycHubUrl = process.env.EKYC_HUB_URL;
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
-        console.log(ekycHubToken, ekycHubUser, ekycHubUrl, aadhaar_number, vendorId);
+        console.log("EKYC Config:", { user: ekycHubUser, url: ekycHubUrl, hasToken: !!ekycHubToken });
+        console.log("Requesting Aadhaar OTP for:", { aadhaar_number, vendorId });
 
         const aadhaarOtpUrl = `${ekycHubUrl}/verification/get_aadhaar_otp?username=${ekycHubUser}&token=${ekycHubToken}&aadhaar_number=${aadhaar_number}&orderid=${vendorId}`;
 
-        // console.log("Requesting Aadhaar OTP from:", aadhaarOtpUrl);
-        console.log("Requesting Aadhaar OTP from:", aadhaarOtpUrl);
+        console.log("Requesting Aadhaar OTP URL:", aadhaarOtpUrl);
 
         const ekycResponse = await axios.get(aadhaarOtpUrl);
 
-        if(ekycResponse.data.status ==="Success"){
+        // Log the full response for debugging
+        console.log("EKYC Response Data:", JSON.stringify(ekycResponse.data, null, 2));
+
+        // Check if status is truthy AND not "Failure" (case-insensitive)
+        const isSuccess = ekycResponse.data.status &&
+            (typeof ekycResponse.data.status !== 'string' || ekycResponse.data.status.toLowerCase() !== 'failure');
+
+        if (isSuccess) {
+            const ref_id = ekycResponse.data.ref_id;
+
+            if (ref_id === undefined || ref_id === null) {
+                console.error("Error: ref_id is missing in the success response from EKYC Hub");
+                return res.status(502).json({ status: 0, message: 'External API returned success but missing Reference ID', debug_data: ekycResponse.data });
+            }
+
+            if (aadhaar_number === undefined || aadhaar_number === null) {
+                console.error("Error: aadhaar_number is missing");
+                return res.status(400).json({ status: 0, message: 'Aadhaar number is missing from request' });
+            }
+
             await db.execute(
                 'UPDATE vendors SET aadhar_ref_id = ?, aadhar_number = ? WHERE id = ?',
-                [ekycResponse.data.ref_id, aadhaar_number, vendorId]
+                [ref_id, aadhaar_number, vendorId]
             );
             return res.json({ status: 1, message: 'Aadhaar OTP generated successfully' });
         }
-        else{
-            return res.status(400).json({ status: 0, message: 'Failed to generate Aadhaar OTP'});
+        else {
+            console.warn("EKYC API returned failed status:", ekycResponse.data);
+            return res.status(400).json({ status: 0, message: 'Failed to generate Aadhaar OTP', error_details: ekycResponse.data });
         }
     } catch (error) {
         console.error('Aadhaar verification error:', error);
-        res.status(500).json({ status: 0, message: 'Server error during Aadhaar verification' });
+        res.status(500).json({ status: 0, message: 'Server error during Aadhaar verification', error: error.message });
     }
 };
 
@@ -488,11 +508,13 @@ const verifyAadhaarOtp = async (req, res) => {
         // Call ekycHub API to verify Aadhaar OTP
         const ekycResponse = await axios.get(aadhaarVerifyUrl);
 
-        if (ekycResponse.data.status === "Success") {
-            // Save Aadhaar data and mark as verified
+        if (ekycResponse.data.status) {
+            // if (ekycResponse.data.status === "Success") {
+
+            // Save Aadhaar data and mark as verified (Redundant update of number to ensure persistence)
             await db.execute(
-                'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ? WHERE id = ?',
-                [JSON.stringify(ekycResponse.data), vendorId]
+                'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ?, aadhar_number = ? WHERE id = ?',
+                [JSON.stringify(ekycResponse.data), aadhar_number, vendorId]
             );
             return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: ekycResponse.data });
         } else {
@@ -537,11 +559,12 @@ const fetchPanData = async (req, res) => {
         // Call ekycHub API to verify PAN
         const ekycResponse = await axios.get(panVerifyUrl);
 
-        if (ekycResponse.data.status === "Success") {
-            // Save PAN data and mark as verified
+        if (ekycResponse.data.status) {
+            //  if (ekycResponse.data.status === "Success") {
+            // Save PAN data, PAN NUMBER, and mark as verified
             await db.execute(
-                'UPDATE vendors SET is_pan_verified = 1, pan_data = ? WHERE id = ?',
-                [JSON.stringify(ekycResponse.data), vendorId]
+                'UPDATE vendors SET is_pan_verified = 1, pan_data = ?, pan_number = ? WHERE id = ?',
+                [JSON.stringify(ekycResponse.data), panNumber, vendorId]
             );
             return res.json({ status: 1, message: 'PAN verified successfully', pan_data: ekycResponse.data });
         } else {
@@ -567,9 +590,9 @@ const getPanData = async (req, res) => {
     }
 };
 
-module.exports = { 
-    signup, 
-    login, 
+module.exports = {
+    signup,
+    login,
     google,
     verifytoken,
     verifyEmail,

@@ -16,21 +16,40 @@ import Wallet from './screens/Wallet';
 import Dashboard from './screens/Dashboard';
 import ResetPasswordMail from './screens/ResetPasswordMail';
 import ResetPassword from './screens/ResetPassword';
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <Router>
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          style: {
+            fontSize: '14px',
+            padding: '8px 12px',
+            maxWidth: '300px',
+          },
+          success: {
+            duration: 3000,
+          },
+          error: {
+            duration: 4000,
+          },
+        }}
+      />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<VendorLogin />} />
         <Route path="/signup" element={<VendorSignup />} />
         <Route path="/register" element={<VendorRegistration />} />
-        <Route path="/forget-password" element={<ResetPasswordMail/>} />
+        <Route path="/forget-password" element={<ResetPasswordMail />} />
         <Route path="/vendor/reset-password" element={<ResetPassword />} />
 
-          <Route path="/profile" element={<VendorProfile />} />
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
+          <Route path="/profile" element={<VendorProfile />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/car" element={<Car />} />
