@@ -28,6 +28,7 @@ function App() {
         <Route path="/forget-password" element={<ResetPasswordMail/>} />
         <Route path="/vendor/reset-password" element={<ResetPassword />} />
 
+          <Route path="/profile" element={<VendorProfile />} />
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -38,7 +39,6 @@ function App() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/penalty" element={<Penalty />} />
           <Route path="/trips" element={<Trips />} />
-          <Route path="/profile" element={<VendorProfile />} />
           <Route path="/wallet" element={<Wallet />} />
         </Route>
       </Routes>

@@ -6,14 +6,15 @@ const crypto = require('crypto');
 const getVendorProfile = async (req, res) => {
     try {
         const vendorId = req.user.id; // From auth middleware
-        
+
+        console.log("request recieved here ")
         const [vendors] = await db.execute(
             `SELECT id, name, email, phone, gender, profile_pic, age, current_address, 
-                    description, amount, total_earnings, star_rating, 
-                    is_phone_verified, is_email_verified, is_profile_completed,
-                    aadhar_number, is_aadhaar_verified, pan_number, is_pan_verified,
-                    created_at, updated_at
-             FROM vendors WHERE id = ?`,
+            description, amount, total_earnings, star_rating, 
+            is_phone_verified, is_email_verified, is_profile_completed,
+            aadhar_number, is_aadhaar_verified, pan_number, is_pan_verified,
+            created_at, updated_at
+            FROM vendors WHERE id = ?`,
             [vendorId]
         );
         
