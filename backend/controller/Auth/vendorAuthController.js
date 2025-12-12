@@ -197,10 +197,17 @@ const verifyEmail = async (req, res) => {
 
         const vendor = vendors[0];
 
-        // Mark email as verified and clear token
+        // Check profile completion
+        const isProfileCompleted = (vendor.name && vendor.gender && vendor.age && vendor.current_address &&
+            // is_email_verified becoming 1
+            vendor.is_phone_verified &&
+            vendor.is_aadhaar_verified &&
+            vendor.is_pan_verified) ? 1 : 0;
+
+        // Mark email as verified and clear token, update profile completion
         await db.execute(
-            'UPDATE vendors SET is_email_verified = 1, email_verification_token = NULL, email_verification_expiry = NULL WHERE id = ?',
-            [vendor.id]
+            'UPDATE vendors SET is_email_verified = 1, is_profile_completed = ?, email_verification_token = NULL, email_verification_expiry = NULL WHERE id = ?',
+            [isProfileCompleted, vendor.id]
         );
 
         res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
@@ -315,10 +322,20 @@ const verifyPhoneOTP = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
 
-        // Mark phone as verified and clear OTP
+        // Check profile completion (fetch latest vendor state first)
+        const [vendorResult] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
+        const vendor = vendorResult[0]; // refresh vendor data
+
+        const isProfileCompleted = (vendor.name && vendor.gender && vendor.age && vendor.current_address &&
+            vendor.is_email_verified &&
+            // is_phone_verified becoming 1
+            vendor.is_aadhaar_verified &&
+            vendor.is_pan_verified) ? 1 : 0;
+
+        // Mark phone as verified and clear OTP, update profile completion
         await db.execute(
-            'UPDATE vendors SET is_phone_verified = 1, phone_otp = NULL, phone_otp_expiration = NULL WHERE id = ?',
-            [vendorId]
+            'UPDATE vendors SET is_phone_verified = 1, is_profile_completed = ?, phone_otp = NULL, phone_otp_expiration = NULL WHERE id = ?',
+            [isProfileCompleted, vendorId]
         );
 
         res.status(200).json({ message: 'Phone verified successfully.' });
@@ -525,53 +542,33 @@ const fetchDigilockerDocument = async (req, res) => {
 
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
-        const document_type = 'AADHAAR'; // For Aadhaar flow
 
-        console.log("Fetching Digilocker Document for:", { vendorId, verification_id, reference_id });
+        const aadhaarVerifyUrl = `${ekycHubUrl}/verification/aadhaar_verify?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&aadhaar_number=${encodeURIComponent(aadhar_number)}&ref_id=${encodeURIComponent(aadhar_ref_id)}&otp=${encodeURIComponent(otp)}&orderid=${encodeURIComponent(vendorId)}`;
 
-        // Endpoint: /v3/digilocker/get_document
-        const requestUrl = `${ekycHubUrl}/v3/digilocker/get_document?username=${ekycHubUser}&token=${ekycHubToken}&verification_id=${verification_id}&reference_id=${reference_id}&orderid=${vendorId}&document_type=${document_type}`;
+        // Call ekycHub API to verify Aadhaar OTP
+        const ekycResponse = await axios.get(aadhaarVerifyUrl);
 
-        console.log("Digilocker Fetch URL:", requestUrl);
+        if (ekycResponse.data.status) {
+            // if (ekycResponse.data.status === "Success") {
 
-        console.log("Digilocker Fetch URL:", requestUrl);
+            // Refetch vendor to get latest status for profile completion check
+            const [latestVendorResult] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
+            const vendor = latestVendorResult[0];
 
-        const response = await axios.get(requestUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = response.data;
+            // Check profile completion
+            const isProfileCompleted = (vendor.name && vendor.gender && vendor.age && vendor.current_address &&
+                vendor.is_email_verified &&
+                vendor.is_phone_verified &&
+                vendor.is_pan_verified
+                // is_aadhaar_verified becoming 1
+            ) ? 1 : 0;
 
-        console.log("Digilocker Fetch Response:", JSON.stringify(data, null, 2));
-
-        if (data.status === "Success") {
-            const uid = data.uid;
-            const name = data.name;
-            console.log("-----------------------------------------");
-            console.log(`UPDATING DB FOR VENDOR: ${vendorId}`);
-            console.log(`AADHAAR UID: ${uid}`);
-            console.log("-----------------------------------------");
-
-            try {
-                // Save to DB
-                const [updateResult] = await db.execute(
-                    'UPDATE vendors SET is_aadhaar_verified = 1, aadhar_data = ?, aadhar_number = ? WHERE id = ?',
-                    [JSON.stringify(data), uid || 'N/A', vendorId]
-                );
-                console.log("DB Update Result:", updateResult);
-            } catch (dbError) {
-                console.error("FATAL DB ERROR:", dbError);
-            }
-
-            return res.json({
-                status: 1,
-                message: 'Aadhaar verified successfully via Digilocker',
-                aadhaar_data: data
-            });
-
+            // Save Aadhaar data and mark as verified (Redundant update of number to ensure persistence)
+            await db.execute(
+                'UPDATE vendors SET is_aadhaar_verified = 1, is_profile_completed = ?, aadhar_data = ?, aadhar_number = ? WHERE id = ?',
+                [isProfileCompleted, JSON.stringify(ekycResponse.data), aadhar_number, vendorId]
+            );
+            return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: ekycResponse.data });
         } else {
             console.warn("Digilocker Fetch Failed:", data);
             return res.status(400).json({
@@ -622,10 +619,24 @@ const fetchPanData = async (req, res) => {
 
         if (ekycResponse.data.status) {
             //  if (ekycResponse.data.status === "Success") {
+
+            // Check profile completion
+            const [vendorResult] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
+            let isProfileCompleted = 0;
+            if (vendorResult.length > 0) {
+                const vendor = vendorResult[0];
+                isProfileCompleted = (vendor.name && vendor.gender && vendor.age && vendor.current_address &&
+                    vendor.is_email_verified &&
+                    vendor.is_phone_verified &&
+                    vendor.is_aadhaar_verified
+                    // is_pan_verified becoming 1
+                ) ? 1 : 0;
+            }
+
             // Save PAN data, PAN NUMBER, and mark as verified
             await db.execute(
-                'UPDATE vendors SET is_pan_verified = 1, pan_data = ?, pan_number = ? WHERE id = ?',
-                [JSON.stringify(ekycResponse.data), panNumber, vendorId]
+                'UPDATE vendors SET is_pan_verified = 1, is_profile_completed = ?, pan_data = ?, pan_number = ? WHERE id = ?',
+                [isProfileCompleted, JSON.stringify(ekycResponse.data), panNumber, vendorId]
             );
             return res.json({ status: 1, message: 'PAN verified successfully', pan_data: ekycResponse.data });
         } else {

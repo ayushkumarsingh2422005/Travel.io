@@ -130,7 +130,20 @@ const updateVendorProfile = async (req, res) => {
         // Check if profile is completed
         const requiredFields = [name || vendor.name, phone || vendor.phone, gender || vendor.gender,
         age || vendor.age, current_address || vendor.current_address];
-        const isProfileCompleted = requiredFields.every(field => field !== null && field !== undefined && field !== '');
+
+        // Check KYC status
+        let isPhoneVerified = vendor.is_phone_verified;
+        // If phone is being updated, verification status will be reset to 0
+        if (phone !== undefined && phone !== vendor.phone) {
+            isPhoneVerified = 0;
+        }
+
+        const isKycCompleted = isPhoneVerified &&
+            vendor.is_email_verified &&
+            vendor.is_aadhaar_verified &&
+            vendor.is_pan_verified;
+
+        const isProfileCompleted = requiredFields.every(field => field !== null && field !== undefined && field !== '') && isKycCompleted;
 
         updateFields.push('is_profile_completed = ?');
         updateValues.push(isProfileCompleted ? 1 : 0);

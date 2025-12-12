@@ -29,12 +29,12 @@ const createPaymentOrder = async (req, res) => {
             amount // Total booking price from frontend
         } = req.body;
 
-        if(!drop_date){
-            drop_date=pickup_date;
+        if (!drop_date) {
+            drop_date = pickup_date;
         }
 
         // Validate required fields
-        if (!cab_category_id || !pickup_location || !dropoff_location || !drop_date || !pickup_date  || !path || !distance || amount === undefined || amount === null) {
+        if (!cab_category_id || !pickup_location || !dropoff_location || !drop_date || !pickup_date || !path || !distance || amount === undefined || amount === null) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, path, distance, amount'
@@ -65,7 +65,7 @@ const createPaymentOrder = async (req, res) => {
         const gstAmount = platformCharges * gstRate;
         const totalUpfrontPayment = platformCharges + gstAmount;
         const remainingAmount = totalBookingPrice - totalUpfrontPayment;
-        
+
         const amountInPaise = Math.round(totalUpfrontPayment * 100); // Razorpay expects amount in paise, rounded to nearest integer
 
         // Generate unique payment ID
@@ -73,7 +73,7 @@ const createPaymentOrder = async (req, res) => {
 
         // Create Razorpay order
         const orderOptions = {
-            amount: amountInPaise, 
+            amount: amountInPaise,
             currency: 'INR',
             receipt: `booking_${paymentId.substring(0, 32)}`,
             notes: {
@@ -120,7 +120,7 @@ const createPaymentOrder = async (req, res) => {
             })
         ]);
 
-           await db.execute(`
+        await db.execute(`
             UPDATE transactions
             SET id = ?
             WHERE payment_id = ?
@@ -131,7 +131,7 @@ const createPaymentOrder = async (req, res) => {
             message: 'Payment order created successfully',
             data: {
                 order_id: razorpayOrder.id,
-                amount: totalUpfrontPayment , // currently paid amount to the Travel.io
+                amount: totalUpfrontPayment, // currently paid amount to the Travel.io
                 currency: 'INR',
                 payment_id: paymentId,
                 cab_category_details: {
@@ -274,7 +274,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 console.log('verifyPaymentAndCreateBooking: Partner ID found, creating partner transaction.');
                 const commissionRate = 5.00; // 5% commission
                 const commissionAmount = Math.round((transaction.amount * commissionRate) / 100);
-                
+
                 await db.execute(`
                     INSERT INTO partner_transactions (
                         id, partner_id, booking_id, commission_amount, status
@@ -318,7 +318,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                     payment: {
                         payment_id: payment_id,
                         razorpay_payment_id: razorpay_payment_id,
-                        amount: transaction.amount, 
+                        amount: transaction.amount,
                         status: 'success'
                     }
                 }
@@ -378,7 +378,7 @@ const getPaymentStatus = async (req, res) => {
             data: {
                 payment_id: transaction.id,
                 status: transaction.status,
-                amount: transaction.amount, 
+                amount: transaction.amount,
                 razorpay_order_id: transaction.razorpay_order_id,
                 razorpay_payment_id: transaction.razorpay_payment_id,
                 booking_id: transaction.booking_id,

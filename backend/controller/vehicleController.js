@@ -472,15 +472,15 @@ const verifyVehicleRC = async (req, res) => {
 // Create vehicle with RC data storage
 const createVehicleWithRC = async (req, res) => {
     try {
-        const { model, registration_no, no_of_seats, image, per_km_charge, rc_data } = req.body;
+        const { model, registration_no, no_of_seats, image, per_km_charge, rc_data, rc_vehicle_category } = req.body;
         const vendor_id = req.user.id; // From auth middleware
 
         // console.log(req.body);
         // Validate required fields
-        if (!model || !registration_no || !no_of_seats) {
+        if (!model || !registration_no || !no_of_seats || !rc_vehicle_category) {
             return res.status(400).json({
                 success: false, 
-                message: 'Missing required fields: model, registration_no, no_of_seats are required' 
+                message: 'Missing required fields: model, registration_no, no_of_seats, and rc_vehicle_category are required' 
             });
         }
         
@@ -494,6 +494,25 @@ const createVehicleWithRC = async (req, res) => {
             return res.status(409).json({ 
                 success: false, 
                 message: 'Vehicle with this registration number already exists' 
+            });
+        }
+
+        // Fetch base_per_km_price from cab_categories
+        const [categoryResult] = await db.execute(
+            'SELECT base_per_km_price FROM cab_categories WHERE name = ?',
+            [rc_vehicle_category]
+        );
+
+        let finalPerKmCharge = per_km_charge;
+        if (categoryResult.length > 0) {
+            // If per_km_charge is not provided by vendor, use the base price from category
+            if (per_km_charge === undefined || per_km_charge === null) {
+                finalPerKmCharge = categoryResult[0].base_per_km_price;
+            }
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid cab category provided'
             });
         }
         
@@ -556,7 +575,7 @@ const createVehicleWithRC = async (req, res) => {
                     rc_vehicle_cubic_capacity: data.vehicle_cubic_capacity || null,
                     rc_gross_vehicle_weight: data.gross_vehicle_weight || null,
                     rc_unladen_weight: data.unladen_weight || null,
-                    rc_vehicle_category: data.vehicle_category || null,
+                    rc_vehicle_category: data.vehicle_category || null, // This will be overwritten by rc_vehicle_category from req.body
                     rc_standard_cap: data.rc_standard_cap || null,
                     rc_vehicle_cylinders_no: data.vehicle_cylinders_no || null,
                     rc_vehicle_seat_capacity: data.vehicle_seat_capacity || null,
@@ -607,37 +626,30 @@ const createVehicleWithRC = async (req, res) => {
         }
         
         // Insert new vehicle with basic fields and RC fields
-        if (Object.keys(rcFields).length > 0) {
-            // Insert with RC fields
-            const insertFields = ['id', 'vendor_id', 'model', 'registration_no', 'no_of_seats', 'image', 'per_km_charge', 'is_active'];
-            const insertValues = [id, vendor_id, model, registration_no, no_of_seats, image || null, per_km_charge || 0.00, 0];
-            const placeholders = ['?', '?', '?', '?', '?', '?', '?', '?'];
-            
-            // Add RC fields
-            Object.keys(rcFields).forEach(field => {
-                if (rcFields[field] !== null) {
-                    insertFields.push(field);
-                    insertValues.push(rcFields[field]);
-                    placeholders.push('?');
-                }
-            });
-            
-            await db.execute(
-                `INSERT INTO vehicles (${insertFields.join(', ')}) VALUES (${placeholders.join(', ')})`,
-                insertValues
-            );
-        } else {
-            // Insert without RC fields
-            await db.execute(
-                `INSERT INTO vehicles (id, vendor_id, model, registration_no, no_of_seats, image, per_km_charge, is_active) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [id, vendor_id, model, registration_no, no_of_seats, image || null, per_km_charge || 0.00, 0]
-            );
-        }
+        const insertFields = ['id', 'vendor_id', 'model', 'registration_no', 'no_of_seats', 'image', 'per_km_charge', 'is_active', 'rc_vehicle_category'];
+        const insertValues = [id, vendor_id, model, registration_no, no_of_seats, image || null, finalPerKmCharge, 0, rc_vehicle_category];
+        const placeholders = ['?', '?', '?', '?', '?', '?', '?', '?', '?'];
+        
+        // Add RC fields, ensuring rc_vehicle_category is not duplicated if already in req.body
+        Object.keys(rcFields).forEach(field => {
+            if (field === 'rc_vehicle_category') {
+                return; // Skip if already handled by top-level rc_vehicle_category
+            }
+            if (rcFields[field] !== null) {
+                insertFields.push(field);
+                insertValues.push(rcFields[field]);
+                placeholders.push('?');
+            }
+        });
+        
+        await db.execute(
+            `INSERT INTO vehicles (${insertFields.join(', ')}) VALUES (${placeholders.join(', ')})`,
+            insertValues
+        );
         
         // Verify what was stored in database
         const [insertedVehicle] = await db.execute(
-            'SELECT id, rc_verification_id, rc_reg_no, rc_owner FROM vehicles WHERE id = ?',
+            'SELECT id, rc_verification_id, rc_reg_no, rc_owner, rc_vehicle_category FROM vehicles WHERE id = ?',
             [id]
         );
         
@@ -645,6 +657,7 @@ const createVehicleWithRC = async (req, res) => {
         console.log('RC verification ID:', insertedVehicle[0]?.rc_verification_id);
         console.log('RC reg no:', insertedVehicle[0]?.rc_reg_no);
         console.log('RC owner:', insertedVehicle[0]?.rc_owner);
+        console.log('RC vehicle category:', insertedVehicle[0]?.rc_vehicle_category);
         
         res.status(201).json({
             success: true,
@@ -655,8 +668,9 @@ const createVehicleWithRC = async (req, res) => {
                 registration_no, 
                 no_of_seats,
                 image: image || null,
-                per_km_charge: per_km_charge || 0.00,
+                per_km_charge: finalPerKmCharge,
                 is_active: 0,
+                rc_vehicle_category,
                 ...rcFields
             }
         });
