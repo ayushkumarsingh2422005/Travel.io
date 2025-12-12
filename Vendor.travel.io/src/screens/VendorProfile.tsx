@@ -57,13 +57,12 @@ const VendorProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [editedInfo, setEditedInfo] = useState<Partial<VendorInfo>>({});
-  const [AadharOtp, setAadharOtp] = useState<string>('');
+
   const [phoneOtp, setPhoneOtp] = useState<string>('');
   // emailOtp removed as we use magic link now
+  // Digilocker flow used for Aadhaar now, no OTP state needed
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
-  const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
-  const [showAadharOtp, setShowAadharOtp] = useState<boolean>(false);
-  const [lastAadharOtpRequestTime, setLastAadharOtpRequestTime] = useState<number | null>(null);
+  // const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
 
   const fetchVendorData = async (silent: boolean = false) => {
     if (!silent) setLoading(true);
@@ -140,7 +139,6 @@ const VendorProfile: React.FC = () => {
         return;
       }
 
-
       const response = await axios.post(
         '/auth/send-phone-otp',
         {
@@ -156,17 +154,64 @@ const VendorProfile: React.FC = () => {
       if (response) {
         toast.success('OTP sent successfully to your phone number. It will be valid for 10 minutes.');
         setShowPhoneOtp(true);
-      }
-      else {
+      } else {
         toast.error('Failed to send OTP. Please try again.');
       }
-
 
     } catch (error) {
       console.log('Error sending phone OTP:', error);
       toast.error('Failed to send OTP. Please try again.');
     }
   };
+
+  // Handle Digilocker Return
+  useEffect(() => {
+    const handleDigilockerReturn = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isDigilockerReturnParam = params.get('digilocker_verification');
+      const isWaitingForDigilocker = localStorage.getItem('waiting_for_digilocker') === 'true';
+
+      if (isDigilockerReturnParam === 'true' || isWaitingForDigilocker) {
+        localStorage.removeItem('waiting_for_digilocker'); // Clear flag
+        const verification_id = localStorage.getItem('ekyc_verification_id');
+        const reference_id = localStorage.getItem('ekyc_reference_id');
+
+        if (verification_id && reference_id) {
+          // Clear param from URL so it doesn't re-trigger on reload (optional but clean)
+          window.history.replaceState({}, '', window.location.pathname);
+
+          const toastId = toast.loading('Completing verification...');
+
+          try {
+            const token = localStorage.getItem("marcocabs_vendor_token");
+            const response = await axios.post('/auth/fetch-digilocker-document', {
+              verification_id,
+              reference_id
+            }, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.status === 1) {
+              toast.success('Aadhaar verification successful!', { id: toastId });
+              localStorage.removeItem('ekyc_verification_id');
+              localStorage.removeItem('ekyc_reference_id');
+              await fetchVendorData(true);
+            } else {
+              toast.error(response.data.message || 'Verification failed.', { id: toastId });
+            }
+          } catch (error: any) {
+            console.error("Digilocker completion error:", error);
+            toast.error(error.response?.data?.message || 'Verification failed. Please try again.', { id: toastId });
+          }
+        }
+      }
+    };
+
+    handleDigilockerReturn();
+  }, []);
+
+
+
 
   const handleVerifyPhoneOtp = async () => {
     try {
@@ -264,95 +309,64 @@ const VendorProfile: React.FC = () => {
     }));
   };
 
+  /* 
+   * Digilocker Verification Flow 
+   */
   const handleVerifyAadhar = async () => {
     try {
-
-
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to verify your Aadhar.');
         return;
       }
 
-      if (!editedInfo?.aadhar_number) { // Use editedInfo for input field
-        toast.error("Enter Your Aadhar Number First ");
-        return;
-      }
+      // We don't necessarily need input for Aadhar number if Digilocker handles it, 
+      // but user instructions said: "verifies the validity of a Aadhaar number... using the provided details"
+      // The API Step 1 doesn't seem to take aadhaar number in the request URL provided in the prompt?
+      // Wait, the PROMPT said: Request URL: ...&aadhaar_number=... is NOT in the prompt's Query Params for Step 1?
+      // Re-reading prompt: 
+      // Request URL: GET : https://connect.ekychub.in/v3/digilocker/create_url_aadhaar?username=...&redirect_url=...
+      // It DOES NOT show aadhaar_number as a param in the example URL.
+      // BUT Step 1 description says: "Description: This API verifies the validity of a Aadhaar number... using the provided details."
+      // The backend `initiateDigilockerVerification` I wrote DOES NOT send aadhaar_number to EKYC Hub 
+      // (because I followed the URL structure in the prompt which didn't have it).
+      // So presumably Digilocker asks for it or user logs in to Digilocker.
 
-      const response = await axios.post('/auth/generate-aadhaar-otp', {
-        aadhaar_number: editedInfo?.aadhar_number // Use editedInfo for input field
+      const redirectUrl = `${window.location.protocol}//${window.location.host}/profile?digilocker_verification=true`;
+
+      const response = await axios.post('/auth/initiate-digilocker', {
+        redirect_url: redirectUrl
       },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
-      )
+      );
 
-      console.log('Aadhar verification OTP response:', response.data.message);
+      if (response.data.status === 1) {
+        const { url, verification_id, reference_id } = response.data;
 
-      if (response.data.status) {
-        toast.success('Aadhar verification OTP generated successfully. Please check your email.');
-        setShowAadharOtp(true);
-        setLastAadharOtpRequestTime(Date.now()); // Set timestamp on successful OTP generation
-      }
-      else {
-        toast.error('Failed to generate Aadhar verification link. Please try again.');
-        setShowAadharOtp(false);
-      }
+        // Save IDs to local storage to retrieve after redirect
+        localStorage.setItem('ekyc_verification_id', verification_id);
+        localStorage.setItem('ekyc_reference_id', reference_id);
+        localStorage.setItem('waiting_for_digilocker', 'true'); // Set flag
 
-    } catch (error) {
-      console.error('Error generating Aadhar verification link:', error);
-      toast.error('Failed to generate Aadhar verification link. Please try again.');
-      setShowAadharOtp(false);
-    }
-  }
+        toast.loading('Redirecting to Digilocker...', { duration: 2000 });
 
-  const handleVerifyAadharOtp = async () => {
-    try {
-
-      if (!AadharOtp) {
-        toast.error("Enter The OTP for verification");
-        return;
-      }
-
-      const token = localStorage.getItem("marcocabs_vendor_token");
-      if (!token) {
-        toast.error('You must be logged in to verify your Aadhar.');
-        return;
-      }
-
-      const response = await axios.post('/auth/verify-aadhaar-otp', {
-        otp: AadharOtp
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const responseData = response.data;
-
-      if (responseData.status === 1) {
-        toast.success("Aadhar verified successfully.");
-        setAadharOtp('');
-        setShowAadharOtp(false);
-        // Refetch to ensure state sync with backend (which has stored the number)
-        await fetchVendorData(true);
-      }
-      else {
-        toast.error('Failed to verify OTP. Please check the OTP and try again.');
-        setAadharOtp('');
-        // Keep showAadharOtp true to allow retry
+        // Redirect to EKYC Hub URL
+        window.location.href = url;
+      } else {
+        toast.error(response.data.message || 'Failed to initiate Digilocker verification.');
       }
 
     } catch (error) {
-
-      console.error('Error confirming Aadhar verification:', error);
-      toast.error('Failed to verify OTP. Please try again.');
-      setAadharOtp('');
-      // Keep showAadharOtp true to allow retry
+      console.error('Error initiating Digilocker verification:', error);
+      toast.error('Failed to initiate verification. Please try again.');
     }
   }
+
+
 
   // Get Aadhar Data
 
@@ -753,17 +767,21 @@ const VendorProfile: React.FC = () => {
                     {vendorInfo.isEmailVerified ? 'Verified' : 'Not Verified'}
                   </span>
                   {!vendorInfo.isEmailVerified && (
-                    <button
-                      onClick={handleVerifyEmail}
-                      className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
-                    >
-                      Verify Email
-                    </button>
-                  )}
-                  {showEmailOtp && (
-                    <p className="text-gray-500 text-sm italic mt-2">
-                      Please check your email for the verification link.
-                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleVerifyEmail}
+                        className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
+                      >
+                        Verify Email
+                      </button>
+                      <button
+                        onClick={() => fetchVendorData(true)}
+                        className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                        title="Click this after verifying in your email"
+                      >
+                        Check Status
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -914,46 +932,12 @@ const VendorProfile: React.FC = () => {
                   {vendorInfo.is_aadhar_verified ? 'Verified' : 'Not Verified'}
                 </span>
                 {!vendorInfo.is_aadhar_verified && editedInfo.aadhar_number && (
-                  <>
-                    {!showAadharOtp && (
-                      <button
-                        onClick={handleVerifyAadhar}
-                        disabled={lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000}
-                        className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Generate Aadhar OTP
-                      </button>
-                    )}
-                    {showAadharOtp && (
-                      <div className="flex flex-col sm:flex-row gap-2 mt-3 w-full">
-                        <input
-                          type="text"
-                          value={AadharOtp}
-                          onChange={(e) => setAadharOtp(e.target.value)}
-                          placeholder="Enter Aadhar OTP"
-                          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                        />
-                        <button
-                          onClick={handleVerifyAadharOtp}
-                          className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-colors"
-                        >
-                          Verify Aadhar OTP
-                        </button>
-                        <button
-                          onClick={handleVerifyAadhar}
-                          disabled={lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000}
-                          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Resend OTP
-                        </button>
-                      </div>
-                    )}
-                    {lastAadharOtpRequestTime !== null && (Date.now() - lastAadharOtpRequestTime) < 60000 && (
-                      <p className="text-sm text-gray-500 mt-2 ">
-                        Resend available in {Math.ceil((60000 - (Date.now() - lastAadharOtpRequestTime)) / 1000)}s
-                      </p>
-                    )}
-                  </>
+                  <button
+                    onClick={handleVerifyAadhar}
+                    className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
+                  >
+                    Verify Aadhar (Digilocker)
+                  </button>
                 )}
               </div>
             </div>
