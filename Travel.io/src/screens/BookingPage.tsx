@@ -101,7 +101,7 @@ export default function BookingPage() {
         });
         return;
       }
-      
+
       setUserToken(token);
       const details = await getUserDetailsFromToken(token);
       if (details) {
@@ -282,7 +282,7 @@ export default function BookingPage() {
       return;
     }
 
-    console.log('order id ',orderData.order_id);
+    console.log('order id ', orderData.order_id);
 
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use VITE_ for Vite projects
@@ -481,7 +481,7 @@ export default function BookingPage() {
               </svg>
               <h1 className="text-2xl font-bold">Confirm Your Booking</h1>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/prices', { state: bookingData })}
               className="text-white hover:text-green-100 transition-colors"
             >
@@ -515,7 +515,7 @@ export default function BookingPage() {
                     Trip Summary
                   </h2>
                 </div>
-                
+
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
@@ -574,19 +574,19 @@ export default function BookingPage() {
                       </span>
                     </div>
 
-                    
-                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Return Date & Time</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">
-                          {new Date(bookingData.dropDate).toLocaleString()}
-                        </span>
+
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Return Date & Time</span>
                       </div>
-                    
+                      <span className="font-semibold text-gray-800">
+                        {new Date(bookingData.dropDate).toLocaleString()}
+                      </span>
+                    </div>
+
                   </div>
                 </div>
               </div>
@@ -601,7 +601,7 @@ export default function BookingPage() {
                     Route Details
                   </h2>
                 </div>
-                
+
                 <div className="p-6">
                   <div className="space-y-6">
                     <div className="relative pl-8 pb-6">
@@ -616,7 +616,7 @@ export default function BookingPage() {
                       </div>
                       <p className="ml-10 text-gray-600 break-words">{bookingData.pickup}</p>
                     </div>
-                    
+
                     {bookingData.stops?.map((stop, index) => (
                       <div key={index} className="relative pl-8 pb-6">
                         <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-green-200"></div>
@@ -631,7 +631,7 @@ export default function BookingPage() {
                         <p className="ml-10 text-gray-600 break-words">{stop}</p>
                       </div>
                     ))}
-                    
+
                     <div className="relative pl-8">
                       <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-green-200"></div>
                       <div className="flex items-center mb-2">
@@ -661,7 +661,7 @@ export default function BookingPage() {
                     Price Summary
                   </h2>
                 </div>
-                
+
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -702,7 +702,7 @@ export default function BookingPage() {
                     Partner Referral (Optional)
                   </h2>
                 </div>
-                
+
                 <div className="p-6">
                   <div className="mb-4">
                     <label htmlFor="partnerId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -725,7 +725,7 @@ export default function BookingPage() {
 
               {/* Action Buttons */}
               <div className="space-y-4">
-                <button 
+                <button
                   onClick={() => navigate('/prices', { state: bookingData })}
                   className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg flex items-center justify-center transition-all"
                 >
@@ -734,8 +734,8 @@ export default function BookingPage() {
                   </svg>
                   Modify Trip
                 </button>
-                
-                <button 
+
+                <button
                   onClick={handleCreateBooking}
                   disabled={loading || bookingData.isRouteLoading} // Disable if loading or route is still loading
                   className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"

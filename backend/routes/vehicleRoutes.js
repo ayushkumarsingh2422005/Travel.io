@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    addVehicle, 
-    updateVehicle, 
-    deleteVehicle, 
-    getVehicles, 
-    getVehicle, 
+const {
+    addVehicle,
+    updateVehicle,
+    deleteVehicle,
+    getVehicles,
+    getVehicle,
     verifyVehicleRC,
     createVehicleWithRC
 } = require('../controller/vehicleController');
+const { getCabCategories } = require('../controller/cabCategoryController');
 
 // Middleware to protect routes
 const authMiddleware = (req, res, next) => {
@@ -35,6 +36,7 @@ router.use(authMiddleware);
 router.post('/', addVehicle);
 router.post('/with-rc', createVehicleWithRC); // Create vehicle with RC verification
 router.get('/', getVehicles);
+router.get('/cab-categories', getCabCategories);
 router.get('/:id', getVehicle);
 router.put('/:id', updateVehicle);
 router.delete('/:id', deleteVehicle);

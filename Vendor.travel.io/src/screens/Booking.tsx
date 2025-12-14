@@ -87,6 +87,7 @@ const Booking: React.FC = () => {
   const fetchVehicles = async () => {
     try {
       const response = await getVendorVehicles();
+      console.log("vehicle available for booking", response.data.vehicles);
       setAvailableVehicles(response.data.vehicles); // Corrected to access data.vehicles
       // toast.success('Vehicles loaded successfully!');
     } catch (err) {
@@ -271,13 +272,13 @@ const Booking: React.FC = () => {
   return (
     <div className="bg-gradient-to-b from-white to-gray-50 min-h-screen p-6 rounded-lg shadow-sm">
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Bookings Dashboard</h1>
-      
+
       {/* Search and Filter Section */}
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Search and Filter</h2>
         <div className="flex flex-wrap gap-4 items-center">
           <div className="w-full md:w-auto">
-            <select 
+            <select
               className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-6 py-3 rounded-lg w-full md:w-60 transition-all duration-200"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as BookingData['status'])}
@@ -289,7 +290,7 @@ const Booking: React.FC = () => {
               ))}
             </select>
           </div>
-          
+
           <div className="w-full md:w-auto flex-grow">
             <input
               type="text"
@@ -352,9 +353,9 @@ const Booking: React.FC = () => {
               disabled={searchLoading}
             />
           </div>
-          
+
           <div className="w-full md:w-auto">
-            <button 
+            <button
               className={`${searchLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-8 py-3 rounded-lg font-medium shadow-sm transition-all duration-200 flex items-center justify-center`}
               onClick={handleSearch}
               disabled={searchLoading}
@@ -430,14 +431,13 @@ const Booking: React.FC = () => {
                       {booking.driver_phone && ` (${booking.driver_phone})`}
                     </td>
                     <td className="p-3 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        booking.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' : 
-                        booking.status === 'approved' ? 'bg-blue-100 text-blue-700' : 
-                        booking.status === 'preongoing' ? 'bg-indigo-100 text-indigo-700' :
-                        booking.status === 'ongoing' ? 'bg-purple-100 text-purple-700' :
-                        booking.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
+                        booking.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                          booking.status === 'preongoing' ? 'bg-indigo-100 text-indigo-700' :
+                            booking.status === 'ongoing' ? 'bg-purple-100 text-purple-700' :
+                              booking.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                        }`}>
                         {booking.status}
                       </span>
                     </td>
@@ -580,9 +580,8 @@ const Booking: React.FC = () => {
               >
                 <option value="">-- Select a Vehicle --</option>
                 {availableVehicles
-                  .filter(v => 
-                    selectedBookingForApproval.min_seats && v.no_of_seats >= selectedBookingForApproval.min_seats &&
-                    selectedBookingForApproval.max_seats && v.no_of_seats <= selectedBookingForApproval.max_seats
+                  .filter(v =>
+                    (!selectedBookingForApproval.min_seats || v.no_of_seats >= selectedBookingForApproval.min_seats)
                   )
                   .map((vehicle) => (
                     <option key={vehicle.id} value={vehicle.id}>
