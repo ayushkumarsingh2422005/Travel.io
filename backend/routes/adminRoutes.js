@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { 
+const {
     getAdminDashboard,
     getPendingVendorPayments,
     getPendingPartnerPayments,
@@ -28,8 +28,8 @@ const {
     getWebsiteReachStats,
     getAdminStats
 } = require('../controller/adminController');
-const { 
-    addCabCategory, 
+const {
+    addCabCategory,
     updateCabCategory,
     deleteCabCategory,
     getCabCategories,
@@ -46,12 +46,12 @@ const adminAuthMiddleware = (req, res, next) => {
 
         const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
         const decoded = require('jsonwebtoken').verify(token, JWT_SECRET);
-        
+
         // Check if user is admin (you can add admin role check here)
         if (decoded.role !== 'admin') {
             return res.status(403).json({ message: 'Admin access required' });
         }
-        
+
         req.user = decoded;
         next();
     } catch (error) {

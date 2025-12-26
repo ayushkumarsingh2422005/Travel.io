@@ -1,23 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../config/db');
-const { 
-    signup, 
-    login, 
-    google, 
-    verifytoken, 
-    verifyEmail, 
-    resendVerificationEmail, 
-    sendPhoneVerificationOTP, 
-    verifyPhoneOTP, 
-    forgotPassword, 
+const {
+    signup,
+    login,
+    google,
+    verifytoken,
+    verifyEmail,
+    resendVerificationEmail,
+    sendPhoneVerificationOTP,
+    verifyPhoneOTP,
+    forgotPassword,
     resetPassword,
-    generateAadhaarOtp,
-    // processAadhaarCallback,
+    initiateDigilockerVerification,
+    fetchDigilockerDocument,
     getAadhaarData,
-    fetchPanData,
     getPanData,
-    verifyAadhaarOtp
+    fetchPanData
+    // generateAadhaarOtp,
+    // verifyAadhaarOtp
 } = require('../../controller/Auth/vendorAuthController');
 
 // Middleware to verify vendor token
@@ -39,7 +40,7 @@ const {
 //         if (vendor.length === 0) {
 //             return res.status(401).json({ status: 0, message: 'Invalid token' });
 //         }
-        
+
 //         req.vendorId = vendor[0].id;
 //         next();
 //     } catch (error) {
@@ -91,9 +92,13 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 // Aadhaar verification routes
-router.post('/generate-aadhaar-otp', authMiddleware, generateAadhaarOtp);
-// router.post('/aadhaar-callback', processAadhaarCallback);
-router.post('/verify-aadhaar-otp', authMiddleware, verifyAadhaarOtp);
+// router.post('/generate-aadhaar-otp', authMiddleware, generateAadhaarOtp);
+// router.post('/verify-aadhaar-otp', authMiddleware, verifyAadhaarOtp);
+
+// Digilocker verification routes
+router.post('/initiate-digilocker', authMiddleware, initiateDigilockerVerification);
+router.post('/fetch-digilocker-document', authMiddleware, fetchDigilockerDocument);
+
 router.get('/aadhaar-data', authMiddleware, getAadhaarData);
 
 // Pan verification routes

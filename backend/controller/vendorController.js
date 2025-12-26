@@ -846,12 +846,7 @@ const acceptBookingRequest = async (req, res) => {
             });
         }
 
-        if (booking.max_no_of_seats && vehicle.no_of_seats > booking.max_no_of_seats) {
-            return res.status(400).json({
-                success: false,
-                message: `Vehicle exceeds maximum seat requirement (${booking.max_no_of_seats} seats maximum)`
-            });
-        }
+
 
         // Check if vehicle is already booked for the requested time
         const [existingBookings] = await db.execute(`

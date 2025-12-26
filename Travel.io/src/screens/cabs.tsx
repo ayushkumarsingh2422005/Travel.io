@@ -95,7 +95,7 @@ export default function Cabs() {
   const [loading, setLoading] = useState(false);
   const [cabCategories, setCabCategories] = useState<any[]>([]); // New state for cab categories
   const [selectedCabCategory, setSelectedCabCategory] = useState<string | null>(null); // To store selected category ID
- 
+
 
   // Form states
   const [bookingForm, setBookingForm] = useState({
@@ -134,9 +134,9 @@ export default function Cabs() {
       setNextStopId(maxId + 1);
     }
   }, [location]);
-  
-  
-  
+
+
+
 
   // Add new states for location suggestions
   const [pickupSuggestions, setPickupSuggestions] = useState<string[]>([]);
@@ -150,15 +150,15 @@ export default function Cabs() {
   const stopRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Add state for additional stops and their suggestions
-  const [additionalStops, setAdditionalStops] = useState<Array<{ 
-    id: number; 
+  const [additionalStops, setAdditionalStops] = useState<Array<{
+    id: number;
     location: string;
     suggestions: string[];
     showSuggestions: boolean;
   }>>([]);
   const [nextStopId, setNextStopId] = useState(1);
 
-  console.log('dummy data ',loading);
+  console.log('dummy data ', loading);
 
   // Fetch cab categories on component mount
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function Cabs() {
     };
     fetchCategories();
   }, []);
-  
+
   // Initialize Google Maps services
   useEffect(() => {
     const loader = new Loader({
@@ -218,20 +218,20 @@ export default function Cabs() {
   ) => {
     handleInputChange(e, setBookingForm);
   };
-  
-  
-  
+
+
+
   // Trip type selector
   const handleTripTypeChange = (type: string) => {
     setBookingForm(prev => ({ ...prev, tripType: type }));
   };
-  
+
   // Click handler: Book now
   // const handleBookNow = () => {
   //   console.log("Book Now clicked");
   //   // Implement book now functionality
   // };
-  
+
 
 
   // Function to get location suggestions
@@ -257,8 +257,8 @@ export default function Cabs() {
     }
   };
 
-   // Handle pickup location input change
-   const handlePickupLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle pickup location input change
+  const handlePickupLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setBookingForm(prev => ({ ...prev, pickupLocation: value }));
     if (value.trim() === "") {
@@ -296,8 +296,8 @@ export default function Cabs() {
 
   // Handle adding a new stop
   const handleAddStop = () => {
-    setAdditionalStops(prev => [...prev, { 
-      id: nextStopId, 
+    setAdditionalStops(prev => [...prev, {
+      id: nextStopId,
       location: '',
       suggestions: [],
       showSuggestions: false
@@ -312,11 +312,11 @@ export default function Cabs() {
 
   // Handle stop location change
   const handleStopLocationChange = async (id: number, value: string) => {
-    setAdditionalStops(prev => 
+    setAdditionalStops(prev =>
       prev.map(stop => {
         if (stop.id === id) {
-          return { 
-            ...stop, 
+          return {
+            ...stop,
             location: value,
             showSuggestions: value.trim() !== "", // Hide suggestions if input is empty
             suggestions: value.trim() === "" ? [] : stop.suggestions // Clear suggestions if input is empty
@@ -335,7 +335,7 @@ export default function Cabs() {
         });
 
         if (response && response.predictions) {
-          setAdditionalStops(prev => 
+          setAdditionalStops(prev =>
             prev.map(stop => {
               if (stop.id === id) {
                 return {
@@ -373,22 +373,22 @@ export default function Cabs() {
   // issue here : on selecting cab, state not updated in time for form submit
 
   const handleSelectCab = (categoryId: string | null) => {
-  // 1️⃣ Update selected cab state immediately
-  setSelectedCabCategory(categoryId);
+    // 1️⃣ Update selected cab state immediately
+    setSelectedCabCategory(categoryId);
 
-  // 2️⃣ Wait for React to update state, then trigger the submit logic
-  // Using a small timeout ensures state update is reflected
-  setTimeout(() => {
-    const form = document.querySelector("form");
+    // 2️⃣ Wait for React to update state, then trigger the submit logic
+    // Using a small timeout ensures state update is reflected
+    setTimeout(() => {
+      const form = document.querySelector("form");
 
-    
-    if (form) {
-      // Create a synthetic submit event and pass it to handleBookingSubmit
-      const event = new Event("submit", { cancelable: true, bubbles: true });
-      handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
-    }
-  }, 10);
-};
+
+      if (form) {
+        // Create a synthetic submit event and pass it to handleBookingSubmit
+        const event = new Event("submit", { cancelable: true, bubbles: true });
+        handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    }, 10);
+  };
 
 
 
@@ -396,32 +396,32 @@ export default function Cabs() {
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Validate required fields
     const errors = [];
-    
+
     if (!bookingForm.pickupLocation.trim()) {
       errors.push('Pickup location is required');
     }
-    
+
     if (!bookingForm.destination.trim()) {
       errors.push('Destination is required');
     }
-    
+
     if (!bookingForm.pickupDate) {
       errors.push('Pickup date and time is required');
     }
-    
+
     if (bookingForm.tripType === 'Round Trip' && !bookingForm.dropDate) {
       errors.push('Return date and time is required for round trips');
     }
-    
+
     // Validate additional stops
     const emptyStops = additionalStops.filter(stop => !stop.location.trim());
     if (emptyStops.length > 0) {
       errors.push('Please fill in all stop locations or remove empty stops');
     }
-    
+
     // Check if pickup date is in the past
     if (bookingForm.pickupDate) {
       const pickupDateTime = new Date(bookingForm.pickupDate);
@@ -430,7 +430,7 @@ export default function Cabs() {
         errors.push('Pickup date and time must be in the future');
       }
     }
-    
+
     // Check if return date is after pickup date for round trips
     if (bookingForm.tripType === 'Round Trip' && bookingForm.pickupDate && bookingForm.dropDate) {
       const pickupDateTime = new Date(bookingForm.pickupDate);
@@ -439,7 +439,7 @@ export default function Cabs() {
         errors.push('Return date must be after pickup date');
       }
     }
-    
+
     if (!selectedCabCategory) {
       errors.push('Please select a cab category');
     }
@@ -449,7 +449,7 @@ export default function Cabs() {
       errors.forEach(error => toast.error(error));
       return;
     }
-    
+
     // If all validations pass, proceed to prices page
     handleBook();
   };
@@ -458,8 +458,8 @@ export default function Cabs() {
     const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
     const selectedCategory = cabCategories.find(cat => cat.id === selectedCabCategory);
 
-    navigate('/prices', { 
-      state: { 
+    navigate('/prices', {
+      state: {
         pickup: bookingForm.pickupLocation,
         destination: bookingForm.destination,
         tripType: bookingForm.tripType,
@@ -467,7 +467,7 @@ export default function Cabs() {
         dropDate: bookingForm.dropDate,
         stops: currentStops,
         cabCategory: selectedCategory, // Pass the entire selected category object
-      } 
+      }
     });
   };
 
@@ -506,245 +506,244 @@ export default function Cabs() {
       <header className="bg-gradient-to-r from-green-600 to-green-700 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="text-2xl font-bold text-white">Select Your Cab</div>
-          <UserAvatar/>
+          <UserAvatar />
         </div>
       </header>
       {/* Booking Form Section */}
-{/* Booking Section */}
-<div className="container mx-auto px-4 pt-6">
-  <div className="bg-white shadow-md rounded-xl p-6">
-    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-      <p className="text-sm text-blue-800">
-        <span className="text-red-500">*</span> Fields marked with red asterisk are required for booking
-      </p>
-    </div>
-    <form onSubmit={handleBookingSubmit}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Trip Type */}
-        <div className="flex gap-2">
-          {["Round Trip", "One Way"].map(type => (
-            <button 
-              key={type}
-              type="button"
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                bookingForm.tripType === type 
-                  ? "bg-green-600 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-              onClick={() => handleTripTypeChange(type)}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
+      {/* Booking Section */}
+      <div className="container mx-auto px-4 pt-6">
+        <div className="bg-white shadow-md rounded-xl p-6">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <span className="text-red-500">*</span> Fields marked with red asterisk are required for booking
+            </p>
+          </div>
+          <form onSubmit={handleBookingSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Trip Type */}
+              <div className="flex gap-2">
+                {["Round Trip", "One Way"].map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${bookingForm.tripType === type
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    onClick={() => handleTripTypeChange(type)}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
 
-        {/* Pickup Location */}
-        <div className="relative" ref={pickupRef}>
-          <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
-            Pickup Location <span className="text-red-500">*</span>
-          </label>
-          <input 
-            type="text" 
-            id="pickupLocation"
-            name="pickupLocation"
-            value={bookingForm.pickupLocation}
-            onChange={handlePickupLocationChange}
-            placeholder="Pickup location" 
-            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
-            required
-          />
-          {/* Suggestions */}
-          {showPickupSuggestions && pickupSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-              {pickupSuggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
-                >
-                  {suggestion}
+              {/* Pickup Location */}
+              <div className="relative" ref={pickupRef}>
+                <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pickup Location <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="pickupLocation"
+                  name="pickupLocation"
+                  value={bookingForm.pickupLocation}
+                  onChange={handlePickupLocationChange}
+                  placeholder="Pickup location"
+                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                  required
+                />
+                {/* Suggestions */}
+                {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                    {pickupSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Stops */}
+              {additionalStops.map((stop) => (
+                <div key={stop.id} className="mt-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
+                  <input
+                    type="text"
+                    value={stop.location}
+                    onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                    placeholder="Stop location"
+                    className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                  />
+                  {stop.showSuggestions && stop.suggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
+                      {stop.suggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          onClick={() => {
+                            setAdditionalStops(prev =>
+                              prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                            );
+                          }}
+                        >
+                          {suggestion}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStop(stop.id)}
+                    className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
 
-          {/* Additional Stops */}
-      {additionalStops.map((stop) => (
-        <div key={stop.id} className="mt-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
-          <input 
-            type="text" 
-            value={stop.location}
-            onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-            placeholder="Stop location" 
-            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
-          />
-          {stop.showSuggestions && stop.suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
-              {stop.suggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+              {/* Add Stop Button */}
+              <button
+                type="button"
+                onClick={handleAddStop}
+                className="w-full mt-4 p-3 rounded-lg border border-dashed border-green-500 text-green-600 flex items-center justify-center hover:bg-green-50 transition-colors"
+              >
+                + Add Stop
+              </button>
+
+              {/* Destination */}
+              <div className="relative" ref={destinationRef}>
+                <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+                  Destination <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="destination"
+                  name="destination"
+                  value={bookingForm.destination}
+                  onChange={handleDestinationChange}
+                  placeholder="Destination"
+                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                  required
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                    {destinationSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+
+
+            {/* Date and Time Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pickup Date & Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  id="pickupDate"
+                  name="pickupDate"
+                  value={bookingForm.pickupDate}
+                  onChange={handleBookingChange}
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                  required
+                />
+              </div>
+
+
+              <div>
+                <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Return Date & Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  id="dropDate"
+                  name="dropDate"
+                  value={bookingForm.dropDate}
+                  onChange={handleBookingChange}
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                  required
+                />
+              </div>
+
+            </div>
+
+
+
+          </form>
+        </div>
+      </div>
+
+      {/* Cab Categories Display */}
+      <div className="container mx-auto px-4 mt-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Your Cab Category</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cabCategories.map((category) => (
+            <div
+              key={category.id}
+              className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${selectedCabCategory === category.id ? 'border-green-500' : 'border-gray-200'
+                } hover:shadow-xl transition-all duration-300 cursor-pointer`}
+              onClick={() => handleSelectCab(category.id)}
+            >
+              <div className="relative h-40 bg-gray-100 flex items-center justify-center">
+                {category.category_image ? (
+                  <img
+                    src={category.category_image}
+                    alt={category.category}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm">No Image</span>
+                )}
+                {category.base_discount > 0 && (
+                  <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    {category.base_discount}% OFF
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h4 className="text-xl font-bold text-gray-800 mb-1">{category.category}</h4>
+                <p className="text-gray-600 text-sm mb-3">
+                  {category.min_no_of_seats || 0}+{category.max_no_of_seats || 0} Seater
+                </p>
+                <div className="flex items-baseline mb-3">
+                  {/* <span className="text-sm text-gray-500 line-through mr-2">₹{category.original_price}</span> */}
+                  <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
+                </div>
+                <ul className="text-sm text-gray-700 space-y-1 mb-4">
+                  <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
+                  <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
+                  <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
+                  <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
+                </ul>
+                <button
+                  type="button"
+                  className="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
                   onClick={() => {
-                    setAdditionalStops(prev => 
-                      prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
-                    );
+                    handleSelectCab(category.id)
                   }}
                 >
-                  {suggestion}
-                </div>
-              ))}
+                  Select Cab
+                </button>
+              </div>
             </div>
-          )}
-          <button
-            type="button"
-            onClick={() => handleRemoveStop(stop.id)}
-            className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-          >
-            ×
-          </button>
-        </div>
-      ))}
-
-      {/* Add Stop Button */}
-      <button 
-        type="button"
-        onClick={handleAddStop}
-        className="w-full mt-4 p-3 rounded-lg border border-dashed border-green-500 text-green-600 flex items-center justify-center hover:bg-green-50 transition-colors"
-      >
-        + Add Stop
-      </button>
-
-        {/* Destination */}
-        <div className="relative" ref={destinationRef}>
-          <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
-            Destination <span className="text-red-500">*</span>
-          </label>
-          <input 
-            type="text" 
-            id="destination"
-            name="destination"
-            value={bookingForm.destination}
-            onChange={handleDestinationChange}
-            placeholder="Destination" 
-            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
-            required
-          />
-          {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-              {destinationSuggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleSuggestionSelect(suggestion, 'destination')}
-                >
-                  {suggestion}
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
       </div>
-
-    
-
-      {/* Date and Time Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div>
-          <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
-            Pickup Date & Time <span className="text-red-500">*</span>
-          </label>
-          <input 
-            type="datetime-local" 
-            id="pickupDate"
-            name="pickupDate"
-            value={bookingForm.pickupDate}
-            onChange={handleBookingChange}
-            className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-            required
-          />
-        </div>
-
-     
-          <div>
-            <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Return Date & Time <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="datetime-local" 
-              id="dropDate"
-              name="dropDate"
-              value={bookingForm.dropDate}
-              onChange={handleBookingChange}
-              className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-              required
-            />
-          </div>
-     
-      </div>
-
-    
-
-    </form>
-  </div>
-</div>
-
-{/* Cab Categories Display */}
-<div className="container mx-auto px-4 mt-6">
-  <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Your Cab Category</h3>
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {cabCategories.map((category) => (
-      <div 
-        key={category.id} 
-        className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${
-          selectedCabCategory === category.id ? 'border-green-500' : 'border-gray-200'
-        } hover:shadow-xl transition-all duration-300 cursor-pointer`}
-        onClick={() => handleSelectCab(category.id)}
-      >
-        <div className="relative h-40 bg-gray-100 flex items-center justify-center">
-          {category.category_image ? (
-            <img 
-              src={category.category_image} 
-              alt={category.category} 
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <span className="text-gray-400 text-sm">No Image</span>
-          )}
-          {category.base_discount > 0 && (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-              {category.base_discount}% OFF
-            </div>
-          )}
-        </div>
-        <div className="p-4">
-          <h4 className="text-xl font-bold text-gray-800 mb-1">{category.category}</h4>
-          <p className="text-gray-600 text-sm mb-3">
-            {category.min_no_of_seats || 0}+{category.max_no_of_seats || 0} Seater
-          </p>
-          <div className="flex items-baseline mb-3">
-            {/* <span className="text-sm text-gray-500 line-through mr-2">₹{category.original_price}</span> */}
-            <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
-          </div>
-          <ul className="text-sm text-gray-700 space-y-1 mb-4">
-            <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
-            <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
-            <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
-            <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
-          </ul>
-          <button
-            type="button"
-            className="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
-            onClick={() => {handleSelectCab(category.id)
-            }}
-          >
-            Select Cab
-          </button>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
 
       {/* FAQ Section */}
       <div className="max-w-4xl mx-auto mt-12 mb-12">

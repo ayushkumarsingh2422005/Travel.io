@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 declare global {
   interface Window {
-    google: typeof google;
+    google: typeof google
   }
 }
 
@@ -64,7 +64,7 @@ export default function Prices() {
   const [calculatedBaseFare, setCalculatedBaseFare] = useState<number>(0); // New state for base fare
   const [calculatedDiscountAmount, setCalculatedDiscountAmount] = useState<number>(0); // New state for discount amount
 
-      console.log('Route Data:', routeData);
+  console.log('Route Data:', routeData);
 
   useEffect(() => {
     const initMap = async () => {
@@ -164,7 +164,7 @@ export default function Prices() {
                 createMarker(leg.end_location.toJSON(), (String.fromCharCode(66 + index)), '#EF4444'); // Destination (Red)
               }
             });
-            
+
             // Calculate total distance and duration
             let totalDistance = 0;
             let totalDuration = 0;
@@ -199,60 +199,60 @@ export default function Prices() {
               currentCalculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
             }
 
-        // Add night charges if applicable (for every night in the trip)
-const pickupDateTime = new Date(routeData.pickupDate);
-const dropDateTime = new Date(routeData.dropDate);
+            // Add night charges if applicable (for every night in the trip)
+            const pickupDateTime = new Date(routeData.pickupDate);
+            const dropDateTime = new Date(routeData.dropDate);
 
-console.log('Pickup DateTime:', pickupDateTime);
-console.log('Drop DateTime:', dropDateTime);
+            console.log('Pickup DateTime:', pickupDateTime);
+            console.log('Drop DateTime:', dropDateTime);
 
-const nightChargeStartTime = 22; // 10 PM
-const nightChargeEndTime = 6; // 6 AM
+            const nightChargeStartTime = 22; // 10 PM
+            const nightChargeEndTime = 6; // 6 AM
 
-let nightChargesApplicable = false;
-let numberOfNights = 0;
+            let nightChargesApplicable = false;
+            let numberOfNights = 0;
 
-// Calculate the number of calendar days the trip spans
-const pickupDate = new Date(pickupDateTime.getFullYear(), pickupDateTime.getMonth(), pickupDateTime.getDate());
-const dropDate = new Date(dropDateTime.getFullYear(), dropDateTime.getMonth(), dropDateTime.getDate());
+            // Calculate the number of calendar days the trip spans
+            const pickupDate = new Date(pickupDateTime.getFullYear(), pickupDateTime.getMonth(), pickupDateTime.getDate());
+            const dropDate = new Date(dropDateTime.getFullYear(), dropDateTime.getMonth(), dropDateTime.getDate());
 
-console.log('Pickup Date (normalized):', pickupDate);
-console.log('Drop Date (normalized):', dropDate);
+            console.log('Pickup Date (normalized):', pickupDate);
+            console.log('Drop Date (normalized):', dropDate);
 
-const daysDifference = Math.floor((dropDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
+            const daysDifference = Math.floor((dropDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
 
-console.log('Days Difference:', daysDifference);
+            console.log('Days Difference:', daysDifference);
 
-if (daysDifference === 0) {
-    // Same day trip - check if it crosses night hours
-    const pickupHour = pickupDateTime.getHours();
-    const dropHour = dropDateTime.getHours();
-    
-    if (pickupHour >= nightChargeStartTime || pickupHour < nightChargeEndTime ||
-        dropHour >= nightChargeStartTime || dropHour < nightChargeEndTime) {
-        numberOfNights = 1;
-        nightChargesApplicable = true;
-    }
-} else {
-    // Multi-day trip
-    numberOfNights = daysDifference;
-    nightChargesApplicable = true;
-}
+            if (daysDifference === 0) {
+              // Same day trip - check if it crosses night hours
+              const pickupHour = pickupDateTime.getHours();
+              const dropHour = dropDateTime.getHours();
 
-console.log('Number of Nights:', numberOfNights);
-console.log('Night Charges Applicable:', nightChargesApplicable);
+              if (pickupHour >= nightChargeStartTime || pickupHour < nightChargeEndTime ||
+                dropHour >= nightChargeStartTime || dropHour < nightChargeEndTime) {
+                numberOfNights = 1;
+                nightChargesApplicable = true;
+              }
+            } else {
+              // Multi-day trip
+              numberOfNights = daysDifference;
+              nightChargesApplicable = true;
+            }
 
-let nightChargeValue = 0;
-if (nightChargesApplicable && routeData.cabCategory.night_charges) {
-    const perNightCharge = parseFloat(routeData.cabCategory.night_charges.toString());
-    console.log('Per Night Charge:', perNightCharge);
-    nightChargeValue = perNightCharge * numberOfNights;
-    console.log('Total Night Charge Value:', nightChargeValue);
-    currentCalculatedPrice += nightChargeValue;
-}
+            console.log('Number of Nights:', numberOfNights);
+            console.log('Night Charges Applicable:', nightChargesApplicable);
 
-setCalculatedNightCharges(nightChargeValue);
-console.log('Final Calculated Night Charges:', nightChargeValue); // Set the calculated night charges
+            let nightChargeValue = 0;
+            if (nightChargesApplicable && routeData.cabCategory.night_charges) {
+              const perNightCharge = parseFloat(routeData.cabCategory.night_charges.toString());
+              console.log('Per Night Charge:', perNightCharge);
+              nightChargeValue = perNightCharge * numberOfNights;
+              console.log('Total Night Charge Value:', nightChargeValue);
+              currentCalculatedPrice += nightChargeValue;
+            }
+
+            setCalculatedNightCharges(nightChargeValue);
+            console.log('Final Calculated Night Charges:', nightChargeValue); // Set the calculated night charges
 
             let discountAmount = 0;
             if (routeData.cabCategory.base_discount) {
@@ -260,7 +260,7 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
               currentCalculatedPrice -= discountAmount;
             }
             setCalculatedDiscountAmount(Math.round(discountAmount)); // Set calculated discount amount
-            
+
             const estimatedPrice = Math.round(currentCalculatedPrice);
 
             // Adjust drop-off date if less than minimum duration
@@ -268,10 +268,10 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
             const actualDurationInMs = dropDateTime.getTime() - pickupDateTime.getTime();
 
             if (actualDurationInMs < minDurationInMs) {
-                const newDropOffDate = new Date(pickupDateTime.getTime() + minDurationInMs);
-                toast.error(`Drop-off date adjusted to ${newDropOffDate.toLocaleString()} to meet minimum trip duration.`);
-                // You might want to update routeData.dropDate here or pass it to the booking page
-                // For now, we'll just show a toast.
+              const newDropOffDate = new Date(pickupDateTime.getTime() + minDurationInMs);
+              toast.error(`Drop-off date adjusted to ${newDropOffDate.toLocaleString()} to meet minimum trip duration.`);
+              // You might want to update routeData.dropDate here or pass it to the booking page
+              // For now, we'll just show a toast.
             }
 
             // Extract encoded polyline from the route
@@ -296,7 +296,7 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
             setGstAmount(Math.round(calculatedGstAmount));
             setTotalUpfrontPayment(Math.round(calculatedTotalUpfrontPayment));
             setRemainingAmount(Math.round(calculatedRemainingAmount));
-            
+
             // Adjust map bounds to show the entire route
             const bounds = new google.maps.LatLngBounds();
             result.routes[0].legs.forEach(leg => {
@@ -329,7 +329,7 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours} hr ${minutes} min`;
     }
@@ -338,9 +338,9 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
 
   const handleBookNow = () => {
     // Navigate to booking confirmation page with route details
-    navigate('/booking', { 
-      state: { 
-        ...routeData, 
+    navigate('/booking', {
+      state: {
+        ...routeData,
         ...routeDetails,
         distance_km: parseFloat(routeDetails.distance.replace(' km', '')),
         stops: routeData.stops || [],
@@ -351,7 +351,7 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
         gstAmount,
         totalUpfrontPayment,
         remainingAmount
-      } 
+      }
     });
   };
 
@@ -368,7 +368,7 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
               </svg>
               <h1 className="text-2xl font-bold">Marco Cabs</h1>
             </div>
-          
+
           </div>
         </div>
       </header>
@@ -382,234 +382,234 @@ console.log('Final Calculated Night Charges:', nightChargeValue); // Set the cal
             <p className="text-gray-600 mt-2">Review your route details and estimated costs</p>
           </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-              {/* Map Section - 3/5 width on large screens */}
-              <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            {/* Map Section - 3/5 width on large screens */}
+            <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative">
+              <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
+                <h2 className="text-xl font-bold flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Route Map
+                </h2>
+              </div>
+              <div ref={mapRef} className="w-full h-[500px] lg:h-full"></div>
+              {isLoading && (
+                <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                </div>
+              )}
+            </div>
+
+            {/* Trip Details Section - 2/5 width on large screens */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Trip Summary Card */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Route Map
+                    Trip Summary
                   </h2>
                 </div>
-               <div ref={mapRef} className="w-full h-[500px] lg:h-full"></div>
-{isLoading && (
-  <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-  </div>
-)}
-              </div>
 
-              {/* Trip Details Section - 2/5 width on large screens */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Trip Summary Card */}
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
-                    <h2 className="text-xl font-bold flex items-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Trip Summary
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-4 bg-green-100 rounded-lg border border-green-200">
-                        <div className="flex items-center">
-                          {routeData.tripType === 'Round Trip' ? (
-                            <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
-                            </svg>
-                          ) : (
-                            <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          )}
-                          <span className="font-bold text-green-800 text-lg">Trip Type</span>
-                        </div>
-                        <span className="text-green-900 text-lg font-semibold">
-                          {routeData.tripType}
-                        </span>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-4 bg-green-100 rounded-lg border border-green-200">
+                      <div className="flex items-center">
+                        {routeData.tripType === 'Round Trip' ? (
+                          <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        )}
+                        <span className="font-bold text-green-800 text-lg">Trip Type</span>
                       </div>
+                      <span className="text-green-900 text-lg font-semibold">
+                        {routeData.tripType}
+                      </span>
+                    </div>
 
-                      
+
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Total Distance</span>
+                      </div>
+                      <span className="font-semibold text-gray-800">{routeDetails.distance}</span>
+                    </div>
+
+                    {routeData.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                           </svg>
-                          <span className="font-medium text-gray-700">Total Distance</span>
+                          <span className="font-medium text-gray-700">One-Way Distance</span>
                         </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.distance}</span>
+                        <span className="font-semibold text-gray-800">{routeDetails.oneWayDistance}</span>
                       </div>
+                    )}
 
-                      {routeData.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
-                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                          <div className="flex items-center">
-                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                            <span className="font-medium text-gray-700">One-Way Distance</span>
-                          </div>
-                          <span className="font-semibold text-gray-800">{routeDetails.oneWayDistance}</span>
-                        </div>
-                      )}
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Total Duration</span>
+                      </div>
+                      <span className="font-semibold text-gray-800">{routeDetails.duration}</span>
+                    </div>
 
+                    {routeData.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="font-medium text-gray-700">Total Duration</span>
+                          <span className="font-medium text-gray-700">One-Way Duration</span>
                         </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.duration}</span>
+                        <span className="font-semibold text-gray-800">{routeDetails.oneWayDuration}</span>
                       </div>
+                    )}
 
-                      {routeData.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
-                        <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                          <div className="flex items-center">
-                            <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="font-medium text-gray-700">One-Way Duration</span>
-                          </div>
-                          <span className="font-semibold text-gray-800">{routeDetails.oneWayDuration}</span>
-                        </div>
-                      )}
 
-                   
-{/* New card for Cab Category Details */}
-                      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                        <div className="p-4 bg-green-100 border-b border-gray-100">
-                          <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData.cabCategory.category}</h3>
-                        </div>
-                        <div className="p-4 text-sm text-gray-700 space-y-2">
-                          <div className="flex justify-between">
-                            <span>Price (dist*perkm):</span>
-                            <span className="font-medium">₹{calculatedBaseFare}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Seats:</span>
-                            <span className="font-medium">{routeData.cabCategory.min_no_of_seats}-{routeData.cabCategory.max_no_of_seats}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Fuel Charges:</span>
-                            <span className="font-medium">{routeData.cabCategory.fuel_charges > 0 ? `₹${routeData.cabCategory.fuel_charges}` : 'Included'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Driver Charges:</span>
-                            <span className="font-medium">{routeData.cabCategory.driver_charges > 0 ? `₹${routeData.cabCategory.driver_charges}` : 'Included'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Night Charges:</span>
-                            <span className="font-medium">{calculatedNightCharges> 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
-                          </div>
-                          {routeData.cabCategory.base_discount > 0 && (
-                            <div className="flex justify-between text-red-600 font-semibold">
-                              <span>Discount:</span>
-                              <span>{routeData.cabCategory.base_discount}% OFF</span>
-                              <span className="font-medium">-₹{calculatedDiscountAmount.toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
+                    {/* New card for Cab Category Details */}
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                      <div className="p-4 bg-green-100 border-b border-gray-100">
+                        <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData.cabCategory.category}</h3>
                       </div>
-                      <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Estimated Price</span>
+                      <div className="p-4 text-sm text-gray-700 space-y-2">
+                        <div className="flex justify-between">
+                          <span>Price (dist*perkm):</span>
+                          <span className="font-medium">₹{calculatedBaseFare}</span>
                         </div>
-                        <span className="font-bold text-green-700">₹{routeDetails.price.toLocaleString()}</span>
+                        <div className="flex justify-between">
+                          <span>Seats:</span>
+                          <span className="font-medium">{routeData.cabCategory.min_no_of_seats}-{routeData.cabCategory.max_no_of_seats}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fuel Charges:</span>
+                          <span className="font-medium">{routeData.cabCategory.fuel_charges > 0 ? `₹${routeData.cabCategory.fuel_charges}` : 'Included'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Driver Charges:</span>
+                          <span className="font-medium">{routeData.cabCategory.driver_charges > 0 ? `₹${routeData.cabCategory.driver_charges}` : 'Included'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Night Charges:</span>
+                          <span className="font-medium">{calculatedNightCharges > 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
+                        </div>
+                        {routeData.cabCategory.base_discount > 0 && (
+                          <div className="flex justify-between text-red-600 font-semibold">
+                            <span>Discount:</span>
+                            <span>{routeData.cabCategory.base_discount}% OFF</span>
+                            <span className="font-medium">-₹{calculatedDiscountAmount.toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
+                    </div>
+                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Estimated Price</span>
+                      </div>
+                      <span className="font-bold text-green-700">₹{routeDetails.price.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Route Details Card */}
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
-                    <h2 className="text-xl font-bold flex items-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      Route Details
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-6">
-                      <div className="relative pl-8 pb-6">
+              {/* Route Details Card */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
+                  <h2 className="text-xl font-bold flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    Route Details
+                  </h2>
+                </div>
+
+                <div className="p-6">
+                  <div className="space-y-6">
+                    <div className="relative pl-8 pb-6">
+                      <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-green-200"></div>
+                      <div className="flex items-center mb-2">
+                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                          </svg>
+                        </div>
+                        <span className="ml-10 font-medium text-gray-800">Starting Point</span>
+                      </div>
+                      <p className="ml-10 text-gray-600 break-words">{routeData?.pickup}</p>
+                    </div>
+
+                    {routeData?.stops?.map((stop, index) => (
+                      <div key={index} className="relative pl-8 pb-6">
                         <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-green-200"></div>
                         <div className="flex items-center mb-2">
-                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
                             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                            </svg>
-                          </div>
-                          <span className="ml-10 font-medium text-gray-800">Starting Point</span>
-                        </div>
-                        <p className="ml-10 text-gray-600 break-words">{routeData?.pickup}</p>
-                      </div>
-                      
-                      {routeData?.stops?.map((stop, index) => (
-                        <div key={index} className="relative pl-8 pb-6">
-                          <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-green-200"></div>
-                          <div className="flex items-center mb-2">
-                            <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
-                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                             </svg>
                           </div>
                           <span className="ml-10 font-medium text-gray-800">Stop {index + 1}</span>
                         </div>
                         <p className="ml-10 text-gray-600 break-words">{stop}</p>
                       </div>
-                      ))}
-                      
-                      <div className="relative pl-8">
-                        <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-green-200"></div>
-                        <div className="flex items-center mb-2">
-                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                            </svg>
-                          </div>
-                          <span className="ml-10 font-medium text-gray-800">Destination</span>
+                    ))}
+
+                    <div className="relative pl-8">
+                      <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-green-200"></div>
+                      <div className="flex items-center mb-2">
+                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                          </svg>
                         </div>
-                        <p className="ml-10 text-gray-600 break-words">{routeData.destination}</p>
+                        <span className="ml-10 font-medium text-gray-800">Destination</span>
                       </div>
+                      <p className="ml-10 text-gray-600 break-words">{routeData.destination}</p>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                  <button 
-                    onClick={() => navigate('/cabs',{ state: routeData })} 
-                    className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg flex items-center justify-center transition-all"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
-                    </svg>
-                    Modify Trip
-                  </button>
-                  <button 
-                    onClick={handleBookNow} 
-                    disabled={isLoading} // Disable if map and route details are still loading
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Book Now
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <button
+                  onClick={() => navigate('/cabs', { state: routeData })}
+                  className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg flex items-center justify-center transition-all"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+                  </svg>
+                  Modify Trip
+                </button>
+                <button
+                  onClick={handleBookNow}
+                  disabled={isLoading} // Disable if map and route details are still loading
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Book Now
+                </button>
               </div>
             </div>
+          </div>
         </div>
       </div>
       {/* Footer Section */}

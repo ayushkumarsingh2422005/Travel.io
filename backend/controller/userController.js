@@ -341,7 +341,8 @@ const searchVehicles = async (req, res) => {
             sort_by = 'per_km_charge',
             sort_order = 'ASC',
             page = 1,
-            limit = 10
+            limit = 10,
+            category // Add category to query parameters
         } = req.query;
 
         // Allowed sort fields and orders
@@ -407,6 +408,10 @@ const searchVehicles = async (req, res) => {
             const loc = `%${location}%`;
             params.push(loc, loc);
         }
+        if (category) {
+            query += ' AND v.rc_vehicle_category = ?';
+            params.push(category);
+        }
 
         // Sorting
         let sortField = 'v.per_km_charge';
@@ -466,6 +471,10 @@ const searchVehicles = async (req, res) => {
             countQuery += ' AND (ven.current_address LIKE ? OR v.rc_present_address LIKE ?)';
             const loc = `%${location}%`;
             countParams.push(loc, loc);
+        }
+        if (category) {
+            countQuery += ' AND v.rc_vehicle_category = ?';
+            countParams.push(category);
         }
         const [countResult] = await db.execute(countQuery, countParams);
         const total = countResult[0]?.total || 0;

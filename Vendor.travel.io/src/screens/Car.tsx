@@ -32,6 +32,13 @@ interface Car {
   lastUpdated?: string;
   insuranceCompany?: string;
   insurancePolicyNumber?: string;
+  rc_vehicle_category?: string; // Add this field
+}
+
+interface CabCategory {
+  id: string;
+  category: string;
+  price_per_km: number;
 }
 
 // Car status classification data
@@ -57,7 +64,8 @@ const API_ENDPOINTS = {
   UPDATE_CAR: (id: string) => `/vehicle/${id}`,
   DELETE_CAR: (id: string) => `/vehicle/${id}`,
   CREATE_CAR_WITH_RC: '/vehicle/with-rc',
-  VERIFY_RC: '/vehicle/verify-rc'
+  VERIFY_RC: '/vehicle/verify-rc',
+  CAB_CATEGORIES: '/vehicle/cab-categories' // Add endpoint
 };
 
 const AddCarForm: React.FC = () => {
@@ -76,6 +84,8 @@ const AddCarForm: React.FC = () => {
   const [fetchedCarDetails, setFetchedCarDetails] = useState<Partial<Car> | null>(null);
   const [rawRcData, setRawRcData] = useState<any>(null);
   const [rcCache, setRcCache] = useState<Record<string, Partial<Car>>>({});
+  const [cabCategories, setCabCategories] = useState<CabCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   // State for Add Car form
   const [newCar, setNewCar] = useState<{
@@ -113,7 +123,7 @@ const AddCarForm: React.FC = () => {
       console.log(rawRcData);
 
       if (fetchedCarDetails?.model) {
-        
+
         formData.append('model', fetchedCarDetails.model);
       }
       if (fetchedCarDetails?.registration_no) {
@@ -131,7 +141,7 @@ const AddCarForm: React.FC = () => {
         formData.append('rc_data', JSON.stringify(rawRcData));
       }
 
-        const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to add a car.'); // Error toast
         return;
@@ -145,16 +155,17 @@ const AddCarForm: React.FC = () => {
       // });
 
       await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, {
-  model: fetchedCarDetails?.model,
-  registration_no: fetchedCarDetails?.registration_no,
-  no_of_seats: fetchedCarDetails?.no_of_seats,
-  rc_data: rawRcData,
-}, {
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  },
-});
+        model: fetchedCarDetails?.model,
+        registration_no: fetchedCarDetails?.registration_no,
+        no_of_seats: fetchedCarDetails?.no_of_seats,
+        rc_data: rawRcData,
+        rc_vehicle_category: selectedCategory, // Add category to payload
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       fetchCars();
       handleCloseForm();
@@ -168,12 +179,28 @@ const AddCarForm: React.FC = () => {
 
   useEffect(() => {
     fetchCars();
+    fetchCabCategories();
   }, []);
+
+  const fetchCabCategories = async () => {
+    try {
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) return;
+      const response = await axios.get(API_ENDPOINTS.CAB_CATEGORIES, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setCabCategories(response.data.cab_categories);
+      }
+    } catch (error) {
+      console.error("Error fetching cab categories:", error);
+    }
+  };
 
   const fetchCars = async () => {
     try {
       setLoading(true);
-         const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to fetch cars.'); // Error toast
         return;
@@ -184,19 +211,19 @@ const AddCarForm: React.FC = () => {
         }
       });
       console.log(response.data);
-     const mappedCars = response.data.vehicles.map((car: any) => ({
-  ...car,
-  brand: car.model, 
-  rcNumber: car.registration_no, 
-   status: car.is_active ? 'approved' : 'awaited',
+      const mappedCars = response.data.vehicles.map((car: any) => ({
+        ...car,
+        brand: car.model,
+        rcNumber: car.registration_no,
+        status: car.is_active ? 'approved' : 'awaited',
         permit: car.rc_permit_type || 'N/A',
         permitExpiry: car.rc_permit_valid_upto,
         fuelType: car.rc_type || 'N/A',
         carType: car.rc_class || 'N/A',
         makeYear: car.rc_reg_date ? new Date(car.rc_reg_date).getFullYear() : undefined,
         lastUpdated: car.updated_at,
-}));
-setCars(mappedCars);
+      }));
+      setCars(mappedCars);
       setLoading(false);
     } catch (err: any) {
       console.log("Error fetching cars:");
@@ -212,17 +239,17 @@ setCars(mappedCars);
       return;
     }
     try {
-       const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to delete cars.'); // Error toast
         return;
       } // Assuming token is stored in localStorage
       await axios.delete(API_ENDPOINTS.DELETE_CAR(selectedCarForDeletion.id),
-     {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
       fetchCars(); // Refresh the car list
       closeDeleteCarModal();
       toast.success('Car deleted successfully!'); // Success toast
@@ -252,7 +279,7 @@ setCars(mappedCars);
   };
 
   // Filter cars based on search term
-  const filteredCars = cars.filter(car => 
+  const filteredCars = cars.filter(car =>
     car.rcNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     car.brand.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -263,54 +290,54 @@ setCars(mappedCars);
     try {
       setLoading(true);
       const fullRcNumber = `${rcState}${rtoCode}${issueYear}${rcDigits}`;
-       const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to verify car details.'); // Error toast
         return;
       }
 
-       if (rcCache[fullRcNumber]) {
+      if (rcCache[fullRcNumber]) {
         console.log("Using cached RC data for:", fullRcNumber, rcCache[fullRcNumber]);
         setFetchedCarDetails(rcCache[fullRcNumber]);
         return;
-  }
+      }
 
       const response = await axios.post(API_ENDPOINTS.VERIFY_RC, { vehicle_number: fullRcNumber }, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      const ResponseData=response.data.data;
+      const ResponseData = response.data.data;
       console.log(ResponseData);
-     if (ResponseData.status !== "Success") {
+      if (ResponseData.status !== "Success") {
         toast.error("Failed to fetch car details. Please check the RC number and try again."); // Error toast
         setLoading(false);
         setFetchedCarDetails(null);
         return;
       }
-     setRawRcData(ResponseData);
-     const carDetails: Partial<Car> = {
-     owner: ResponseData.data.owner, 
-     brand: ResponseData.data.vehicle_manufacturer_name, 
-     model: ResponseData.data.model, 
-     carType: ResponseData.data.class,
-      fuelType: ResponseData.data.type,
-       chassis: ResponseData.data.chassis, 
-       engine: ResponseData.data.engine, 
-       registration_no: fullRcNumber,
+      setRawRcData(ResponseData);
+      const carDetails: Partial<Car> = {
+        owner: ResponseData.data.owner,
+        brand: ResponseData.data.vehicle_manufacturer_name,
+        model: ResponseData.data.model,
+        carType: ResponseData.data.class,
+        fuelType: ResponseData.data.type,
+        chassis: ResponseData.data.chassis,
+        engine: ResponseData.data.engine,
+        registration_no: fullRcNumber,
         fitnessExpiry: ResponseData.data.rc_expiry_date,
-         insuranceExpiry: ResponseData.data.vehicle_insurance_upto,
-          permit: ResponseData.data.permit_type, permitExpiry: ResponseData.data.permit_valid_upto, 
-          no_of_seats: ResponseData.data.vehicle_seat_capacity,
-           insuranceCompany: ResponseData.data.vehicle_insurance_company_name, 
-           insurancePolicyNumber: ResponseData.data.vehicle_insurance_policy_number, 
-          makeYear: new Date(ResponseData.data.reg_date).getFullYear(),
-    };
+        insuranceExpiry: ResponseData.data.vehicle_insurance_upto,
+        permit: ResponseData.data.permit_type, permitExpiry: ResponseData.data.permit_valid_upto,
+        no_of_seats: ResponseData.data.vehicle_seat_capacity,
+        insuranceCompany: ResponseData.data.vehicle_insurance_company_name,
+        insurancePolicyNumber: ResponseData.data.vehicle_insurance_policy_number,
+        makeYear: new Date(ResponseData.data.reg_date).getFullYear(),
+      };
 
-    setFetchedCarDetails(carDetails);
+      setFetchedCarDetails(carDetails);
 
-    // ✅ Save to cache
-    setRcCache(prev => ({ ...prev, [fullRcNumber]: carDetails }));
+      // ✅ Save to cache
+      setRcCache(prev => ({ ...prev, [fullRcNumber]: carDetails }));
 
       setLoading(false);
       toast.success('Car details fetched successfully!'); // Success toast
@@ -354,8 +381,8 @@ setCars(mappedCars);
                     {idx === 0
                       ? cars.length
                       : idx === 1
-                      ? cars.filter(car => car.status.toLowerCase() === 'approved').length
-                      : cars.filter(car => car.status.toLowerCase() === 'awaited').length}
+                        ? cars.filter(car => car.status.toLowerCase() === 'approved').length
+                        : cars.filter(car => car.status.toLowerCase() === 'awaited').length}
                   </p>
                 )}
               </div>
@@ -378,9 +405,9 @@ setCars(mappedCars);
                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
               </svg>
             </div>
-            <input 
-              type="text" 
-              placeholder="Search car by RC number" 
+            <input
+              type="text"
+              placeholder="Search car by RC number"
               className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
               disabled={loading}
               value={searchTerm}
@@ -388,7 +415,7 @@ setCars(mappedCars);
             />
           </div>
           <div className="flex gap-3 w-full md:w-auto">
-            <button 
+            <button
               className={`px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => {
                 setShowAddCarForm(true);
@@ -443,7 +470,7 @@ setCars(mappedCars);
                 filteredCars?.map((car) => (
                   <tr key={car.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
-                      <button 
+                      <button
                         className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
                         onClick={() => openDeleteCarModal(car)}
                       >
@@ -483,7 +510,7 @@ setCars(mappedCars);
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                           onClick={() => {
                             setSelectedCarDetails(car);
@@ -512,7 +539,7 @@ setCars(mappedCars);
                 <h2 className="text-white text-xl font-semibold">
                   {formStep === 'auto-fetch' ? 'Auto Fetch Car Details' : 'Add New Car'}
                 </h2>
-                <button 
+                <button
                   onClick={handleCloseForm}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
                 >
@@ -522,12 +549,12 @@ setCars(mappedCars);
                 </button>
               </div>
               <p className="text-green-50 mt-2">
-                {formStep === 'auto-fetch' 
+                {formStep === 'auto-fetch'
                   ? 'Enter RC details to automatically fetch your car information'
                   : 'Make sure all the cars are in good condition and well maintained'}
               </p>
             </div>
-            
+
             {/* Modal Body */}
             {formStep === 'auto-fetch' ? (
               // Auto Fetch Form Content
@@ -546,38 +573,38 @@ setCars(mappedCars);
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* RC Details Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">RC Number</label>
                     <div className="grid grid-cols-4 gap-3">
-                      <input 
-                        type="text" 
-                        placeholder="State" 
+                      <input
+                        type="text"
+                        placeholder="State"
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
                         value={rcState}
                         onChange={(e) => setRcState(e.target.value)}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="RTO Code" 
+                      <input
+                        type="text"
+                        placeholder="RTO Code"
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
                         value={rtoCode}
                         onChange={(e) => setRtoCode(e.target.value)}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Issue Year" 
+                      <input
+                        type="text"
+                        placeholder="Issue Year"
                         className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={2}
                         value={issueYear}
                         onChange={(e) => setIssueYear(e.target.value)}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="4 Digits" 
+                      <input
+                        type="text"
+                        placeholder="4 Digits"
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
                         maxLength={4}
                         value={rcDigits}
@@ -585,7 +612,7 @@ setCars(mappedCars);
                       />
                     </div>
                     <div className="mt-3">
-                      <button 
+                      <button
                         className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                         onClick={handleFetchCarDetails}
                       >
@@ -593,184 +620,213 @@ setCars(mappedCars);
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Auto Fetched Details */}
                   <div className="space-y-4 mt-8">
                     <h3 className="text-lg font-medium text-gray-800 mb-4">Auto Fetched Details</h3>
-                  
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch name"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.owner}
                           value={fetchedCarDetails?.owner || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, owner: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch name"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.vehicle_manufacturer_name}
                           value={fetchedCarDetails?.brand || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, brand: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Maker Name</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch name"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.model}
                           value={fetchedCarDetails?.model || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, model: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Class</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.class}
                           value={fetchedCarDetails?.carType || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, carType: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Type</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.type}
                           value={fetchedCarDetails?.fuelType || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, fuelType: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.chassis}
                           value={fetchedCarDetails?.chassis || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, chassis: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Engine Number</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.engine}
                           value={fetchedCarDetails?.engine || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, engine: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
                           className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                           disabled
                           value={fetchedCarDetails?.registration_no || ''}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Expiry Date</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.rc_expiry_date}
                           value={fetchedCarDetails?.fitnessExpiry || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, fitnessExpiry: e.target.value }) : prev)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry Date</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.vehicle_insurance_upto}
                           value={fetchedCarDetails?.insuranceExpiry || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, insuranceExpiry: e.target.value }) : prev)}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.permit_type}
                           value={fetchedCarDetails?.permit || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, permit: e.target.value }) : prev)}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Permit Expiry</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.permit_valid_upto}
                           value={fetchedCarDetails?.permitExpiry || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, permitExpiry: e.target.value }) : prev)}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.vehicle_seat_capacity}
                           value={fetchedCarDetails?.no_of_seats || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, no_of_seats: Number(e.target.value) }) : prev)}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Company</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.vehicle_insurance_company_name}
                           value={fetchedCarDetails?.insuranceCompany || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, insuranceCompany: e.target.value }) : prev)}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy Number</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Auto fetch"
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
-                          disabled
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 disabled:bg-gray-100 disabled:text-gray-500 enabled:bg-white enabled:text-gray-900"
+                          disabled={!fetchedCarDetails || !!rawRcData?.data?.vehicle_insurance_policy_number}
                           value={fetchedCarDetails?.insurancePolicyNumber || ''}
+                          onChange={(e) => setFetchedCarDetails(prev => prev ? ({ ...prev, insurancePolicyNumber: e.target.value }) : prev)}
                         />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Cab Category <span className="text-red-500">*</span></label>
+                        <select
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-white"
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                        >
+                          <option value="">Select a category</option>
+                          {cabCategories.map((cat) => (
+                            <option key={cat.id} value={cat.category}>
+                              {cat.category} (₹{cat.price_per_km}/km)
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Modal Footer */}
                 <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
-                  <button 
+                  <button
                     className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={handleCloseForm}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                     onClick={handleNextToAddCar}
                   >
@@ -795,7 +851,7 @@ setCars(mappedCars);
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Car Details Section */}
                   <div>
                     <h3 className="text-lg font-medium text-gray-800 mb-4">Car Details</h3>
@@ -822,7 +878,7 @@ setCars(mappedCars);
                           </label>
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Car Image</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
@@ -847,14 +903,14 @@ setCars(mappedCars);
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Fitness and Permit Section */}
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Document</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                           <input
+                          <input
                             type="file"
                             className="hidden"
                             id="insurance-doc-upload"
@@ -865,18 +921,18 @@ setCars(mappedCars);
                             }}
                           />
                           <label htmlFor="insurance-doc-upload" className="cursor-pointer">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                            <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fitness Document</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                           <input
+                          <input
                             type="file"
                             className="hidden"
                             id="fitness-doc-upload"
@@ -887,18 +943,18 @@ setCars(mappedCars);
                             }}
                           />
                           <label htmlFor="fitness-doc-upload" className="cursor-pointer">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                            <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Permit Document</label>
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                           <input
+                          <input
                             type="file"
                             className="hidden"
                             id="permit-doc-upload"
@@ -909,11 +965,11 @@ setCars(mappedCars);
                             }}
                           />
                           <label htmlFor="permit-doc-upload" className="cursor-pointer">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                          <span className="text-sm text-green-600 font-medium">Browse Files</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
+                            <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
                         </div>
                       </div>
@@ -936,7 +992,7 @@ setCars(mappedCars);
                           <option value="No">No</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label htmlFor="sourcing" className="block text-sm font-medium text-gray-700 mb-1">Sourcing</label>
                         <select
@@ -954,16 +1010,16 @@ setCars(mappedCars);
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Modal Footer */}
                 <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
-                  <button 
+                  <button
                     className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={() => setFormStep('auto-fetch')}
                   >
                     Back
                   </button>
-                  <button 
+                  <button
                     className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                     onClick={handleAddCar}
                   >

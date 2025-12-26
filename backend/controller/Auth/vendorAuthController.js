@@ -440,83 +440,106 @@ const resetPassword = async (req, res) => {
  * Generate Aadhaar verification link via AuthBridge
  * This function is moved to the route handler for better error handling
  */
-const generateAadhaarOtp = async (req, res) => {
+/**
+ * Step 1: Create Digilocker Aadhaar Redirect URL
+ */
+const initiateDigilockerVerification = async (req, res) => {
+    let requestUrl = '';
     try {
         const vendorId = req.user.id;
-        const { aadhaar_number } = req.body;
+        // const { redirect_url } = req.body; // Frontend should provide this, or environment variable
 
-        // Call ekycHub API to generate Aadhaar OTP
-        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        // Using localhost.run URL provided by user (Updated)
+        // Reverted query param as it causes 403 Forbidden
+        const redirect_url = 'https://2be3a112d2b43f.lhr.life/profile';
+
+        console.log("Using Redirect URL:", redirect_url);
+
+        let ekycHubUrl = process.env.EKYC_HUB_URL;
+        // Normalize URL: remove trailing /v3 or / to ensure consistent path construction
+        if (ekycHubUrl.endsWith('/v3')) ekycHubUrl = ekycHubUrl.slice(0, -3);
+        if (ekycHubUrl.endsWith('/')) ekycHubUrl = ekycHubUrl.slice(0, -1);
+
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
-        console.log("EKYC Config:", { user: ekycHubUser, url: ekycHubUrl, hasToken: !!ekycHubToken });
-        console.log("Requesting Aadhaar OTP for:", { aadhaar_number, vendorId });
 
-        const aadhaarOtpUrl = `${ekycHubUrl}/verification/get_aadhaar_otp?username=${ekycHubUser}&token=${ekycHubToken}&aadhaar_number=${aadhaar_number}&orderid=${vendorId}`;
+        console.log("Initiating Digilocker Verification for:", vendorId);
 
-        console.log("Requesting Aadhaar OTP URL:", aadhaarOtpUrl);
+        // Construct Request URL
+        // Endpoint: /v3/digilocker/create_url_aadhaar
+        requestUrl = `${ekycHubUrl}/v3/digilocker/create_url_aadhaar?username=${ekycHubUser}&token=${ekycHubToken}&redirect_url=${encodeURIComponent(redirect_url)}&orderid=${vendorId}`;
 
-        const ekycResponse = await axios.get(aadhaarOtpUrl);
+        console.log("Digilocker Request URL:", requestUrl);
 
-        // Log the full response for debugging
-        console.log("EKYC Response Data:", JSON.stringify(ekycResponse.data, null, 2));
-
-        // Check if status is truthy AND not "Failure" (case-insensitive)
-        const isSuccess = ekycResponse.data.status &&
-            (typeof ekycResponse.data.status !== 'string' || ekycResponse.data.status.toLowerCase() !== 'failure');
-
-        if (isSuccess) {
-            const ref_id = ekycResponse.data.ref_id;
-
-            if (ref_id === undefined || ref_id === null) {
-                console.error("Error: ref_id is missing in the success response from EKYC Hub");
-                return res.status(502).json({ status: 0, message: 'External API returned success but missing Reference ID', debug_data: ekycResponse.data });
+        const response = await axios.get(requestUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'Referer': 'https://connect.ekychub.in/'
             }
+        });
+        const data = response.data;
 
-            if (aadhaar_number === undefined || aadhaar_number === null) {
-                console.error("Error: aadhaar_number is missing");
-                return res.status(400).json({ status: 0, message: 'Aadhaar number is missing from request' });
-            }
+        console.log("Digilocker Initiate Response:", JSON.stringify(data, null, 2));
 
-            await db.execute(
-                'UPDATE vendors SET aadhar_ref_id = ?, aadhar_number = ? WHERE id = ?',
-                [ref_id, aadhaar_number, vendorId]
-            );
-            return res.json({ status: 1, message: 'Aadhaar OTP generated successfully' });
+        if (data.status === "Success") {
+            // Return the URL and IDs to frontend
+            // Frontend will redirect user to data.url
+            // Frontend should store verification_id and reference_id to use in Step 2
+            return res.json({
+                status: 1,
+                message: 'Digilocker URL created successfully',
+                url: data.url,
+                verification_id: data.verification_id,
+                reference_id: data.reference_id
+            });
+        } else {
+            console.warn("Digilocker Initiate Failed:", data);
+            return res.status(400).json({
+                status: 0,
+                message: data.message || 'Failed to create Digilocker URL',
+                debug_data: data
+            });
         }
-        else {
-            console.warn("EKYC API returned failed status:", ekycResponse.data);
-            return res.status(400).json({ status: 0, message: 'Failed to generate Aadhaar OTP', error_details: ekycResponse.data });
-        }
+
     } catch (error) {
-        console.error('Aadhaar verification error:', error);
-        res.status(500).json({ status: 0, message: 'Server error during Aadhaar verification', error: error.message });
+        console.error('Digilocker Initiate Error Details:');
+        console.error('Requested URL:', requestUrl); // Log the exact URL
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error('Error Status:', error.response.status);
+            console.error('Error Data:', JSON.stringify(error.response.data, null, 2));
+            console.error('Error Headers:', JSON.stringify(error.response.headers, null, 2));
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('No response received:', error.request);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error('Error Message:', error.message);
+        }
+        res.status(500).json({ status: 0, message: 'Server error during Digilocker initiation', error: error.message });
     }
 };
 
-const verifyAadhaarOtp = async (req, res) => {
+/**
+ * Step 2: Get Digilocker Document
+ */
+const fetchDigilockerDocument = async (req, res) => {
     try {
-        const { otp } = req.body;
         const vendorId = req.user.id;
+        const { verification_id, reference_id } = req.body;
 
-        // Fetch vendor's Aadhaar number and ref_id from DB
-        const [vendorResult] = await db.execute(
-            'SELECT aadhar_ref_id, aadhar_number FROM vendors WHERE id = ?',
-            [vendorId]
-        );
-
-        if (vendorResult.length === 0) {
-            return res.status(404).json({ status: 0, message: 'Vendor not found' });
+        if (!verification_id || !reference_id) {
+            return res.status(400).json({ status: 0, message: 'Verification ID and Reference ID are required' });
         }
 
-        const { aadhar_ref_id, aadhar_number } = vendorResult[0];
+        let ekycHubUrl = process.env.EKYC_HUB_URL;
+        // Normalize URL
+        if (ekycHubUrl.endsWith('/v3')) ekycHubUrl = ekycHubUrl.slice(0, -3);
+        if (ekycHubUrl.endsWith('/')) ekycHubUrl = ekycHubUrl.slice(0, -1);
 
-        if (!aadhar_ref_id || !aadhar_number) {
-            return res.status(400).json({ status: 0, message: 'Aadhaar reference ID or number not found. Please generate OTP first.' });
-        }
-
-        // Prepare ekycHub API params
-        const ekycHubUrl = process.env.EKYC_HUB_URL;
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
 
@@ -547,13 +570,19 @@ const verifyAadhaarOtp = async (req, res) => {
             );
             return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: ekycResponse.data });
         } else {
-            return res.json({ status: 0, message: ekycResponse.data.message || 'Failed to verify Aadhaar OTP' });
+            console.warn("Digilocker Fetch Failed:", data);
+            return res.status(400).json({
+                status: 0,
+                message: data.message || 'Failed to fetch Digilocker document',
+                debug_data: data
+            });
         }
+
     } catch (error) {
-        console.error('Aadhaar OTP verification error:', error);
-        res.status(500).json({ status: 0, message: 'Server error during Aadhaar OTP verification' });
+        console.error('Digilocker Fetch Error:', error);
+        res.status(500).json({ status: 0, message: 'Server error during Digilocker document fetch', error: error.message });
     }
-}
+};
 
 const getAadhaarData = async (req, res) => {
     try {
@@ -644,8 +673,8 @@ module.exports = {
     verifyPhoneOTP,
     forgotPassword,
     resetPassword,
-    generateAadhaarOtp,
-    verifyAadhaarOtp,
+    initiateDigilockerVerification,
+    fetchDigilockerDocument,
     getAadhaarData,
     fetchPanData,
     getPanData
