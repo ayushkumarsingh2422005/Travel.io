@@ -16,6 +16,8 @@ const BookingTrigger = require('./utils/BookingTrigger');
 const transactiontrigger = require('./utils/transactionTrigger');
 const createvendorbanktale = require('./models/vendorbankModel');
 const createCabCategoriesTable = require('./models/cabCategoryModel');
+const createAddOnTable = require('./models/addOnModel');
+const createPenaltyTable = require('./models/penaltyModel');
 const makeid = require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
@@ -51,30 +53,30 @@ app.use(cors());
 // Mount auth routes
 
 const createTables = async () => {
-    await createUsersTable();
-    await addResetFieldsToUsers(); // Add reset password fields to existing users table
-    await createvendorbanktale();
-    await createVendorsTable();
-    await createVendorBankTable();
-    await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
-    await createVehiclesTable();
-    await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
-    await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
-    await createDriversTable();
-    await createPartnerTables();
-    await createBookingsTable();
-    await createPrevBookingsTable();
-    await createPaymentsTable();
-    await addBookingIdToPayments();
-    await createVendorBankTable();
-    await createPromocodeTable();
-    await ratingModel();
-    await transactionModel();
-    await transactiontrigger();
-    await AdminTrigger();
-    await BookingTrigger();
-    await makeid();
-    await createCabCategoriesTable();
+  await createUsersTable();
+  await addResetFieldsToUsers(); // Add reset password fields to existing users table
+  await createvendorbanktale();
+  await createVendorsTable();
+  await createVendorBankTable();
+  await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
+  await createVehiclesTable();
+  await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
+  await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
+  await createDriversTable();
+  await createPartnerTables();
+  await createBookingsTable();
+  await createPrevBookingsTable();
+  await createPaymentsTable();
+  await addBookingIdToPayments();
+  await createVendorBankTable();
+  await createPromocodeTable();
+  await ratingModel();
+  await transactionModel();
+  await transactiontrigger();
+  await AdminTrigger();
+  await BookingTrigger();
+  await makeid();
+  await createCabCategoriesTable();
 };
 createTables();
 

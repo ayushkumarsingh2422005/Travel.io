@@ -33,7 +33,7 @@ const getUserBookings = async (req, res) => {
                 d.name as driver_name,
                 d.phone as driver_phone,
                 p.name as partner_name,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
             FROM bookings b
@@ -114,7 +114,7 @@ const getVendorBookings = async (req, res) => {
                 d.name as driver_name,
                 d.phone as driver_phone,
                 p.name as partner_name,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
             FROM bookings b
@@ -201,7 +201,7 @@ const getBookingDetails = async (req, res) => {
                 d.name as driver_name,
                 d.phone as driver_phone,
                 p.name as partner_name,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
             FROM bookings b
@@ -340,7 +340,7 @@ const updateBookingStatus = async (req, res) => {
                 v.registration_no as vehicle_registration,
                 d.name as driver_name,
                 d.phone as driver_phone,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
@@ -426,7 +426,7 @@ const getDriverBookings = async (req, res) => {
                 v.image as vehicle_image,
                 ven.name as vendor_name,
                 ven.phone as vendor_phone,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
             FROM bookings b
@@ -533,12 +533,27 @@ const updateBookingStatusByDriver = async (req, res) => {
             });
         }
 
+        let updateQuery = `UPDATE bookings SET status = ?`;
+        let updateParams = [status];
+
+        // OTP Verification for starting trip (preongoing -> ongoing)
+        if (status === 'ongoing') {
+            const { otp } = req.body;
+            if (!otp) {
+                return res.status(400).json({ success: false, message: 'OTP is required to start the trip' });
+            }
+            if (otp !== booking.booking_otp) {
+                return res.status(400).json({ success: false, message: 'Invalid OTP' });
+            }
+            // OTP matches
+            updateQuery += `, is_otp_verified = 1, start_time = CURRENT_TIMESTAMP`;
+        }
+
+        updateQuery += ` WHERE id = ?`;
+        updateParams.push(bookingId);
+
         // Update booking status
-        await db.execute(`
-            UPDATE bookings 
-            SET status = ? 
-            WHERE id = ?
-        `, [status, bookingId]);
+        await db.execute(updateQuery, updateParams);
 
         // If status is completed, move to prevbookings (handled by trigger)
         if (status === 'completed') {

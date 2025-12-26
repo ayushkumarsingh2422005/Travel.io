@@ -20,6 +20,12 @@ const createBookingsTable = async () => {
             path TEXT NOT NULL,
             distance BIGINT NOT NULL, 
             status ENUM('waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled') DEFAULT 'waiting',
+            
+            -- New Fields
+            booking_otp CHAR(6), -- OTP for driver to start trip
+            is_otp_verified TINYINT(1) DEFAULT 0,
+            add_ons_details JSON, -- Store snapshot of selected add-ons [{ "name": "Carrier", "price": 300 }]
+            
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
 
             FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL,
@@ -35,7 +41,15 @@ const createBookingsTable = async () => {
             INDEX (partner_id)
         )
     `);
-    console.log('✅ Scalable Bookings Table Created!');
+
+    // Migration helper for existing table
+    try {
+        await db.execute("ALTER TABLE bookings ADD COLUMN booking_otp CHAR(6)");
+        await db.execute("ALTER TABLE bookings ADD COLUMN is_otp_verified TINYINT(1) DEFAULT 0");
+        await db.execute("ALTER TABLE bookings ADD COLUMN add_ons_details JSON");
+    } catch (e) { }
+
+    console.log('✅ Scalable Bookings Table Created with OTP & Add-ons!');
 };
 
 module.exports = createBookingsTable;
