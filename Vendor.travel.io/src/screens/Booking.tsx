@@ -39,6 +39,9 @@ const Booking: React.FC = () => {
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
   const [selectedBookingForCancellation, setSelectedBookingForCancellation] = useState<BookingData | null>(null);
+  const [showDriverTrackingModal, setShowDriverTrackingModal] = useState<boolean>(false);
+  const [generatedTrackingLink, setGeneratedTrackingLink] = useState<string>('');
+  const [notifiedDriverDetails, setNotifiedDriverDetails] = useState<{ name: string, phone: string } | null>(null);
 
   const fetchBookings = async (
     statusFilter: BookingData['status'] | '' = '',
@@ -142,6 +145,20 @@ const Booking: React.FC = () => {
       setSelectedVehicle('');
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
       toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`); // Success toast
+
+      // Generate tracking link and show modal
+      const trackingLink = `${window.location.origin}/driver-tracking/${selectedBookingForApproval.id}`;
+      setGeneratedTrackingLink(trackingLink);
+
+      const driver = drivers.find(d => d.id === selectedDriver);
+      if (driver) {
+        setNotifiedDriverDetails({
+          name: driver.name,
+          phone: driver.phone
+        });
+      }
+
+      setShowDriverTrackingModal(true);
     } catch (err: any) {
       console.error('Error accepting booking request:', err);
       toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.'); // Error toast
@@ -635,6 +652,58 @@ const Booking: React.FC = () => {
               >
                 {updateLoading ? 'Cancelling...' : 'Yes, Cancel Booking'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Driver Tracking Link Modal */}
+      {showDriverTrackingModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="text-center mb-6">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Driver Assigned Successfully!</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                The driver {notifiedDriverDetails?.name} has been assigned. Share this tracking link with them to start the trip.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-md mb-6 break-all border border-gray-200">
+              <p className="text-sm font-mono text-blue-600 text-center select-all cursor-pointer" onClick={() => {
+                navigator.clipboard.writeText(generatedTrackingLink);
+                toast.success('Link copied to clipboard!');
+              }}>
+                {generatedTrackingLink}
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-3">
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition-colors duration-150 font-medium"
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedTrackingLink);
+                  toast.success('Link copied to clipboard!');
+                }}
+              >
+                Copy Link
+              </button>
+              <button
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-md transition-colors duration-150 font-medium"
+                onClick={() => setShowDriverTrackingModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-400">
+                (In a real app, an SMS with this link would be sent to {notifiedDriverDetails?.phone})
+              </p>
             </div>
           </div>
         </div>

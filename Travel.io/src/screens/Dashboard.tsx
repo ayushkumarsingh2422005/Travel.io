@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { getUserBookings, BookingResponse } from '../api/bookingService';
 import toast from 'react-hot-toast';
 
+import { useLocation } from 'react-router-dom';
+
 const Dashboard = () => {
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [activeBooking, setActiveBooking] = useState<BookingResponse['data'] | null>(null);
   const [recentBookings, setRecentBookings] = useState<BookingResponse['data'][]>([]);
@@ -18,6 +21,16 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    // Show OTP toast if focused from booking page
+    if (location.state?.booking_otp) {
+      toast.success(`Booking Confirmed! OTP: ${location.state.booking_otp}`, {
+        duration: 8000,
+        icon: '🎉',
+      });
+      // Clear state so it doesn't persist on refresh (though location.state persists on refresh in some routers, but okay for now)
+      window.history.replaceState({}, document.title);
+    }
+
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
@@ -138,6 +151,12 @@ const Dashboard = () => {
                     <p className="text-gray-600">Vehicle: Not assigned yet</p>
                     <p className="text-gray-600">Driver: Not assigned yet</p>
                   </div>
+                  {activeBooking.booking_otp && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-center filter drop-shadow-sm max-w-xs mx-auto">
+                      <p className="text-sm text-green-700 font-medium uppercase tracking-wide">Start Ride OTP</p>
+                      <p className="text-3xl font-bold text-green-800 tracking-widest mt-1">{activeBooking.booking_otp}</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -182,6 +201,12 @@ const Dashboard = () => {
                       <p className="text-sm text-gray-600 mb-1">Amount</p>
                       <p className="text-gray-800 font-semibold">₹{activeBooking.price.toLocaleString()}</p>
                     </div>
+                    {activeBooking.booking_otp && (
+                      <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-lg text-center shadow-sm">
+                        <p className="text-sm text-green-700 font-medium uppercase tracking-wide">Start Ride OTP</p>
+                        <p className="text-3xl font-bold text-green-800 tracking-widest mt-1">{activeBooking.booking_otp}</p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -191,7 +216,7 @@ const Dashboard = () => {
           <div className="bg-white rounded-xl shadow-sm p-6 text-center">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">No Active Bookings</h2>
             <p className="text-gray-600 mb-4">Looking to book a ride?</p>
-            <Link 
+            <Link
               to="/"
               className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
@@ -205,7 +230,7 @@ const Dashboard = () => {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Recent Bookings</h2>
-          <Link 
+          <Link
             to="/previous-bookings"
             className="text-green-600 hover:text-green-700 font-medium"
           >
@@ -219,7 +244,7 @@ const Dashboard = () => {
             recentBookings.map(booking => {
               const { date } = formatDateTime(booking.pickup_date);
               return (
-                <div 
+                <div
                   key={booking.id}
                   className="p-4 rounded-lg bg-gray-50 flex justify-between items-center"
                 >
@@ -231,11 +256,10 @@ const Dashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-800">₹{booking.price.toLocaleString()}</p>
-                    <span className={`text-sm ${
-                      booking.status === 'completed' 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
-                    }`}>
+                    <span className={`text-sm ${booking.status === 'completed'
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                      }`}>
                       {booking.status}
                     </span>
                   </div>
@@ -245,7 +269,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -96,7 +96,6 @@ export default function Cabs() {
   const [cabCategories, setCabCategories] = useState<any[]>([]); // New state for cab categories
   const [selectedCabCategory, setSelectedCabCategory] = useState<string | null>(null); // To store selected category ID
 
-
   // Form states
   const [bookingForm, setBookingForm] = useState({
     tripType: "Round Trip",
@@ -106,6 +105,20 @@ export default function Cabs() {
     pickupDate: "",
     dropDate: ""
   });
+
+  // Implicitly using the new fields from backend
+  const filterCategories = (categories: any[]) => {
+    if (bookingForm?.tripType === 'Hourly Rental') {
+      return categories.filter(cat => cat.service_type === 'hourly_rental');
+    }
+    return categories.filter(cat => cat.service_type !== 'hourly_rental');
+  };
+
+  const displayedCategories = filterCategories(cabCategories);
+
+
+
+
 
   useEffect(() => {
     if (location.state) {
@@ -404,7 +417,7 @@ export default function Cabs() {
       errors.push('Pickup location is required');
     }
 
-    if (!bookingForm.destination.trim()) {
+    if (bookingForm.tripType !== 'Hourly Rental' && !bookingForm.destination.trim()) {
       errors.push('Destination is required');
     }
 
@@ -519,32 +532,51 @@ export default function Cabs() {
             </p>
           </div>
           <form onSubmit={handleBookingSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Trip Type */}
-              <div className="flex gap-2">
-                {["Round Trip", "One Way"].map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${bookingForm.tripType === type
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    onClick={() => handleTripTypeChange(type)}
-                  >
-                    {type}
-                  </button>
-                ))}
+            <div className="mb-6">
+              {/* Trip Type Buttons - matched with landing.tsx */}
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button
+                  type="button"
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Round Trip"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  onClick={() => handleTripTypeChange("Round Trip")}
+                >
+                  Round Trip
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "One Way"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  onClick={() => handleTripTypeChange("One Way")}
+                >
+                  One Way
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Hourly Rental"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  onClick={() => handleTripTypeChange("Hourly Rental")}
+                >
+                  Hourly Rental
+                </button>
               </div>
 
               {/* Pickup Location */}
-              <div className="relative" ref={pickupRef}>
-                <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
-                  Pickup Location <span className="text-red-500">*</span>
-                </label>
+              <div className="mb-4 relative" ref={pickupRef}>
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
                 <input
                   type="text"
-                  id="pickupLocation"
                   name="pickupLocation"
                   value={bookingForm.pickupLocation}
                   onChange={handlePickupLocationChange}
@@ -552,7 +584,6 @@ export default function Cabs() {
                   className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                   required
                 />
-                {/* Suggestions */}
                 {showPickupSuggestions && pickupSuggestions.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
                     {pickupSuggestions.map((suggestion, index) => (
@@ -568,122 +599,136 @@ export default function Cabs() {
                 )}
               </div>
 
-              {/* Additional Stops */}
-              {additionalStops.map((stop) => (
-                <div key={stop.id} className="mt-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
+              {/* Additional Stops (Only if NOT Hourly Rental) */}
+              {bookingForm.tripType !== "Hourly Rental" && additionalStops.map((stop) => (
+                <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
+                  <div className="absolute left-3 top-3 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={stop.location}
+                      onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                      placeholder="Stop location"
+                      className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                    />
+                    {stop.showSuggestions && stop.suggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
+                        {stop.suggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              setAdditionalStops(prev =>
+                                prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                              );
+                            }}
+                          >
+                            {suggestion}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStop(stop.id)}
+                    className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+
+              {/* Destination (Only if NOT Hourly Rental) */}
+              {bookingForm.tripType !== "Hourly Rental" && (
+                <div className="mb-4 relative" ref={destinationRef}>
+                  <div className="absolute left-3 top-3 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
                   <input
                     type="text"
-                    value={stop.location}
-                    onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-                    placeholder="Stop location"
+                    id="destination"
+                    name="destination"
+                    value={bookingForm.destination}
+                    onChange={handleDestinationChange}
+                    placeholder="Destination"
                     className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                    required
                   />
-                  {stop.showSuggestions && stop.suggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
-                      {stop.suggestions.map((suggestion, index) => (
+                  {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                      {destinationSuggestions.map((suggestion, index) => (
                         <div
                           key={index}
                           className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          onClick={() => {
-                            setAdditionalStops(prev =>
-                              prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
-                            );
-                          }}
+                          onClick={() => handleSuggestionSelect(suggestion, 'destination')}
                         >
                           {suggestion}
                         </div>
                       ))}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveStop(stop.id)}
-                    className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    ×
-                  </button>
                 </div>
-              ))}
+              )}
 
-              {/* Add Stop Button */}
-              <button
-                type="button"
-                onClick={handleAddStop}
-                className="w-full mt-4 p-3 rounded-lg border border-dashed border-green-500 text-green-600 flex items-center justify-center hover:bg-green-50 transition-colors"
-              >
-                + Add Stop
-              </button>
+              {/* Add Stop Button (Only if NOT Hourly Rental) */}
+              {bookingForm.tripType !== "Hourly Rental" && (
+                <button
+                  type="button"
+                  onClick={handleAddStop}
+                  className="w-full p-3 rounded-lg border border-dashed border-green-500 text-green-600 mb-4 flex items-center justify-center hover:bg-green-50 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Stop
+                </button>
+              )}
 
-              {/* Destination */}
-              <div className="relative" ref={destinationRef}>
-                <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
-                  Destination <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="destination"
-                  name="destination"
-                  value={bookingForm.destination}
-                  onChange={handleDestinationChange}
-                  placeholder="Destination"
-                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-                  required
-                />
-                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                    {destinationSuggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        onClick={() => handleSuggestionSelect(suggestion, 'destination')}
-                      >
-                        {suggestion}
-                      </div>
-                    ))}
+              {/* Date Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
+                    Pickup Date & Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="pickupDate"
+                    name="pickupDate"
+                    value={bookingForm.pickupDate}
+                    onChange={handleBookingChange}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                    required
+                  />
+                </div>
+
+                {bookingForm.tripType === 'Round Trip' && (
+                  <div>
+                    <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Return Date & Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      id="dropDate"
+                      name="dropDate"
+                      value={bookingForm.dropDate}
+                      onChange={handleBookingChange}
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                      required
+                    />
                   </div>
                 )}
               </div>
             </div>
-
-
-
-            {/* Date and Time Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
-                  Pickup Date & Time <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  id="pickupDate"
-                  name="pickupDate"
-                  value={bookingForm.pickupDate}
-                  onChange={handleBookingChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-                  required
-                />
-              </div>
-
-
-              <div>
-                <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
-                  Return Date & Time <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  id="dropDate"
-                  name="dropDate"
-                  value={bookingForm.dropDate}
-                  onChange={handleBookingChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-                  required
-                />
-              </div>
-
-            </div>
-
-
-
           </form>
         </div>
       </div>
@@ -692,7 +737,7 @@ export default function Cabs() {
       <div className="container mx-auto px-4 mt-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Your Cab Category</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cabCategories.map((category) => (
+          {displayedCategories.map((category) => (
             <div
               key={category.id}
               className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${selectedCabCategory === category.id ? 'border-green-500' : 'border-gray-200'
@@ -702,34 +747,51 @@ export default function Cabs() {
               <div className="relative h-40 bg-gray-100 flex items-center justify-center">
                 {category.category_image ? (
                   <img
-                    src={category.category_image}
+                    src={`http://localhost:5000${category.category_image}`} // Assuming images are served from backend
                     alt={category.category}
                     className="h-full w-full object-contain"
                   />
                 ) : (
                   <span className="text-gray-400 text-sm">No Image</span>
                 )}
-                {category.base_discount > 0 && (
-                  <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    {category.base_discount}% OFF
-                  </div>
-                )}
+                <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">
+                  {category.segment || 'Sedan'}
+                </div>
               </div>
               <div className="p-4">
                 <h4 className="text-xl font-bold text-gray-800 mb-1">{category.category}</h4>
                 <p className="text-gray-600 text-sm mb-3">
-                  {category.min_no_of_seats || 0}+{category.max_no_of_seats || 0} Seater
+                  {category.min_no_of_seats}-{category.max_no_of_seats} Seater
                 </p>
-                <div className="flex items-baseline mb-3">
-                  {/* <span className="text-sm text-gray-500 line-through mr-2">₹{category.original_price}</span> */}
-                  <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
-                </div>
-                <ul className="text-sm text-gray-700 space-y-1 mb-4">
-                  <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
-                  <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
-                  <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
-                  <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
-                </ul>
+
+                {bookingForm.tripType === 'Hourly Rental' ? (
+                  <>
+                    <div className="flex items-baseline mb-3">
+                      <span className="text-2xl font-bold text-green-600">₹{category.base_price}</span>
+                      <span className="text-sm text-gray-500 ml-1">
+                        ({category.package_hours}h / {category.package_km}km)
+                      </span>
+                    </div>
+                    <ul className="text-sm text-gray-700 space-y-1 mb-4">
+                      <li>Extra Hr: <span className="font-medium">₹{category.extra_hour_rate}/hr</span></li>
+                      <li>Extra Km: <span className="font-medium">₹{category.extra_km_rate}/km</span></li>
+                      <li>Driver Allowance: <span className="font-medium">{category.driver_allowance ? `₹${category.driver_allowance}` : 'Included'}</span></li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline mb-3">
+                      <span className="text-2xl font-bold text-green-600">₹{category.price_per_km}/km</span>
+                    </div>
+                    <ul className="text-sm text-gray-700 space-y-1 mb-4">
+                      <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
+                      <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
+                      <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
+                      <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
+                    </ul>
+                  </>
+                )}
+
                 <button
                   type="button"
                   className="w-full py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"

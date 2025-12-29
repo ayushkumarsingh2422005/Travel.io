@@ -16,6 +16,7 @@ import Wallet from './screens/Wallet';
 import Dashboard from './screens/Dashboard';
 import ResetPasswordMail from './screens/ResetPasswordMail';
 import ResetPassword from './screens/ResetPassword';
+import DriverTracking from './screens/DriverTracking';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
         <Route path="/register" element={<VendorRegistration />} />
         <Route path="/forget-password" element={<ResetPasswordMail />} />
         <Route path="/vendor/reset-password" element={<ResetPassword />} />
+        <Route path="/driver-tracking/:bookingId" element={<DriverTracking />} />
 
         {/* Protected routes - wrapped in Layout */}
         <Route element={<Layout />}>

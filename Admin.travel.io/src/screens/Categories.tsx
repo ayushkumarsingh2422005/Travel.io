@@ -1,15 +1,6 @@
-
-import React, { useEffect, useState } from 'react';
-import Table from '../components/Table';
-import { useSearch } from '../context/SearchContext';
-import Modal from '../components/Modal';
-import { toast } from 'react-toastify';
-import {
-    getCabCategories,
-    addCabCategory,
-    updateCabCategory,
-    deleteCabCategory
-} from '../api/adminService';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 interface CabCategory {
     id: string;
@@ -25,351 +16,315 @@ interface CabCategory {
     category_image: string | null;
     notes: string | null;
     is_active: number;
+    // New Fields
+    service_type: 'outstation' | 'hourly';
+    sub_category?: string; // e.g. one_way, round_trip
+    micro_category?: string; // e.g. same_day, multi_day
+    segment?: string; // e.g. Hatchback, Sedan
+    base_price?: number;
+    package_hours?: number;
+    package_km?: number;
+    extra_hour_rate?: number;
+    extra_km_rate?: number;
+    driver_allowance?: number;
 }
 
-const Categories: React.FC = () => {
-    const { query } = useSearch();
-    const [data, setData] = useState<CabCategory[]>([]);
-    const [filtered, setFiltered] = useState<CabCategory[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<CabCategory | null>(null);
+const Categories = () => {
+    const [categories, setCategories] = useState<CabCategory[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [showModal, setShowModal] = useState(false);
 
-    // Form State
-    const [formData, setFormData] = useState<Partial<CabCategory>>({
-        category: '',
-        price_per_km: 0,
-        min_no_of_seats: 4,
-        max_no_of_seats: 4,
-        fuel_charges: 0,
-        driver_charges: 0,
-        night_charges: 0,
-        base_discount: 0,
-        is_active: 1,
-    });
+    // Updated Initial State
+    const initialFormState = {
+        category: '', // This might double as 'segment' or display name
+        price_per_km: '',
+        min_no_of_seats: '',
+        max_no_of_seats: '',
+        fuel_charges: '',
+        driver_charges: '',
+        night_charges: '',
+        base_discount: '',
+        notes: '',
+        image: null as File | null,
+        // New Fields
+        service_type: 'outstation',
+        sub_category: '',
+        micro_category: '',
+        segment: '',
+        base_price: '',
+        package_hours: '',
+        package_km: '',
+        extra_hour_rate: '',
+        extra_km_rate: '',
+        driver_allowance: '',
+    };
 
-    const fetchData = async () => {
-        setIsLoading(true);
+    const [formData, setFormData] = useState(initialFormState);
+
+    const fetchCategories = async () => {
+        setLoading(true);
         try {
-            const token = localStorage.getItem('marcocabs_admin_token') || '';
-            const result = await getCabCategories(token);
-            // Ensure result is an array before setting state
-            if (Array.isArray(result)) {
-                setData(result);
-            } else {
-                console.error("Unexpected API response format:", result);
-                setData([]); // Fallback to empty array
+            const response = await axios.get('http://localhost:5000/api/admin/cab-category/all');
+            if (response.data.success) {
+                setCategories(response.data.cab_categories);
             }
         } catch (error) {
-            console.error('Failed to fetch categories', error);
-            // Optional: Show toast error
+            console.error('Error fetching categories:', error);
+            toast.error('Failed to fetch categories');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchCategories();
     }, []);
 
-    useEffect(() => {
-        const lower = query.toLowerCase();
-        setFiltered(
-            data.filter(
-                (c) =>
-                    c.category.toLowerCase().includes(lower) ||
-                    (c.notes && c.notes.toLowerCase().includes(lower))
-            )
-        );
-    }, [query, data]);
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-    const handleSave = async () => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData(prev => ({ ...prev, image: e.target.files![0] }));
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
         try {
-            const token = localStorage.getItem('marcocabs_admin_token') || '';
-            if (editingCategory) {
-                await updateCabCategory(token, editingCategory.id, formData);
-            } else {
-                await addCabCategory(token, formData);
-            }
-            setIsModalOpen(false);
-            setEditingCategory(null);
-            setFormData({
-                category: '',
-                price_per_km: 0,
-                min_no_of_seats: 4,
-                max_no_of_seats: 4,
-                fuel_charges: 0,
-                driver_charges: 0,
-                night_charges: 0,
-                base_discount: 0,
-                is_active: 1,
+            const form = new FormData();
+            // Append all fields
+            Object.keys(formData).forEach(key => {
+                const value = (formData as any)[key];
+                if (value !== null && value !== '') {
+                    form.append(key, value);
+                }
             });
-            toast.success('Category saved successfully');
-            fetchData();
-        } catch (error) {
-            console.error('Failed to save category', error);
-            toast.error('Failed to save category');
+
+            const response = await axios.post('http://localhost:5000/api/admin/cab-category/add', form, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (response.data.success) {
+                toast.success('Category added successfully');
+                setShowModal(false);
+                setFormData(initialFormState);
+                fetchCategories();
+            }
+        } catch (error: any) {
+            console.error('Error adding category:', error);
+            toast.error(error.response?.data?.message || 'Failed to add category');
+        } finally {
+            setLoading(false);
         }
     };
-
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this category?')) return;
-        try {
-            const token = localStorage.getItem('marcocabs_admin_token') || '';
-            await deleteCabCategory(token, id);
-            toast.success('Category deleted successfully');
-            fetchData();
-        } catch (error) {
-            console.error('Failed to delete category', error);
-            toast.error('Failed to delete category');
-        }
-    };
-
-    const openEditModal = (cat: CabCategory) => {
-        setEditingCategory(cat);
-        setFormData(cat);
-        setIsModalOpen(true);
-    };
-
-    const openAddModal = () => {
-        setEditingCategory(null);
-        setFormData({
-            category: '',
-            price_per_km: 0,
-            min_no_of_seats: 4,
-            max_no_of_seats: 4,
-            fuel_charges: 0,
-            driver_charges: 0,
-            night_charges: 0,
-            base_discount: 0,
-            is_active: 1,
-        });
-        setIsModalOpen(true);
-    }
-
-    const columns = [
-        { id: 'category', label: 'Category', minWidth: 150 },
-        {
-            id: 'price_per_km',
-            label: 'Price/KM',
-            minWidth: 100,
-            format: (value: number) => `₹${value}`,
-        },
-        {
-            id: 'seats',
-            label: 'Seats',
-            minWidth: 100,
-            format: (_: any, row: CabCategory) => `${row.min_no_of_seats}-${row.max_no_of_seats}`,
-        },
-        {
-            id: 'is_active',
-            label: 'Status',
-            minWidth: 100,
-            format: (value: number) => (
-                <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}
-                >
-                    {value ? 'Active' : 'Inactive'}
-                </span>
-            ),
-        },
-        {
-            id: 'actions',
-            label: 'Actions',
-            minWidth: 100,
-            format: (_: any, row: CabCategory) => (
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => openEditModal(row)}
-                        className="text-blue-600 hover:text-blue-800"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => handleDelete(row.id)}
-                        className="text-red-600 hover:text-red-800"
-                    >
-                        Delete
-                    </button>
-                </div>
-            ),
-        },
-    ];
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Cab Categories</h1>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Manage cab categories and pricing
-                        </p>
-                    </div>
-                    <button
-                        onClick={openAddModal}
-                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                        </svg>
-                        <span>Add Category</span>
-                    </button>
+        <div className="container mx-auto px-4 py-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Manage Cab Categories</h1>
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                    Add New Category
+                </button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Image</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Category</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Service Type</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Rate Details</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Seats</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {loading ? (
+                                <tr><td colSpan={6} className="px-6 py-4 text-center">Loading...</td></tr>
+                            ) : categories.length === 0 ? (
+                                <tr><td colSpan={6} className="px-6 py-4 text-center">No categories found</td></tr>
+                            ) : (
+                                categories.map((cat) => (
+                                    <tr key={cat.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            {cat.category_image ? (
+                                                <img src={`http://localhost:5000${cat.category_image}`} alt={cat.category} className="h-10 w-10 object-cover rounded" />
+                                            ) : (
+                                                <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">No Img</div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {cat.category}
+                                            <div className="text-xs text-gray-500">{cat.segment}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{cat.service_type}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            {cat.service_type === 'hourly' ? (
+                                                <div>
+                                                    <div>₹{cat.base_price} ({cat.package_hours}h / {cat.package_km}km)</div>
+                                                    <div className='text-xs'>+₹{cat.extra_km_rate}/km, +₹{cat.extra_hour_rate}/hr</div>
+                                                </div>
+                                            ) : (
+                                                <div>₹{cat.price_per_km}/km</div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {cat.min_no_of_seats}-{cat.max_no_of_seats}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs rounded-full ${cat.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {cat.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-                <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-sm p-6 text-white">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-white/20 rounded-xl p-3">
-                            🚖
-                        </div>
-                        <div className="ml-5">
-                            <p className="text-sm font-medium text-white/80">Total Categories</p>
-                            <p className="text-2xl font-bold mt-1">{filtered.length}</p>
-                        </div>
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                    <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8">
+                        <h2 className="text-xl font-bold mb-4">Add New Cab Category</h2>
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                                <select
+                                    name="service_type"
+                                    className="w-full border border-gray-300 rounded-lg p-2"
+                                    value={formData.service_type}
+                                    onChange={handleInputChange}
+                                >
+                                    <option value="outstation">Outstation Ride</option>
+                                    <option value="hourly">Hourly Rental</option>
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+                                <input type="text" name="category" required className="w-full border border-gray-300 rounded-lg p-2" value={formData.category} onChange={handleInputChange} placeholder="e.g. Sedan, SUV" />
+                            </div>
+
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Segment</label>
+                                <select name="segment" className="w-full border border-gray-300 rounded-lg p-2" value={formData.segment} onChange={handleInputChange}>
+                                    <option value="">Select Segment</option>
+                                    <option value="Hatchback">Hatchback</option>
+                                    <option value="Sedan">Sedan</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Premium SUV">Premium SUV</option>
+                                </select>
+                            </div>
+
+                            {/* Conditional Fields based on Service Type */}
+                            {formData.service_type === 'hourly' ? (
+                                <>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Base Price (₹)</label>
+                                        <input type="number" name="base_price" required className="w-full border border-gray-300 rounded-lg p-2" value={formData.base_price} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Package Hours</label>
+                                        <select name="package_hours" className="w-full border border-gray-300 rounded-lg p-2" value={formData.package_hours} onChange={handleInputChange}>
+                                            <option value="">Select Hours</option>
+                                            <option value="2">2 Hours</option>
+                                            <option value="4">4 Hours</option>
+                                            <option value="6">6 Hours</option>
+                                            <option value="8">8 Hours</option>
+                                            <option value="12">12 Hours</option>
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Package KM</label>
+                                        <select name="package_km" className="w-full border border-gray-300 rounded-lg p-2" value={formData.package_km} onChange={handleInputChange}>
+                                            <option value="">Select KM</option>
+                                            <option value="20">20 KM</option>
+                                            <option value="40">40 KM</option>
+                                            <option value="60">60 KM</option>
+                                            <option value="80">80 KM</option>
+                                            <option value="120">120 KM</option>
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Extra Hour Rate (₹/hr)</label>
+                                        <input type="number" name="extra_hour_rate" className="w-full border border-gray-300 rounded-lg p-2" value={formData.extra_hour_rate} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Extra KM Rate (₹/km)</label>
+                                        <input type="number" name="extra_km_rate" className="w-full border border-gray-300 rounded-lg p-2" value={formData.extra_km_rate} onChange={handleInputChange} />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Price per KM (₹)</label>
+                                        <input type="number" name="price_per_km" required className="w-full border border-gray-300 rounded-lg p-2" value={formData.price_per_km} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Driver Charges (₹)</label>
+                                        <input type="number" name="driver_charges" className="w-full border border-gray-300 rounded-lg p-2" value={formData.driver_charges} onChange={handleInputChange} />
+                                    </div>
+                                </>
+                            )}
+
+
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Min Seats</label>
+                                <input type="number" name="min_no_of_seats" required className="w-full border border-gray-300 rounded-lg p-2" value={formData.min_no_of_seats} onChange={handleInputChange} />
+                            </div>
+
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Seats</label>
+                                <input type="number" name="max_no_of_seats" required className="w-full border border-gray-300 rounded-lg p-2" value={formData.max_no_of_seats} onChange={handleInputChange} />
+                            </div>
+
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Night Charges (₹)</label>
+                                <input type="number" name="night_charges" className="w-full border border-gray-300 rounded-lg p-2" value={formData.night_charges} onChange={handleInputChange} />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                                <input type="file" accept="image/*" className="w-full p-2" onChange={handleFileChange} />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea name="notes" className="w-full border border-gray-300 rounded-lg p-2" value={formData.notes} onChange={handleInputChange} rows={3}></textarea>
+                            </div>
+
+                            <div className="md:col-span-2 flex justify-end gap-3 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                >
+                                    {loading ? 'Saving...' : 'Save Category'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-2xl shadow-sm">
-                <Table
-                    columns={columns}
-                    data={filtered}
-                    isLoading={isLoading}
-                    title="Categories List"
-                />
-            </div>
-
-            {/* Modal */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title={editingCategory ? 'Edit Category' : 'Add New Category'}
-            >
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Category Name</label>
-                        <input
-                            type="text"
-                            value={formData.category || ''}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Price Per KM</label>
-                            <input
-                                type="number"
-                                value={formData.price_per_km || 0}
-                                onChange={(e) => setFormData({ ...formData, price_per_km: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Base Discount</label>
-                            <input
-                                type="number"
-                                value={formData.base_discount || 0}
-                                onChange={(e) => setFormData({ ...formData, base_discount: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                            />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Min Seats</label>
-                            <input
-                                type="number"
-                                value={formData.min_no_of_seats || 0}
-                                onChange={(e) => setFormData({ ...formData, min_no_of_seats: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Max Seats</label>
-                            <input
-                                type="number"
-                                value={formData.max_no_of_seats || 0}
-                                onChange={(e) => setFormData({ ...formData, max_no_of_seats: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Fuel Charges</label>
-                            <input
-                                type="number"
-                                value={formData.fuel_charges || 0}
-                                onChange={(e) => setFormData({ ...formData, fuel_charges: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Driver Charges</label>
-                            <input
-                                type="number"
-                                value={formData.driver_charges || 0}
-                                onChange={(e) => setFormData({ ...formData, driver_charges: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Night Charges</label>
-                            <input
-                                type="number"
-                                value={formData.night_charges || 0}
-                                onChange={(e) => setFormData({ ...formData, night_charges: Number(e.target.value) })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2 text-sm"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_active === 1}
-                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked ? 1 : 0 })}
-                                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                            />
-                            <span className="text-sm text-gray-700">Active</span>
-                        </label>
-                    </div>
-
-                    <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+            )}
         </div>
     );
 };

@@ -121,7 +121,7 @@ export default function MarcoCabService() {
   const navigate = useNavigate();
   // State to hold data that would come from API
   const [data, setData] = useState(initialData);
-  
+
   // Form states
   const [bookingForm, setBookingForm] = useState({
     tripType: "Round Trip",
@@ -129,16 +129,16 @@ export default function MarcoCabService() {
     destination: "",
     cabType: "Outstation",
     pickupDate: "",
-    dropDate: ""
+    dropDate: "" // Used as "Return Date" or "End Date" logic
   });
-  
+
   const [contactForm, setContactForm] = useState({
     name: "",
     email: "",
     mobile: "",
     message: ""
   });
-  
+
   const [partnerForm, setPartnerForm] = useState({
     name: "",
     email: "",
@@ -158,8 +158,8 @@ export default function MarcoCabService() {
   const stopRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Add state for additional stops and their suggestions
-  const [additionalStops, setAdditionalStops] = useState<Array<{ 
-    id: number; 
+  const [additionalStops, setAdditionalStops] = useState<Array<{
+    id: number;
     location: string;
     suggestions: string[];
     showSuggestions: boolean;
@@ -180,11 +180,11 @@ export default function MarcoCabService() {
     //   }
     // };
     // fetchData();
-    
+
     // For now, we'll just use the initial data
     setData(initialData);
   }, []);
-  
+
   // Initialize Google Maps services
   useEffect(() => {
     const loader = new Loader({
@@ -214,54 +214,54 @@ export default function MarcoCabService() {
   ) => {
     handleInputChange(e, setBookingForm);
   };
-  
+
   // Contact form handler
   const handleContactChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     handleInputChange(e, setContactForm);
   };
-  
+
   // Partner form handler
   const handlePartnerChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     handleInputChange(e, setPartnerForm);
   };
-  
+
   // Trip type selector
   const handleTripTypeChange = (type: string) => {
     setBookingForm(prev => ({ ...prev, tripType: type }));
   };
-  
+
   // Click handler: Book now
   const handleBookNow = () => {
     console.log("Book Now clicked");
     // Implement book now functionality
   };
-  
+
   // Form submission: Contact
   const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Contact form submitted:", contactForm);
-  
+
     // Submit to API...
-  
+
     // Reset form
     setContactForm({ name: "", email: "", mobile: "", message: "" });
   };
-  
+
   // Form submission: Partner
   const handlePartnerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Partner form submitted:", partnerForm);
-  
+
     // Submit to API...
-  
+
     // Reset form
     setPartnerForm({ name: "", email: "", mobile: "", message: "" });
   };
-  
+
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -278,7 +278,7 @@ export default function MarcoCabService() {
     };
 
     console.log(routeData);
-    
+
 
     // Navigate to cabs page with route data
     navigate('/cabs', { state: routeData });
@@ -345,8 +345,8 @@ export default function MarcoCabService() {
 
   // Handle adding a new stop
   const handleAddStop = () => {
-    setAdditionalStops(prev => [...prev, { 
-      id: nextStopId, 
+    setAdditionalStops(prev => [...prev, {
+      id: nextStopId,
       location: '',
       suggestions: [],
       showSuggestions: false
@@ -361,11 +361,11 @@ export default function MarcoCabService() {
 
   // Handle stop location change
   const handleStopLocationChange = async (id: number, value: string) => {
-    setAdditionalStops(prev => 
+    setAdditionalStops(prev =>
       prev.map(stop => {
         if (stop.id === id) {
-          return { 
-            ...stop, 
+          return {
+            ...stop,
             location: value,
             showSuggestions: value.trim() !== "", // Hide suggestions if input is empty
             suggestions: value.trim() === "" ? [] : stop.suggestions // Clear suggestions if input is empty
@@ -384,7 +384,7 @@ export default function MarcoCabService() {
         });
 
         if (response && response.predictions) {
-          setAdditionalStops(prev => 
+          setAdditionalStops(prev =>
             prev.map(stop => {
               if (stop.id === id) {
                 return {
@@ -403,7 +403,7 @@ export default function MarcoCabService() {
   };
 
   // use cline
-  
+
 
   // // Handle stop suggestion selection
   // const handleStopSuggestionSelect = (id: number, location: string) => {
@@ -472,7 +472,7 @@ export default function MarcoCabService() {
           </div>
         </div>
       </header>
-      
+
       {/* Hero Section with Booking Form */}
       <section className="bg-[url('/bg/carbg.jpg')] bg-cover bg-center text-white bg-gray-500 bg-blend-multiply">
         <div className="container mx-auto px-4 py-12">
@@ -490,9 +490,9 @@ export default function MarcoCabService() {
               <div className="flex items-center ">
                 <div className="flex -space-x-4">
                   {[1, 2, 3].map((idx) => (
-                    <img 
-                      key={idx} 
-                      src={`/dummy/customer-${idx}.jpg`} 
+                    <img
+                      key={idx}
+                      src={`/dummy/customer-${idx}.jpg`}
                       alt={`Customer ${idx}`}
                       className="w-12 h-12 rounded-full border-2 border-white object-cover"
                     />
@@ -504,51 +504,48 @@ export default function MarcoCabService() {
                 </div>
               </div>
             </div>
-            
+
             <div className="w-full md:w-1/2 text-black">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
                   <h2 className="text-xl font-bold text-white">Book Your Ride</h2>
                 </div>
-                
+
                 <form onSubmit={handleBookingSubmit} className="p-6">
                   <div className="mb-6">
-                    <select 
-                      name="cabType"
-                      className="w-full p-3 rounded-lg border  border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 mb-4"
-                      value={bookingForm.cabType}
-                      onChange={handleBookingChange}
-                    >
-                      {data.cabOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    
-                    <div className="flex gap-2 mb-4">
-                      <button 
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                      <button
                         type="button"
-                        className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                          bookingForm.tripType === "Round Trip" 
-                            ? "bg-green-600 text-white" 
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
+                        className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Round Trip"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
                         onClick={() => handleTripTypeChange("Round Trip")}
                       >
                         Round Trip
                       </button>
-                      <button 
+                      <button
                         type="button"
-                        className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-                          bookingForm.tripType === "One Way" 
-                            ? "bg-green-600 text-white" 
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
+                        className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "One Way"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
                         onClick={() => handleTripTypeChange("One Way")}
                       >
                         One Way
                       </button>
+                      <button
+                        type="button"
+                        className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Hourly Rental"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        onClick={() => handleTripTypeChange("Hourly Rental")}
+                      >
+                        Hourly Rental
+                      </button>
                     </div>
-                    
+
                     <div className="mb-4 relative" ref={pickupRef}>
                       <div className="absolute left-3 top-3 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -556,13 +553,13 @@ export default function MarcoCabService() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="pickupLocation"
                         value={bookingForm.pickupLocation}
                         onChange={handlePickupLocationChange}
-                        placeholder="Pickup location" 
-                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-h-500" 
+                        placeholder="Pickup location"
+                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-h-500"
                       />
                       {showPickupSuggestions && pickupSuggestions.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
@@ -588,12 +585,12 @@ export default function MarcoCabService() {
                           </svg>
                         </div>
                         <div className="flex-1 relative">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={stop.location}
                             onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-                            placeholder="Stop location" 
-                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:focus:border-green-500" 
+                            placeholder="Stop location"
+                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:focus:border-green-500"
                           />
                           {stop.showSuggestions && stop.suggestions.length > 0 && (
                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
@@ -602,7 +599,7 @@ export default function MarcoCabService() {
                                   key={index}
                                   className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                   onClick={() => {
-                                    setAdditionalStops(prev => 
+                                    setAdditionalStops(prev =>
                                       prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
                                     );
                                   }}
@@ -624,38 +621,43 @@ export default function MarcoCabService() {
                         </button>
                       </div>
                     ))}
-                    
-                    <div className="mb-4 relative" ref={destinationRef}>
-                      <div className="absolute left-3 top-3 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <input 
-                        type="text" 
-                        name="destination"
-                        value={bookingForm.destination}
-                        onChange={handleDestinationChange}
-                        placeholder="Destination" 
-                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500" 
-                      />
-                      {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                          {destinationSuggestions.map((suggestion, index) => (
-                            <div
-                              key={index}
-                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              onClick={() => handleSuggestionSelect(suggestion, 'destination')}
-                            >
-                              {suggestion}
-                            </div>
-                          ))}
+
+                    {bookingForm.tripType !== "Hourly Rental" && (
+                      <div className="mb-4 relative" ref={destinationRef}>
+                        <div className="absolute left-3 top-3 text-gray-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
                         </div>
-                      )}
-                    </div>
-                    
-                    <button 
+                        <input
+                          type="text"
+                          name="destination"
+                          value={bookingForm.destination}
+                          onChange={handleDestinationChange}
+                          placeholder="Destination"
+                          className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                        />
+                        {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                            {destinationSuggestions.map((suggestion, index) => (
+                              <div
+                                key={index}
+                                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                              >
+                                {suggestion}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+
+                  {bookingForm.tripType !== "Hourly Rental" && (
+                    <button
                       type="button"
                       onClick={handleAddStop}
                       className="w-full p-3 rounded-lg border border-dashed border-green-500 text-green-600 mb-4 flex items-center justify-center hover:bg-green-50 transition-colors"
@@ -665,57 +667,60 @@ export default function MarcoCabService() {
                       </svg>
                       Add Stop
                     </button>
-                 
+                  )}
+
+                  <div className="mb-4">
+                    <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">Pickup Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      id="pickupDate"
+                      name="pickupDate"
+                      value={bookingForm.pickupDate}
+                      onChange={handleBookingChange}
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
+                      required
+                    />
+                  </div>
+
+
+                  {bookingForm.tripType === 'Round Trip' && (
                     <div className="mb-4">
-                      <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">Pickup Date & Time</label>
-                      <input 
-                        type="datetime-local" 
-                        id="pickupDate"
-                        name="pickupDate"
-                        value={bookingForm.pickupDate}
+                      <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">Drop Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        id="dropDate"
+                        name="dropDate"
+                        value={bookingForm.dropDate}
                         onChange={handleBookingChange}
                         className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                         required
                       />
                     </div>
+                  )}
 
-                    
-                      <div className="mb-4">
-                        <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">Drop Date & Time</label>
-                        <input 
-                          type="datetime-local" 
-                          id="dropDate"
-                          name="dropDate"
-                          value={bookingForm.dropDate}
-                          onChange={handleBookingChange}
-                          className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
-                          required
-                        />
-                      </div>
-                    
-                    
-                    <button 
-                      type="submit"
-                      className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
-                    >
-                      Check Price & Book
-                    </button>
-                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full p-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Check Price & Book
+                  </button>
+
                 </form>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-      
+        </div >
+      </section >
+
       {/* Why Travel with Marco Section */}
-      <section id="services" className="py-16 bg-white">
+      < section id="services" className="py-16 bg-white" >
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Why Travel with Marco?</h2>
             <p className="text-gray-600">Experience the best cab service with features designed for your comfort and convenience</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-12">
             {data.services.map((service) => (
               <div key={service.id} className="bg-white rounded-xl shadow-md p-6 transform transition-transform hover:scale-105">
@@ -736,9 +741,9 @@ export default function MarcoCabService() {
               </div>
             ))}
           </div>
-          
+
           <div className="flex justify-center">
-            <button 
+            <button
               type="button"
               onClick={handleBookNow}
               className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-transform hover:-translate-y-1"
@@ -747,16 +752,16 @@ export default function MarcoCabService() {
             </button>
           </div>
         </div>
-      </section>
-      
+      </section >
+
       {/* Customer Reviews Section */}
-      <section id="reviews" className="py-16 bg-gradient-to-r from-green-50 to-green-50">
+      < section id="reviews" className="py-16 bg-gradient-to-r from-green-50 to-green-50" >
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">What Our Customers Say</h2>
             <p className="text-gray-600">Discover why travelers across India choose Marco for their journeys</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {data.reviews.map((review) => (
               <div key={review.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
@@ -768,10 +773,10 @@ export default function MarcoCabService() {
                     <h3 className="font-semibold text-gray-800">{review.name}</h3>
                     <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
-                        <svg 
-                          key={i} 
-                          className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-                          fill="currentColor" 
+                        <svg
+                          key={i}
+                          className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                          fill="currentColor"
                           viewBox="0 0 20 20"
                         >
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -781,11 +786,11 @@ export default function MarcoCabService() {
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600 italic">
                   "{review.comment}"
                 </p>
-                
+
                 <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
                   <span>Verified Trip</span>
                   <span>2 weeks ago</span>
@@ -793,7 +798,7 @@ export default function MarcoCabService() {
               </div>
             ))}
           </div>
-          
+
           <div className="flex justify-center mt-12">
             <button className="flex items-center text-green-600 font-medium hover:text-green-700 transition-colors">
               View all reviews
@@ -803,10 +808,10 @@ export default function MarcoCabService() {
             </button>
           </div>
         </div>
-      </section>
-      
+      </section >
+
       {/* Contact & Partner Forms Section */}
-      <section className="py-16 bg-white">
+      < section className="py-16 bg-white" >
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Contact Us Form */}
@@ -815,65 +820,65 @@ export default function MarcoCabService() {
                 <h2 className="text-xl font-bold text-white">Contact Us</h2>
                 <p className="text-green-100 text-sm">Drop a message, we're always here for you!</p>
               </div>
-              
+
               <form onSubmit={handleContactSubmit} className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="name"
                       value={contactForm.name}
                       onChange={handleContactChange}
-                      placeholder="Enter your name" 
+                      placeholder="Enter your name"
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       name="email"
                       value={contactForm.email}
                       onChange={handleContactChange}
-                      placeholder="Your email address" 
+                      placeholder="Your email address"
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
                     <div className="flex">
                       <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         name="mobile"
                         value={contactForm.mobile}
                         onChange={handleContactChange}
-                        placeholder="Your mobile number" 
+                        placeholder="Your mobile number"
                         className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                    <textarea 
+                    <textarea
                       name="message"
                       value={contactForm.message}
                       onChange={handleContactChange}
-                      placeholder="Write your message for us" 
+                      placeholder="Write your message for us"
                       rows={4}
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     ></textarea>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 bg-gray-50 -mx-6 -mb-6 px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
                   <div className="mb-4 sm:mb-0">
                     <div className="flex items-center mb-1">
@@ -889,7 +894,7 @@ export default function MarcoCabService() {
                       <span className="text-sm text-gray-600">{data.contactInfo.phone}</span>
                     </div>
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
@@ -898,72 +903,72 @@ export default function MarcoCabService() {
                 </div>
               </form>
             </div>
-            
+
             {/* Partner with us Form */}
             <div id="partner" className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
                 <h2 className="text-xl font-bold text-white">Partner with Us</h2>
                 <p className="text-green-100 text-sm">Attach your car with us and start earning!</p>
               </div>
-              
+
               <form onSubmit={handlePartnerSubmit} className="p-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="name"
                       value={partnerForm.name}
                       onChange={handlePartnerChange}
-                      placeholder="Enter your name" 
+                      placeholder="Enter your name"
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       name="email"
                       value={partnerForm.email}
                       onChange={handlePartnerChange}
-                      placeholder="Your email address" 
+                      placeholder="Your email address"
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
                     <div className="flex">
                       <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         name="mobile"
                         value={partnerForm.mobile}
                         onChange={handlePartnerChange}
-                        placeholder="Your mobile number" 
+                        placeholder="Your mobile number"
                         className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                    <textarea 
+                    <textarea
                       name="message"
                       value={partnerForm.message}
                       onChange={handlePartnerChange}
-                      placeholder="Tell us about your car and services" 
+                      placeholder="Tell us about your car and services"
                       rows={4}
                       className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-green-200 focus:border-green-500"
                       required
                     ></textarea>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 bg-gray-50 -mx-6 -mb-6 px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
                   <div className="mb-4 sm:mb-0">
                     <div className="flex items-center mb-1">
@@ -979,7 +984,7 @@ export default function MarcoCabService() {
                       <span className="text-sm text-gray-600">{data.partnerInfo.phone}</span>
                     </div>
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
@@ -990,17 +995,17 @@ export default function MarcoCabService() {
             </div>
           </div>
         </div>
-      </section>
-      
+      </section >
+
       {/* Footer Section */}
-      <footer className="bg-gray-900 text-white py-8">
+      < footer className="bg-gray-900 text-white py-8" >
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <div className="text-2xl font-bold">MARCO</div>
               <p className="text-gray-400 text-sm mt-1">Your reliable travel partner across India</p>
             </div>
-            
+
             <div className="flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -1019,7 +1024,7 @@ export default function MarcoCabService() {
               </a>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between">
             <div className="text-sm text-gray-400 mb-4 md:mb-0">
               &copy; {new Date().getFullYear()} Marco Cab Services. All rights reserved.
@@ -1032,7 +1037,7 @@ export default function MarcoCabService() {
             </div>
           </div>
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 }

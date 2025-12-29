@@ -31,6 +31,8 @@ interface BookingData {
   gstAmount: number;
   totalUpfrontPayment: number;
   remainingAmount: number;
+  selectedAddOns?: any[];
+  addOnsTotal?: number;
 }
 
 interface UserDetails {
@@ -257,6 +259,12 @@ export default function BookingPage() {
         path: bookingData.path,
         distance: bookingData.distance_km,
         amount: bookingData.price, // Send total booking price to backend
+        add_ons: bookingData.selectedAddOns?.map((addon: any) => ({
+          id: addon.id,
+          name: addon.name,
+          price: addon.price,
+          price_type: addon.price_type
+        })),
       };
 
       const orderResponse = await createPaymentOrder(orderRequest, userToken);
@@ -305,6 +313,7 @@ export default function BookingPage() {
           navigate('/dashboard', {
             state: {
               message: 'Your booking has been created successfully. You will receive driver details shortly.',
+              booking_otp: verificationResponse.data.booking.booking_otp,
             },
           });
         } else {
@@ -668,6 +677,12 @@ export default function BookingPage() {
                       <span className="text-gray-600">Total Estimated Price</span>
                       <span className="font-semibold">₹{bookingData.price.toLocaleString()}</span>
                     </div>
+                    {bookingData.addOnsTotal ? (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Add-Ons Total</span>
+                        <span className="font-semibold">₹{bookingData.addOnsTotal.toLocaleString()}</span>
+                      </div>
+                    ) : null}
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Platform Charges (10%)</span>
                       <span className="font-semibold">₹{bookingData.platformCharges.toLocaleString()}</span>

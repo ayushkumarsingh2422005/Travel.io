@@ -10,6 +10,12 @@ export interface CreateOrderRequest {
   path: string;
   distance: number;
   amount: number; // Total booking price from frontend
+  add_ons?: {
+    id: string;
+    name: string;
+    price: number;
+    price_type: 'fixed' | 'percentage';
+  }[];
 }
 
 export interface CreateOrderResponse {
@@ -72,6 +78,7 @@ export interface VerifyPaymentResponse {
       vendor_name: string;
       vendor_phone: string;
       partner_name: string;
+      booking_otp?: string;
     };
     payment: {
       payment_id: string;

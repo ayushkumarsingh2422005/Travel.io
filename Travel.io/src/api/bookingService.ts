@@ -56,6 +56,7 @@ export interface BookingResponse {
     min_seats: number; // Added min_seats
     max_seats: number; // Added max_seats
     per_km_charge: number | null; // Added per_km_charge
+    booking_otp?: string;
   };
 }
 
@@ -82,14 +83,14 @@ export interface BookingDetailsResponse {
 // Create a new booking
 export const createBooking = async (bookingData: BookingCreateRequest): Promise<BookingResponse> => {
   const token = localStorage.getItem('marcocabs_customer_token');
-  
+
   const response = await bookingAxios.post('/booking/user/create', bookingData, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   });
-  
+
   return response.data;
 };
 
@@ -100,39 +101,39 @@ export const getUserBookings = async (params?: {
   limit?: number;
 }): Promise<BookingListResponse> => {
   const token = localStorage.getItem('marcocabs_customer_token');
-  
+
   const response = await bookingAxios.get('/booking/user/my-bookings', {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
     params,
   });
-  
+
   return response.data;
 };
 
 // Get booking details
 export const getBookingDetails = async (bookingId: string): Promise<BookingDetailsResponse> => {
   const token = localStorage.getItem('marcocabs_customer_token');
-  
+
   const response = await bookingAxios.get(`/booking/user/booking/${bookingId}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
-  
+
   return response.data;
 };
 
 // Cancel booking
 export const cancelBooking = async (bookingId: string): Promise<{ success: boolean; message: string }> => {
   const token = localStorage.getItem('marcocabs_customer_token');
-  
+
   const response = await bookingAxios.put(`/booking/user/booking/${bookingId}/cancel`, {}, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
-  
+
   return response.data;
 };

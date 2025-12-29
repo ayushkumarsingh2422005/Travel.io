@@ -9,6 +9,8 @@ import Drivers from './screens/Drivers';
 import Payments from './screens/Payments';
 import PromoCodes from './screens/PromoCodes';
 import Ratings from './screens/Ratings';
+import AddOns from './screens/AddOns';
+import Penalties from './screens/Penalties';
 import Vehicles from './screens/Vehicles';
 import Categories from './screens/Categories';
 import { checkAuth } from './utils/verifytoken';
@@ -306,6 +308,8 @@ const App: React.FC = () => {
                     <Route path="/payments" element={<Payments />} />
                     <Route path="/promocodes" element={<PromoCodes />} />
                     <Route path="/ratings" element={<Ratings />} />
+                    <Route path="/add-ons" element={<AddOns />} />
+                    <Route path="/penalties" element={<Penalties />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </main>
