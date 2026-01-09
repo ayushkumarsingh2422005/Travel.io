@@ -308,7 +308,7 @@ const payVendor = async (req, res) => {
                 id, vendor_id, booking_id, amount, status, type, created_at
             ) VALUES (?, ?, ?, ?, 'completed', 'withdrawal', CURRENT_TIMESTAMP)
         `, [paymentId, vendor_id, booking_id, amount]);
-        
+
         // Update vendor's total earnings
         await db.execute(`
             UPDATE vendors 
@@ -520,7 +520,7 @@ const getAllPayments = async (req, res) => {
 const getFinancialAnalytics = async (req, res) => {
     try {
         const { period = 'month' } = req.query; // month, week, year
-        
+
         let bookingDateFilter = '';
         let partnerTxnDateFilter = '';
         if (period === 'week') {
@@ -914,9 +914,9 @@ const applyVendorPenalty = async (req, res) => {
         const paymentId = generatePaymentId();
         await db.execute(`
             INSERT INTO payments (
-                id, vendor_id, amount, status, type, created_at
-            ) VALUES (?, ?, ?, 'completed', 'penalty', NOW())
-        `, [paymentId, vendorId, parsedPenaltyAmount]);
+                id, vendor_id, amount, status, type, description, created_at
+            ) VALUES (?, ?, ?, 'completed', 'penalty', ?, NOW())
+        `, [paymentId, vendorId, parsedPenaltyAmount, penalty_reason.trim()]);
 
         res.status(200).json({
             success: true,

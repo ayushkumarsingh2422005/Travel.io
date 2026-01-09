@@ -728,7 +728,7 @@ const getPendingBookingRequests = async (req, res) => {
                 u.name as customer_name,
                 u.phone as customer_phone,
                 cc.id as cab_category_id,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.min_no_of_seats as min_seats,
                 cc.max_no_of_seats as max_seats,
@@ -922,7 +922,7 @@ const acceptBookingRequest = async (req, res) => {
                 v.registration_no as vehicle_registration,
                 d.name as driver_name,
                 d.phone as driver_phone,
-                cc.category as cab_category_name
+                cc.segment as cab_category_name
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
@@ -946,6 +946,63 @@ const acceptBookingRequest = async (req, res) => {
     }
 };
 
+// Get vendor's penalty history
+const getVendorPenalties = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const { page = 1, limit = 10 } = req.query;
+
+        let query = `
+            SELECT 
+                id,
+                amount,
+                description,
+                created_at
+            FROM payments 
+            WHERE vendor_id = ? AND type = 'penalty'
+            ORDER BY created_at DESC
+        `;
+
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+
+        const [penalties] = await db.execute(query, [vendorId]);
+
+        // Count total penalties
+        const [countResult] = await db.execute(`
+            SELECT COUNT(*) as total
+            FROM payments 
+            WHERE vendor_id = ? AND type = 'penalty'
+        `, [vendorId]);
+        const total = countResult[0].total;
+
+        res.status(200).json({
+            success: true,
+            message: 'Penalties retrieved successfully',
+            data: {
+                penalties,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting vendor penalties:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get penalties',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getVendorProfile,
     updateVendorProfile,
@@ -957,5 +1014,6 @@ module.exports = {
     getVendorCompletedRides,
     getVendorEarnings,
     getPendingBookingRequests,
-    acceptBookingRequest
+    acceptBookingRequest,
+    getVendorPenalties
 };

@@ -175,7 +175,7 @@ export const updateBookingStatus = async (
 };
 
 // Get vendor's drivers
-export const getVendorDrivers = async (): Promise<{  data: { drivers: Driver[] } }> => {
+export const getVendorDrivers = async (): Promise<{ data: { drivers: Driver[] } }> => {
   const response = await vendorBookingAxios.get('/vendor/driver');
   return response;
 };
@@ -289,4 +289,10 @@ export const getVendorTrips = async (type: 'upcoming' | 'completed', page: numbe
       },
     },
   };
+};
+
+// Get vendor's penalties
+export const getVendorPenaltiesService = async (page: number = 1, limit: number = 10): Promise<{ success: boolean; data: { penalties: any[]; pagination: any } }> => {
+  const response = await vendorBookingAxios.get('/vendor/penalties', { params: { page, limit } });
+  return response.data;
 };

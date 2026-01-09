@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    getVendorProfile, 
-    updateVendorProfile, 
+const {
+    getVendorProfile,
+    updateVendorProfile,
     updateVendorPassword,
     uploadVendorProfilePic,
     deleteVendorAccount,
@@ -11,7 +11,8 @@ const {
     getVendorCompletedRides,
     getVendorEarnings,
     getPendingBookingRequests,
-    acceptBookingRequest
+    acceptBookingRequest,
+    getVendorPenalties
 } = require('../controller/vendorController');
 
 // Middleware to protect routes
@@ -46,6 +47,7 @@ router.get('/dashboard', getVendorDashboard);
 router.get('/ongoing-bookings', getVendorOngoingBookings);
 router.get('/completed-rides', getVendorCompletedRides);
 router.get('/earnings', getVendorEarnings);
+router.get('/penalties', getVendorPenalties);
 
 // Booking request routes
 router.get('/pending-requests', getPendingBookingRequests);
