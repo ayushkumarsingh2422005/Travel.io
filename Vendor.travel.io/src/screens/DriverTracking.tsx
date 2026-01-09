@@ -42,7 +42,7 @@ const DriverTracking: React.FC = () => {
                 // The backend changes mentioned "Driver verifies OTP to start trip".
                 // Let's assume GET /api/booking/driver/details/:id exists or we use the vendor one if we can.
                 // For this task, I'll simulate fetching or use a hypothetical endpoint.
-                const response = await api.get(`/api/booking/public/${bookingId}`); // Hypothetical public endpoint
+                const response = await api.get(`/booking/public/${bookingId}`); // Hypothetical public endpoint
                 setBookingDetails(response.data.data);
                 if (response.data.data.status === 'ongoing') {
                     setTripStarted(true);
@@ -65,7 +65,7 @@ const DriverTracking: React.FC = () => {
         setLoading(true);
         try {
             // Endpoint to verify OTP
-            const response = await api.post(`/api/booking/driver/verify-otp`, {
+            const response = await api.post(`/booking/driver/verify-otp`, {
                 booking_id: bookingId,
                 otp: otp
             });

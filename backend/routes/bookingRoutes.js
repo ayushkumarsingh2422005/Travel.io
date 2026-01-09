@@ -8,8 +8,14 @@ const {
     updateBookingStatus,
     cancelUserBooking,
     getDriverBookings,
-    updateBookingStatusByDriver
+    updateBookingStatusByDriver,
+    verifyOtpAndStartTrip,
+    getPublicBookingDetails
 } = require('../controller/bookingController');
+
+// Public Driver Routes (No Auth Required - Link Based)
+router.post('/driver/verify-otp', verifyOtpAndStartTrip);
+router.get('/public/:bookingId', getPublicBookingDetails);
 
 // Middleware to protect routes
 const authMiddleware = (req, res, next) => {

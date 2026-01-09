@@ -568,7 +568,7 @@ const updateBookingStatusByDriver = async (req, res) => {
                 u.phone as customer_phone,
                 v.model as vehicle_model,
                 v.registration_no as vehicle_registration,
-                cc.category as cab_category_name,
+                cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
@@ -593,6 +593,96 @@ const updateBookingStatusByDriver = async (req, res) => {
     }
 };
 
+// Verify OTP and Start Trip (Public/Driver Link)
+const verifyOtpAndStartTrip = async (req, res) => {
+    try {
+        const { booking_id, otp } = req.body;
+
+        if (!booking_id || !otp) {
+            return res.status(400).json({ success: false, message: 'Booking ID and OTP are required' });
+        }
+
+        // Check booking
+        const [bookings] = await db.execute(`
+            SELECT * FROM bookings WHERE id = ?
+        `, [booking_id]);
+
+        if (bookings.length === 0) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        const booking = bookings[0];
+
+        // Verify OTP
+        if (booking.booking_otp !== otp) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+
+        // Update status to ongoing
+        await db.execute(`
+            UPDATE bookings 
+            SET status = 'ongoing', is_otp_verified = 1, start_time = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `, [booking_id]);
+
+        res.status(200).json({
+            success: true,
+            message: 'OTP Verified and Trip Started',
+            data: {
+                booking_id: booking.id,
+                status: 'ongoing'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verifying OTP:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to verify OTP',
+            error: error.message
+        });
+    }
+};
+
+// Get public booking details (for driver tracking page)
+const getPublicBookingDetails = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+
+        const [bookings] = await db.execute(`
+            SELECT 
+                b.id,
+                b.pickup_location,
+                b.dropoff_location,
+                b.pickup_date,
+                b.status,
+                u.name as customer_name,
+                u.phone as customer_phone
+            FROM bookings b
+            LEFT JOIN users u ON b.customer_id = u.id
+            WHERE b.id = ?
+        `, [bookingId]);
+
+        if (bookings.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: bookings[0]
+        });
+    } catch (error) {
+        console.error('Error getting public booking details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get booking details'
+        });
+    }
+};
+
 module.exports = {
     createBooking,
     getUserBookings,
@@ -601,5 +691,7 @@ module.exports = {
     updateBookingStatus,
     cancelUserBooking,
     getDriverBookings,
-    updateBookingStatusByDriver
+    updateBookingStatusByDriver,
+    verifyOtpAndStartTrip,
+    getPublicBookingDetails
 };

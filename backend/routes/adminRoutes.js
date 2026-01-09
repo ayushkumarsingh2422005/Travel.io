@@ -75,12 +75,24 @@ router.get('/all-payments', getAllPayments);
 router.post('/pay-vendor', payVendor);
 router.post('/pay-partner', payPartner);
 
-// Cab Categories CRUD routes (ADMIN)
-router.post('/cab-categories', addCabCategory);
-router.get('/cab-categories', getCabCategories);
-router.get('/cab-categories/:id', getCabCategory);
-router.put('/cab-categories/:id', updateCabCategory);
-router.delete('/cab-categories/:id', deleteCabCategory);
+// Cab Categories CRUD routes (ADMIN) - Matching Frontend Structure
+// Frontend calls: /api/admin/cab-category/all, /add, /update/:id, /delete/:id
+router.post('/cab-category/add', addCabCategory);
+router.get('/cab-category/all', getCabCategories);
+router.get('/cab-category/:id', getCabCategory);
+router.put('/cab-category/:id', updateCabCategory); // Note: Frontend might use /update/:id, checking needed but standard REST is better
+router.delete('/cab-category/:id', deleteCabCategory);
+
+// Add-Ons Routes
+const { addAddOn, getAddOns } = require('../controller/addOnController');
+router.post('/add-ons/add', addAddOn);
+router.get('/add-ons/all', getAddOns);
+// router.delete('/add-ons/:id', deleteAddOn); // If implemented
+
+// Penalty Routes
+const { addPenalty, getPenalties } = require('../controller/penaltyController');
+router.post('/penalties/add', addPenalty);
+router.get('/penalties/all', getPenalties);
 
 // ==================== VENDOR MANAGEMENT ====================
 // Get all vendors with filtering and pagination

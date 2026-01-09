@@ -303,7 +303,7 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                     ven.name as vendor_name,
                     ven.phone as vendor_phone,
                     p.name as partner_name,
-                    cc.category as cab_category_name,
+                    cc.segment as cab_category_name,
                     cc.price_per_km as cab_category_price_per_km
                 FROM bookings b
                 LEFT JOIN users u ON b.customer_id = u.id
