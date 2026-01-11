@@ -37,7 +37,7 @@ interface Car {
 
 interface CabCategory {
   id: string;
-  category: string;
+  segment: string;
   price_per_km: number;
 }
 
@@ -816,8 +816,8 @@ const AddCarForm: React.FC = () => {
                         >
                           <option value="">Select a category</option>
                           {cabCategories.map((cat) => (
-                            <option key={cat.id} value={cat.category}>
-                              {cat.category} (₹{cat.price_per_km}/km)
+                            <option key={cat.id} value={cat.segment}>
+                              {cat.segment} (₹{cat.price_per_km}/km)
                             </option>
                           ))}
                         </select>
@@ -869,21 +869,25 @@ const AddCarForm: React.FC = () => {
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
                           <input
                             type="file"
+                            accept="image/*"
                             className="hidden"
                             id="rc-image-upload"
                             onChange={(e) => {
-                              if (e.target.files) {
+                              if (e.target.files && e.target.files[0]) {
                                 setNewCar({ ...newCar, rc_image: e.target.files[0] });
                               }
                             }}
                           />
-                          <label htmlFor="rc-image-upload" className="cursor-pointer">
+                          <label htmlFor="rc-image-upload" className="cursor-pointer flex flex-col items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
                             <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
+                          {newCar.rc_image && (
+                            <p className="text-xs text-green-600 mt-2">✓ {newCar.rc_image.name}</p>
+                          )}
                         </div>
                       </div>
 
@@ -892,21 +896,25 @@ const AddCarForm: React.FC = () => {
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
                           <input
                             type="file"
+                            accept="image/*"
                             className="hidden"
                             id="car-image-upload"
                             onChange={(e) => {
-                              if (e.target.files) {
+                              if (e.target.files && e.target.files[0]) {
                                 setNewCar({ ...newCar, car_image: e.target.files[0] });
                               }
                             }}
                           />
-                          <label htmlFor="car-image-upload" className="cursor-pointer">
+                          <label htmlFor="car-image-upload" className="cursor-pointer flex flex-col items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
                             <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
+                          {newCar.car_image && (
+                            <p className="text-xs text-green-600 mt-2">✓ {newCar.car_image.name}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -920,21 +928,25 @@ const AddCarForm: React.FC = () => {
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
                           <input
                             type="file"
+                            accept="image/*,application/pdf"
                             className="hidden"
                             id="insurance-doc-upload"
                             onChange={(e) => {
-                              if (e.target.files) {
+                              if (e.target.files && e.target.files[0]) {
                                 setNewCar({ ...newCar, insurance_doc: e.target.files[0] });
                               }
                             }}
                           />
-                          <label htmlFor="insurance-doc-upload" className="cursor-pointer">
+                          <label htmlFor="insurance-doc-upload" className="cursor-pointer flex flex-col items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
                             <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
+                          {newCar.insurance_doc && (
+                            <p className="text-xs text-green-600 mt-2">✓ {newCar.insurance_doc.name}</p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -942,21 +954,25 @@ const AddCarForm: React.FC = () => {
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
                           <input
                             type="file"
+                            accept="image/*,application/pdf"
                             className="hidden"
                             id="fitness-doc-upload"
                             onChange={(e) => {
-                              if (e.target.files) {
+                              if (e.target.files && e.target.files[0]) {
                                 setNewCar({ ...newCar, fitness_doc: e.target.files[0] });
                               }
                             }}
                           />
-                          <label htmlFor="fitness-doc-upload" className="cursor-pointer">
+                          <label htmlFor="fitness-doc-upload" className="cursor-pointer flex flex-col items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
                             <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
+                          {newCar.fitness_doc && (
+                            <p className="text-xs text-green-600 mt-2">✓ {newCar.fitness_doc.name}</p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -964,21 +980,25 @@ const AddCarForm: React.FC = () => {
                         <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
                           <input
                             type="file"
+                            accept="image/*,application/pdf"
                             className="hidden"
                             id="permit-doc-upload"
                             onChange={(e) => {
-                              if (e.target.files) {
+                              if (e.target.files && e.target.files[0]) {
                                 setNewCar({ ...newCar, permit_doc: e.target.files[0] });
                               }
                             }}
                           />
-                          <label htmlFor="permit-doc-upload" className="cursor-pointer">
+                          <label htmlFor="permit-doc-upload" className="cursor-pointer flex flex-col items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
                             <span className="text-sm text-green-600 font-medium">Browse Files</span>
                           </label>
+                          {newCar.permit_doc && (
+                            <p className="text-xs text-green-600 mt-2">✓ {newCar.permit_doc.name}</p>
+                          )}
                         </div>
                       </div>
                     </div>

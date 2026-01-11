@@ -28,6 +28,7 @@ const addBookingIdToPayments = require('./migrate_payments_add_booking_id');
 const addDescriptionToPayments = require('./migrate_payments_add_description');
 const addImageToDrivers = require('./migrate_drivers_add_image');
 const updateDriversSchema = require('./migrate_drivers_schema_update');
+const updateVehiclesSchema = require('./migrate_vehicles_schema_update');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -69,6 +70,7 @@ const createTables = async () => {
   await createDriversTable();
   await addImageToDrivers();
   await updateDriversSchema();
+  await updateVehiclesSchema();
   await createPartnerTables();
   await createBookingsTable();
   await createPrevBookingsTable();

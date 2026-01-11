@@ -1784,6 +1784,190 @@ const getAdminStats = async (req, res) => {
     }
 };
 
+// ==================== VEHICLE MANAGEMENT ====================
+
+// Get all vehicles with filtering and pagination
+const getAllVehicles = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, status, vendorId, search } = req.query;
+
+        let query = `
+            SELECT 
+                v.id,
+                v.vendor_id,
+                v.model,
+                v.registration_no,
+                v.no_of_seats,
+                v.per_km_charge,
+                v.is_active,
+                v.approval_status,
+                v.category_id,
+                v.rc_status,
+                v.rc_reg_date,
+                v.rc_expiry_date,
+                v.rc_vehicle_insurance_upto,
+                vendor.name as vendor_name,
+                vendor.email as vendor_email,
+                vendor.phone as vendor_phone,
+                cat.segment as category_name
+            FROM vehicles v
+            LEFT JOIN vendors vendor ON v.vendor_id = vendor.id
+            LEFT JOIN cab_categories cat ON v.category_id = cat.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+
+        if (status === 'active') {
+            query += ' AND v.is_active = 1';
+        } else if (status === 'inactive') {
+            query += ' AND v.is_active = 0';
+        }
+
+        if (vendorId) {
+            query += ' AND v.vendor_id = ?';
+            params.push(vendorId);
+        }
+
+        if (search) {
+            query += ' AND (v.model LIKE ? OR v.registration_no LIKE ? OR vendor.name LIKE ?)';
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+
+        query += ' ORDER BY v.id DESC';
+
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+
+        const [vehicles] = await db.execute(query, params);
+
+        // Count total
+        let countQuery = 'SELECT COUNT(*) as total FROM vehicles v WHERE 1=1';
+        const countParams = [];
+
+        if (status === 'active') {
+            countQuery += ' AND v.is_active = 1';
+        } else if (status === 'inactive') {
+            countQuery += ' AND v.is_active = 0';
+        }
+
+        if (vendorId) {
+            countQuery += ' AND v.vendor_id = ?';
+            countParams.push(vendorId);
+        }
+
+        if (search) {
+            countQuery += ' AND (v.model LIKE ? OR v.registration_no LIKE ?)';
+            const searchParam = `%${search}%`;
+            countParams.push(searchParam, searchParam);
+        }
+
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+
+        res.status(200).json({
+            success: true,
+            message: 'Vehicles retrieved successfully',
+            data: {
+                vehicles,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting all vehicles:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve vehicles',
+            error: error.message
+        });
+    }
+};
+
+// Activate or deactivate vehicle (and approve)
+const toggleVehicleStatus = async (req, res) => {
+    try {
+        const { vehicleId } = req.params;
+        const { is_active } = req.body;
+
+        if (typeof is_active !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'is_active must be a boolean value'
+            });
+        }
+
+        // Verify vehicle exists
+        const [vehicles] = await db.execute(
+            'SELECT id, model, vendor_id FROM vehicles WHERE id = ?',
+            [vehicleId]
+        );
+
+        if (vehicles.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vehicle not found'
+            });
+        }
+
+        const vehicle = vehicles[0];
+
+        // Check if vendor is active/suspended
+        if (is_active) {
+            const [vendors] = await db.execute(
+                'SELECT is_active, suspended_by_admin FROM vendors WHERE id = ?',
+                [vehicle.vendor_id]
+            );
+
+            if (vendors.length > 0 && (!vendors[0].is_active || vendors[0].suspended_by_admin)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot activate vehicle because vendor is inactive or suspended'
+                });
+            }
+        }
+
+        // Update vehicle status and approval_status if activating
+        let query = 'UPDATE vehicles SET is_active = ?';
+        const params = [is_active ? 1 : 0];
+
+        if (is_active) {
+            query += ', approval_status = ?';
+            params.push('approved');
+        }
+
+        query += ' WHERE id = ?';
+        params.push(vehicleId);
+
+        await db.execute(query, params);
+
+        res.status(200).json({
+            success: true,
+            message: `Vehicle ${is_active ? 'activated and approved' : 'deactivated'} successfully`,
+            data: {
+                vehicle_id: vehicleId,
+                is_active,
+                approval_status: is_active ? 'approved' : undefined
+            }
+        });
+    } catch (error) {
+        console.error('Error toggling vehicle status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update vehicle status',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getAdminDashboard,
     getPendingVendorPayments,
@@ -1802,6 +1986,9 @@ module.exports = {
     // Driver Management
     getAllDrivers,
     toggleDriverStatus,
+    // Vehicle Management
+    getAllVehicles,
+    toggleVehicleStatus,
     // User/Client Management
     getAllUsers,
     getUserDetails,

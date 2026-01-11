@@ -515,7 +515,7 @@ const createVehicleWithRC = async (req, res) => {
 
         // Fetch base_per_km_price from cab_categories
         const [categoryResult] = await db.execute(
-            'SELECT price_per_km FROM cab_categories WHERE category = ?',
+            'SELECT price_per_km FROM cab_categories WHERE segment = ?',
             [rc_vehicle_category]
         );
 

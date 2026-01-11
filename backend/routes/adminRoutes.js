@@ -18,6 +18,9 @@ const {
     // Driver Management
     getAllDrivers,
     toggleDriverStatus,
+    // Vehicle Management
+    getAllVehicles,
+    toggleVehicleStatus,
     // User/Client Management
     getAllUsers,
     getUserDetails,
@@ -115,6 +118,12 @@ router.get('/vendors/:vendorId/bookings', getVendorBookings);
 router.get('/drivers', getAllDrivers);
 // Activate/deactivate driver
 router.put('/drivers/:driverId/status', toggleDriverStatus);
+
+// ==================== VEHICLE MANAGEMENT ====================
+// Get all vehicles with filtering and pagination
+router.get('/vehicles', getAllVehicles);
+// Activate/deactivate vehicle (and approve)
+router.put('/vehicles/:vehicleId/status', toggleVehicleStatus);
 
 // ==================== USER/CLIENT MANAGEMENT ====================
 // Get all users/clients with filtering and pagination
