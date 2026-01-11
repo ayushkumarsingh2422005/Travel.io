@@ -141,19 +141,26 @@ const AddCarForm: React.FC = () => {
         formData.append('rc_data', JSON.stringify(rawRcData));
       }
 
+      if (selectedCategory) {
+          formData.append('rc_vehicle_category', selectedCategory);
+      }
+
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to add a car.'); // Error toast
         return;
       }
-      // use form data when u want to upload files currently just data 
-      // await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //     Authorization: `Bearer ${token}`,
-      //   },
-      // });
+      
+      // Send FormData (supports files)
+      await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      /* 
+      // JSON Payload (Legacy)
       await axios.post(API_ENDPOINTS.CREATE_CAR_WITH_RC, {
         model: fetchedCarDetails?.model,
         registration_no: fetchedCarDetails?.registration_no,
@@ -165,7 +172,8 @@ const AddCarForm: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-      });
+      }); 
+      */
 
       fetchCars();
       handleCloseForm();

@@ -5,18 +5,19 @@ import toast from 'react-hot-toast'; // Already imported, but good to confirm
 interface Driver {
   id: string;
   vendor_id ?: string;
-  adress ?: string;
+  address: string;
   name: string;
   phone: string;
   languages: string[];
   dl_number: string;
-  dl_data: string; 
+  dl_data: any; 
   dl_issue_date?: string; 
+  dl_expiry_date?: string;
   dob?: string; 
-  approved_by?:string;
+  approval_status?: string;
   is_active ?: boolean;
   vehicle_id ?: string;
-  address: string;
+  image?: string;
 }
 
 const DriverManagementComponent: React.FC = () => {
@@ -61,33 +62,34 @@ const DriverManagementComponent: React.FC = () => {
     dob: ''
   });
 
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("marcocabs_vendor_token");
-        if (!token) {
-          toast.error('You must be logged in to fetch drivers.');
-          setLoading(false);
-          return;
-        }
 
-        const response = await axios.get('/driver', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setDrivers(response.data.drivers);
+  const fetchDrivers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("marcocabs_vendor_token");
+      if (!token) {
+        toast.error('You must be logged in to fetch drivers.');
         setLoading(false);
-        toast.success('Drivers loaded successfully!');
-      } catch (error) {
-        console.error('Error fetching drivers:', error);
-        setDrivers([]);
-        setLoading(false);
-        toast.error('Failed to load drivers.');
+        return;
       }
-    };
 
+      const response = await axios.get('/driver', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Fetched drivers:', response.data.drivers); // Debug log
+      setDrivers(response.data.drivers);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      setDrivers([]);
+      setLoading(false);
+      toast.error('Failed to load drivers.');
+    }
+  };
+
+  useEffect(() => {
     fetchDrivers();
   }, []);
 
@@ -139,13 +141,14 @@ const DriverManagementComponent: React.FC = () => {
 
     setEditAutoFetchData({
       name: driver.name,
-      IssueDate: driver.dl_issue_date || '', // Assuming dl_issue_date exists in Driver interface
-      ExpiryDate: driver.dl_data, // dl_data stores expiry date
+      IssueDate: driver.dl_issue_date || '', 
+      ExpiryDate: driver.dl_expiry_date || '', // Updated to match backend mapping if possible, or keep relying on dl_data
       address: driver.address,
       dl_number: driver.dl_number,
-      dl_data: '', // This might need to be parsed from dl_data if it's a JSON string
+      dl_data: '', 
       dob: driver.dob || ''
     });
+    setSelectedLanguages(driver.languages || []);
   };
 
   const handleCloseEditModal = () => {
@@ -167,7 +170,10 @@ const DriverManagementComponent: React.FC = () => {
       dl_data: '',
       dob: ''
     });
+    setSelectedLanguages([]);
   };
+
+  const [driverPhoto, setDriverPhoto] = useState<File | null>(null);
 
   const handleUpdateDriver = async () => {
     if (!currentDriverToEdit) return;
@@ -180,18 +186,26 @@ const DriverManagementComponent: React.FC = () => {
       }
 
       const updatedDLNumber = editDlState + editDlRtoCode + editDlIssueYear + editDlNumberPart;
-      const updatedDOB = editDateOfBirth; // Already in YYYY-MM-DD format
+      const updatedDOB = editDateOfBirth; 
 
-      const response = await axios.put(`/driver/${currentDriverToEdit.id}`, {
-        name: editAutoFetchData.name,
-        phone: editPhone,
-        address: editAutoFetchData.address,
-        dl_number: updatedDLNumber,
-        dl_data: editAutoFetchData.ExpiryDate, // Assuming this is the expiry date string
-        dob: updatedDOB,
-        dl_issue_date: editAutoFetchData.IssueDate,
-      }, {
+      const formData = new FormData();
+      formData.append('name', editAutoFetchData.name);
+      formData.append('phone', editPhone);
+      formData.append('address', editAutoFetchData.address);
+      formData.append('dl_number', updatedDLNumber);
+      if (editAutoFetchData.ExpiryDate) formData.append('dl_data', editAutoFetchData.ExpiryDate);
+      formData.append('dob', updatedDOB);
+      if (editAutoFetchData.IssueDate) formData.append('dl_issue_date', editAutoFetchData.IssueDate);
+
+      formData.append('languages', JSON.stringify(selectedLanguages));
+
+      if (driverPhoto) {
+          formData.append('image', driverPhoto);
+      }
+
+      const response = await axios.put(`/driver/${currentDriverToEdit.id}`, formData, {
         headers: {
+          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -211,6 +225,7 @@ const DriverManagementComponent: React.FC = () => {
       toast.error(error.response?.data?.message || 'Failed to update driver.');
     } finally {
       handleCloseEditModal();
+      setDriverPhoto(null);
     }
   };
 
@@ -248,22 +263,35 @@ const DriverManagementComponent: React.FC = () => {
   };
   
   const handleConfirmAddDriver = async() => {
-    // Implement add driver functionality with form validation
-    // This would typically be an API call
     try {
-
-
        const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to add a driver.');
         return;
       }
       
-      const response = await axios.post('/driver',{
-        phone:phone,
-      ...AutoFetchData,
-      },{
+      const formData = new FormData();
+      formData.append('name', AutoFetchData.name);
+      formData.append('phone', phone);
+      formData.append('address', AutoFetchData.address);
+      // Construct full DL Number
+      const fullDLNumber = dlState + dlRtoCode + dlIssueYear + dl_number;
+      formData.append('dl_number', fullDLNumber);
+
+      // Pass dl_data which is already a JSON string from verification
+      formData.append('dl_data', AutoFetchData.dl_data); 
+      
+      if (AutoFetchData.dob) formData.append('dob', AutoFetchData.dob);
+
+      formData.append('languages', JSON.stringify(selectedLanguages));
+
+      if (driverPhoto) {
+          formData.append('image', driverPhoto);
+      }
+
+      const response = await axios.post('/driver', formData, {
           headers: {
+            'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}`,
           },
         });
@@ -282,6 +310,7 @@ const DriverManagementComponent: React.FC = () => {
     }
     finally {
       handleCloseModal();
+      setDriverPhoto(null);
     }
   };
 
@@ -354,6 +383,7 @@ const DriverManagementComponent: React.FC = () => {
     switch(status?.toLowerCase()) {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'awaited': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -377,8 +407,8 @@ const DriverManagementComponent: React.FC = () => {
                   {idx === 0
                       ? drivers.length
                       : idx === 1
-                      ? drivers.filter(driver => driver.approved_by === 'Approved').length
-                      : drivers.filter(driver => driver.approved_by === 'Awaited').length}
+                      ? drivers.filter(driver => driver.approval_status === 'approved').length
+                      : drivers.filter(driver => driver.approval_status === 'pending').length}
                   </p>
                 )}
               </div>
@@ -409,15 +439,30 @@ const DriverManagementComponent: React.FC = () => {
               className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
             />
           </div>
-          <button
-            onClick={handleAddDriver}
-            className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add New Driver
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                fetchDrivers();
+                toast.success('Drivers refreshed!');
+              }}
+              className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+              title="Refresh driver list"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={handleAddDriver}
+              className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add New Driver
+            </button>
+          </div>
         </div>
       </div>
 
@@ -427,16 +472,12 @@ const DriverManagementComponent: React.FC = () => {
           <table className="w-full min-w-max">
             <thead>
               <tr className="bg-gray-50">
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b"></th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Driver Name</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Phone No.</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Languages</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Number</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Issue Date</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">DL Expiry</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date of Birth</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Address</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Approval Status</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Status</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Actions</th>
               </tr>
             </thead>
@@ -444,7 +485,7 @@ const DriverManagementComponent: React.FC = () => {
               {loading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
-                    {Array.from({ length: 11 }).map((_, colIdx) => (
+                    {Array.from({ length: 7 }).map((_, colIdx) => (
                       <td key={colIdx} className="p-4 border-b border-gray-100">
                         <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
                       </td>
@@ -453,59 +494,53 @@ const DriverManagementComponent: React.FC = () => {
                 ))
               ) : filteredDrivers.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-4 text-center text-gray-500">
+                  <td colSpan={7} className="p-4 text-center text-gray-500">
                     No drivers found. Add your first driver to get started.
                   </td>
                 </tr>
               ) : (
                 filteredDrivers.map((driver) => (
                   <tr key={driver.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-sm border-b border-gray-100 text-center">
-                      <button
-                        onClick={() => handleDeleteDriver(driver.id)}
-                        className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       <div className="font-medium">{driver.name}</div>
+                      <div className="text-xs text-gray-500">DL Issue: {driver.dl_issue_date || 'N/A'}</div>
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.phone}</td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       <div className="flex flex-wrap gap-1">
-                        {/* {driver.languages.map((lang, index) => (
+                        {driver.languages && driver.languages.map((lang, index) => (
                           <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
                             {lang}
                           </span>
-                        ))} */}
+                        ))}
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono">{driver.dl_number}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_issue_date}</td>
-                    {/* <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dl_data}</td> */}
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.dob}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{driver.address}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono text-xs">{driver.dl_number}</td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 max-w-xs truncate">{driver.address}</td>
                     <td className="p-4 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalStatusBadgeClass(driver.approved_by)}`}>
-                        {driver.approved_by}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalStatusBadgeClass(driver.approval_status)}`}>
+                        {driver.approval_status}
                       </span>
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleShowBookingHistory(driver.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                          onClick={() => handleEditDriver(driver)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Driver"
                         >
-                          Bookings
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                         </button>
                         <button
-                          onClick={() => handleEditDriver(driver)}
-                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors"
+                          onClick={() => handleDeleteDriver(driver.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Driver"
                         >
-                          Edit
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -694,11 +729,17 @@ const DriverManagementComponent: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Driver Photo</label>
                       <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                    setDriverPhoto(e.target.files[0]);
+                                }
+                            }}
+                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                        />
+                         {driverPhoto && <span className="text-xs text-green-600 mt-2">Selected: {driverPhoto.name}</span>}
                       </div>
                     </div>
                   </div>
@@ -910,25 +951,36 @@ const DriverManagementComponent: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Driver Photo</label>
                       <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                    setDriverPhoto(e.target.files[0]);
+                                }
+                            }}
+                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                        />
+                         {driverPhoto && <span className="text-xs text-green-600 mt-2">Selected: {driverPhoto.name}</span>}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Languages (Placeholder for now) */}
+                {/* Languages */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Languages Known</label>
                   <div className="bg-white border border-gray-300 rounded-lg">
-                    {/* <div className="p-4 flex flex-wrap gap-2">
-                      {currentDriverToEdit.languages.map((lang, idx) => (
+                    <div className="p-4 flex flex-wrap gap-2">
+                       {selectedLanguages.map((lang, idx) => (
                         <span key={idx} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center">
                           {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                          <button className="ml-2 text-green-600 hover:text-green-800">
+                          <button 
+                             className="ml-2 text-green-600 hover:text-green-800"
+                             onClick={() => {
+                                // Logic to remove language if needed
+                             }}
+                          >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -941,7 +993,7 @@ const DriverManagementComponent: React.FC = () => {
                       >
                         + Add Language
                       </button>
-                    </div> */}
+                    </div>
                   </div>
                 </div>
               </div>

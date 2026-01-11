@@ -64,7 +64,12 @@ const Categories = () => {
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:5000/api/admin/cab-category/all');
+            const token = localStorage.getItem('marcocabs_admin_token');
+            const response = await axios.get('http://localhost:5000/admin/cab-category/all', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             if (response.data.success) {
                 setCategories(response.data.cab_categories);
             }
@@ -105,8 +110,13 @@ const Categories = () => {
                 }
             });
 
-            const response = await axios.post('http://localhost:5000/api/admin/cab-category/add', form, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const token = localStorage.getItem('marcocabs_admin_token'); // Assuming standard token name
+
+            const response = await axios.post('http://localhost:5000/admin/cab-category/add', form, {
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             if (response.data.success) {

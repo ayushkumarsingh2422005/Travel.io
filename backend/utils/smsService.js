@@ -9,27 +9,30 @@ require('dotenv').config();
  */
 const sendOTP = async (phone, otp) => {
   try {
-    // Format phone number (remove country code if present)
-    const formattedPhone = phone.replace(/^\+91|^91/, '');
+    // Format phone number (extract last 10 digits)
+    const formattedPhone = phone.toString().replace(/\D/g, '').slice(-10);
+    
+    // Check for API Key - Use ENV first, then fallback to the key provided by user
+    const apiKey = process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY;
 
     console.log(`Sending OTP ${otp} to phone ${formattedPhone}`);
     
     // Fast2SMS API configuration
+    // User requested URL pattern: https://www.fast2sms.com/dev/bulkV2?authorization=...&route=q&message=&flash=0&numbers=&schedule_time=
     const url = 'https://www.fast2sms.com/dev/bulkV2';
-    const headers = {
-      'authorization': process.env.FAST2SMS_API_KEY,
-      'Content-Type': 'application/json'
-    };
     
-    // Prepare payload
-    const data = {
-      variables_values: otp,
-      route: 'otp',
+    const message = `Your OTP code is ${otp}. Valid for 10 minutes. Travel.io`;
+    
+    const params = {
+      authorization: apiKey,
+      route: 'q',
+      message: message,
+      flash: '0',
       numbers: formattedPhone
     };
     
-    // Make API request
-    const response = await axios.post(url, data, { headers });
+    // Make API request (GET as per URL pattern hint)
+    const response = await axios.get(url, { params });
     
     if (response.data && response.data.return === true) {
       console.log('OTP sent successfully:', response.data);

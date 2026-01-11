@@ -9,6 +9,9 @@ const {
     verifyDriverLicense 
 } = require('../controller/driverController');
 
+// Import Upload Middleware
+const upload = require('../middleware/uploadMiddleware');
+
 // Middleware to protect routes
 const authMiddleware = (req, res, next) => {
     try {
@@ -31,10 +34,10 @@ const authMiddleware = (req, res, next) => {
 router.use(authMiddleware);
 
 // Driver CRUD routes
-router.post('/', addDriver);
+router.post('/', upload.single('image'), addDriver);
 router.get('/', getDrivers);
 router.get('/:id', getDriver);
-router.put('/:id', updateDriver);
+router.put('/:id', upload.single('image'), updateDriver);
 router.delete('/:id', deleteDriver);
 
 // Driver license verification route

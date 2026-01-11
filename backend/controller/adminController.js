@@ -1265,17 +1265,27 @@ const toggleDriverStatus = async (req, res) => {
         }
 
         // Update driver status
-        await db.execute(
-            'UPDATE drivers SET is_active = ? WHERE id = ?',
-            [is_active ? 1 : 0, driverId]
-        );
+        // If activating, also set approval_status to 'approved'
+        let query = 'UPDATE drivers SET is_active = ?';
+        const params = [is_active ? 1 : 0];
+
+        if (is_active) {
+            query += ', approval_status = ?';
+            params.push('approved');
+        }
+
+        query += ' WHERE id = ?';
+        params.push(driverId);
+
+        await db.execute(query, params);
 
         res.status(200).json({
             success: true,
-            message: `Driver ${is_active ? 'activated' : 'deactivated'} successfully`,
+            message: `Driver ${is_active ? 'activated and approved' : 'deactivated'} successfully`,
             data: {
                 driver_id: driverId,
-                is_active
+                is_active,
+                approval_status: is_active ? 'approved' : undefined
             }
         });
     } catch (error) {

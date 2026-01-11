@@ -37,6 +37,8 @@ const {
 } = require('../controller/cabCategoryController');
 
 // Middleware to protect routes (admin only)
+const upload = require('../middleware/uploadMiddleware'); // Import Upload Middleware
+
 const adminAuthMiddleware = (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -77,10 +79,10 @@ router.post('/pay-partner', payPartner);
 
 // Cab Categories CRUD routes (ADMIN) - Matching Frontend Structure
 // Frontend calls: /api/admin/cab-category/all, /add, /update/:id, /delete/:id
-router.post('/cab-category/add', addCabCategory);
+router.post('/cab-category/add', upload.single('image'), addCabCategory);
 router.get('/cab-category/all', getCabCategories);
 router.get('/cab-category/:id', getCabCategory);
-router.put('/cab-category/:id', updateCabCategory); // Note: Frontend might use /update/:id, checking needed but standard REST is better
+router.put('/cab-category/:id', upload.single('image'), updateCabCategory); // Note: Frontend might use /update/:id, checking needed but standard REST is better
 router.delete('/cab-category/:id', deleteCabCategory);
 
 // Add-Ons Routes
