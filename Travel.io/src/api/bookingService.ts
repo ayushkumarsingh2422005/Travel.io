@@ -57,6 +57,7 @@ export interface BookingResponse {
     max_seats: number; // Added max_seats
     per_km_charge: number | null; // Added per_km_charge
     booking_otp?: string;
+    addons?: string[]; // Added addons array to track purchased addons
   };
 }
 

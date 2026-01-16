@@ -63,8 +63,13 @@ const createPaymentOrder = async (req, res) => {
 
         const platformCharges = totalBookingPrice * platformChargesRate;
         const gstAmount = platformCharges * gstRate;
-        const totalUpfrontPayment = platformCharges + gstAmount;
-        const remainingAmount = totalBookingPrice - totalUpfrontPayment;
+
+        // Rounding to match frontend display
+        const totalUpfrontPayment = Math.round(platformCharges + gstAmount);
+
+        // Remaining amount logic matched to frontend: Total - PlatformCharges (Driver gets remaining 90%)
+        // GST is additional tax on platform fee, collected in upfront payment.
+        const remainingAmount = Math.round(totalBookingPrice - platformCharges);
 
         const amountInPaise = Math.round(totalUpfrontPayment * 100); // Razorpay expects amount in paise, rounded to nearest integer
 

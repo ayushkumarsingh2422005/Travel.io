@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { getUserBookings, cancelBooking, BookingResponse } from '../api/bookingService';
 import toast from 'react-hot-toast';
 
+
 const PreviousBookings = () => {
   const navigate = useNavigate(); // Initialize useNavigate
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ const PreviousBookings = () => {
   const getStatusColor = (status: BookingResponse['data']['status']) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-700';
+        return 'bg-blue-100 text-blue-700';
       case 'cancelled':
         return 'bg-red-100 text-red-700';
       case 'ongoing':
@@ -135,147 +136,209 @@ const PreviousBookings = () => {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8 text-gray-800">Previous Bookings</h1>
-      <div className="mb-6">
-        <label htmlFor="status-filter" className="sr-only">Filter by Status</label>
-        <select
-          id="status-filter"
-          className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-4 py-2 rounded-lg w-full md:w-60 transition-all duration-200"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All</option>
-          {['waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'].map(status => (
-            <option key={status} value={status}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-4">
-        {bookings.length === 0 && !loading ? (
-          <div className="text-center py-8 text-gray-600">No previous bookings found for this status.</div>
-        ) : (
-          bookings.map((booking) => {
-            const { date, time } = formatDateTime(booking.pickup_date);
-            return (
-              <div 
-                key={booking.id} 
-                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/booking-details/${booking.id}`)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Booking #{booking.id.substring(0, 8)}</h3>
-                    <p className="text-gray-500">{date} at {time}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(booking.status)}`}>
-                    {booking.status}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Pickup Location</p>
-                    <p className="text-gray-800">{booking.pickup_location}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Drop Location</p>
-                    <p className="text-gray-800">{booking.dropoff_location}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Cab Category</p>
-                    <p className="text-gray-800">{booking.cab_category_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Amount</p>
-                    <p className="text-gray-800 font-semibold">₹{booking.price.toLocaleString()}</p>
-                  </div>
-                  {booking.status !== 'waiting' && (
-                    <>
-                      {booking.vehicle_model && (
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">Vehicle</p>
-                          <p className="text-gray-800">{booking.vehicle_model} ({booking.vehicle_registration})</p>
-                        </div>
-                      )}
-                      {booking.driver_name && (
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">Driver</p>
-                          <p className="text-gray-800">{booking.driver_name} - {booking.driver_phone}</p>
-                        </div>
-                      )}
-                      {booking.vendor_name && (
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">Vendor</p>
-                          <p className="text-gray-800">{booking.vendor_name} - {booking.vendor_phone}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {booking.status === 'waiting' && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-blue-600 font-medium">Waiting for vendor to accept...</p>
+    <div className="flex flex-col min-h-screen">
+      <div className="p-8 max-w-6xl mx-auto w-full flex-grow">
+        <h1 className="text-2xl font-bold mb-8 text-gray-800">Previous Bookings</h1>
+        <div className="mb-6">
+          <label htmlFor="status-filter" className="sr-only">Filter by Status</label>
+          <select
+            id="status-filter"
+            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-700 px-4 py-2 rounded-lg w-full md:w-60 transition-all duration-200"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All</option>
+            {['waiting', 'approved', 'preongoing', 'ongoing', 'completed', 'cancelled'].map(status => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-4">
+          {bookings.length === 0 && !loading ? (
+            <div className="text-center py-8 text-gray-600">No previous bookings found for this status.</div>
+          ) : (
+            bookings.map((booking) => {
+              const { date, time } = formatDateTime(booking.pickup_date);
+              return (
+                <div
+                  key={booking.id}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 overflow-hidden"
+                  onClick={() => navigate(`/booking-details/${booking.id}`)}
+                >
+                  {/* Header */}
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Booking ID</p>
+                      <h3 className="text-gray-900 font-mono font-medium">#{booking.id.substring(0, 8)}</h3>
                     </div>
-                  )}
-                </div>
+                    <div className="text-right">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${getStatusColor(booking.status)}`}>
+                        {booking.status === 'completed' && '✅ '}
+                        {booking.status === 'cancelled' && '❌ '}
+                        {booking.status === 'waiting' && '⏳ '}
+                        {booking.status}
+                      </span>
+                    </div>
+                  </div>
 
-                {booking.status === 'completed' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); /* Prevent navigation */ }}
-                    className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mr-4"
-                  >
-                    Download Invoice
-                  </button>
-                )}
-                {(booking.status === 'waiting' || booking.status === 'approved') && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium"
-                  >
-                    Cancel Booking
-                  </button>
-                )}
-              </div>
-            );
-          })
+                  {/* Body */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      {/* Route Details */}
+                      <div className="md:col-span-2 space-y-6">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 mt-1 mr-4">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Pickup</p>
+                            <p className="text-gray-900 font-medium">{booking.pickup_location}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 mt-1 mr-4">
+                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Drop</p>
+                            <p className="text-gray-900 font-medium">{booking.dropoff_location}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0 mt-1 mr-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Date & Time</p>
+                            <p className="text-gray-900 font-medium">
+                              {date} <span className="text-gray-300 mx-1">|</span> {time}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Price & Vehicle Info */}
+                      <div className="space-y-6 md:border-l md:border-gray-100 md:pl-8">
+                        <div>
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Amount</p>
+                          <p className="text-2xl font-bold text-gray-900">₹{booking.price.toLocaleString()}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Category</p>
+                          <span className="inline-block bg-gray-100 rounded px-2 py-1 text-sm font-medium text-gray-700">
+                            {booking.cab_category_name}
+                          </span>
+                        </div>
+
+                        {(booking.vehicle_model || booking.driver_name) && (
+                          <div className="pt-4 border-t border-gray-100 space-y-2">
+                            {booking.vehicle_model && (
+                              <p className="text-sm text-gray-600 flex items-center">
+                                <span className="w-4 mr-2 text-center text-gray-400">🚗</span>
+                                {booking.vehicle_model}
+                                <span className="text-xs text-gray-400 ml-1">({booking.vehicle_registration})</span>
+                              </p>
+                            )}
+                            {booking.driver_name && (
+                              <p className="text-sm text-gray-600 flex items-center">
+                                <span className="w-4 mr-2 text-center text-gray-400">👤</span>
+                                {booking.driver_name}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end space-x-4">
+                      {booking.status === 'completed' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); /* Prevent navigation */ }}
+                          className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          Download Invoice
+                        </button>
+                      )}
+                      {(booking.status === 'waiting' || booking.status === 'approved') && (
+                        <div className="flex justify-end">
+                          {(() => {
+                            // Inline 6-hour check for previous bookings list
+                            const pickupTime = new Date(booking.pickup_date).getTime();
+                            const currentTime = new Date().getTime();
+                            const sixHoursInMillis = 6 * 60 * 60 * 1000;
+                            const isCancellable = currentTime < (pickupTime - sixHoursInMillis);
+
+                            if (isCancellable) {
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }}
+                                  className="inline-flex items-center px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors text-sm font-medium"
+                                >
+                                  Cancel Booking
+                                </button>
+                              );
+                            } else {
+                              return null;
+                            }
+                          })()}
+                        </div>
+                      )}
+                      <button className="text-gray-400 hover:text-blue-600 transition-colors">
+                        <span className="sr-only">View Details</span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8 space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentPage(index + 1)}
+                className={`px-4 py-2 border rounded-lg ${currentPage === index + 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         )}
       </div>
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-8 space-x-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-          >
-            Previous
-          </button>
-          {[...Array(totalPages)].map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentPage(index + 1)}
-              className={`px-4 py-2 border rounded-lg ${
-                currentPage === index + 1 ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {index + 1}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 border rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
     </div>
+
   );
 };
 

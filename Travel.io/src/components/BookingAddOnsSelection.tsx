@@ -122,7 +122,7 @@ const BookingAddOnsSelection: React.FC = () => {
 
       console.log('Booking Data:', bookingData);
       // await axios.post('/api/booking/create', bookingData);
-      
+
       toast.success('Booking initiated! Redirecting to payment...');
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -133,10 +133,10 @@ const BookingAddOnsSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-50 p-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-t-2xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center">
             <svg className="w-8 h-8 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -166,7 +166,7 @@ const BookingAddOnsSelection: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            
+
             <input
               type="tel"
               name="mobile"
@@ -175,7 +175,7 @@ const BookingAddOnsSelection: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            
+
             <input
               type="email"
               name="email"
@@ -184,7 +184,7 @@ const BookingAddOnsSelection: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            
+
             <input
               type="text"
               name="pickupAddress"
@@ -196,11 +196,11 @@ const BookingAddOnsSelection: React.FC = () => {
           </div>
 
           {/* Add-Ons Section */}
-          <div className="bg-gradient-to-br from-green-400 to-green-500 p-6 space-y-3">
+          <div className="bg-gradient-to-br from-blue-400 to-blue-500 p-6 space-y-3">
             {addOns.map(addon => (
               <label
                 key={addon.id}
-                className="flex items-center justify-between p-3 bg-green-400 rounded-lg cursor-pointer hover:bg-green-300 transition-all"
+                className="flex items-center justify-between p-3 bg-blue-400 rounded-lg cursor-pointer hover:bg-blue-300 transition-all"
               >
                 <span className="text-white font-medium text-sm flex-1">
                   {addon.name} for Rs. {Math.round(calculateAddOnPrice(addon))}
@@ -209,19 +209,19 @@ const BookingAddOnsSelection: React.FC = () => {
                   type="checkbox"
                   checked={formData.selectedAddOns.includes(addon.id)}
                   onChange={() => toggleAddOn(addon.id)}
-                  className="w-5 h-5 text-green-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
+                  className="w-5 h-5 text-blue-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
                 />
               </label>
             ))}
 
             {/* Terms and Conditions */}
-            <label className="flex items-center p-3 bg-green-400 rounded-lg cursor-pointer">
+            <label className="flex items-center p-3 bg-blue-400 rounded-lg cursor-pointer">
               <span className="text-white text-sm flex-1">
                 I agree with <span className="text-blue-200 underline">Terms of Use</span> & <span className="text-blue-200 underline">Cancellation Policy</span> of this service
               </span>
               <input
                 type="checkbox"
-                className="w-5 h-5 text-green-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
+                className="w-5 h-5 text-blue-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
               />
             </label>
 

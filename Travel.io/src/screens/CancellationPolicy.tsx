@@ -1,177 +1,230 @@
 import { Link } from 'react-router-dom';
+import Footer from '../components/Footer';
+import { useState, useEffect } from 'react';
 
 const CancellationPolicy = () => {
+  const [activeSection, setActiveSection] = useState('cancellation');
+
+  const sections = [
+    { id: 'cancellation', title: '1. Cancellation Policy' },
+    { id: 'refund', title: '2. Refund Policy' },
+    { id: 'liability', title: '3. Liability' },
+    { id: 'law', title: '4. Governing Law' },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveSection(id);
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      for (const section of sections) {
+        const element = document.getElementById(section.id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top >= 0 && rect.top <= 300) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-gradient-to-r from-green-600 to-green-700 shadow-md">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-white">Cancellation and Refund Policy</div>
-          <Link to="/" className="bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors flex gap-1 items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-blue-700 to-blue-600 shadow-lg sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/10 p-2 rounded-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Cancellation & Refund</h1>
+          </div>
+          <Link to="/" className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
+            <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span>Back to Home</span>
+            <span className="font-medium">Back to Home</span>
           </Link>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl bg-white shadow-lg rounded-lg my-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Cancellation and Refund Policy</h1>
-        <p className="text-gray-600 text-sm mb-6">Last Updated: August 13, 2025</p>
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8 flex-grow flex flex-col lg:flex-row gap-8 max-w-7xl">
 
-        <p className="mb-4 text-gray-700">
-          This Cancellation and Refund Policy (“Policy”) is issued by Marco Cabs, operated by
-          Eightbit Solutions Private Limited (“Company”, “We”, “Us”, “Our”), a company
-          incorporated under the Companies Act, 2013, having its registered office at 403-C Bank
-          Road, Purdilpur, Gorakhpur, Uttar Pradesh – 273001, India.
-        </p>
-        <p className="mb-6 text-gray-700">
-          By booking a ride with us, you (“Customer”, “You”, “Your”) agree to be bound by this Policy,
-          which is an integral part of our Terms of Use. Please read it carefully before making a
-          booking.
-        </p>
-
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">1. Cancellation Policy</h2>
-        <h3 className="text-xl font-medium text-gray-700 mb-2">1.1 How to Cancel</h3>
-        <p className="mb-4 text-gray-700">
-          Cancellations may only be made by calling our 24x7 Customer Care Helpline at
-          +91-XXXXXXXXXX. Cancellations requested through any other means (e.g., SMS, email, or
-          messaging apps) will not be considered valid.
-        </p>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">1.2 Cancellation Before Driver Details Are Shared</h3>
-        <p className="mb-4 text-gray-700">
-          If you cancel your booking before driver and/or vehicle details are communicated to you, no
-          cancellation fee will be charged, and any advance amount paid will be refunded in
-          accordance with Section 2 of this Policy.
-        </p>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">1.3 Cancellation After Driver Details Are Shared</h3>
-        <p className="mb-2 text-gray-700">
-          Once the driver and/or vehicle details have been communicated to you (via SMS, WhatsApp,
-          email, or any other official communication channel), no cancellations will be accepted.
-        </p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>In such cases, the entire advance amount paid will be forfeited as a cancellation fee.</li>
-          <li>This condition is strictly enforced to ensure driver allocation efficiency and operational fairness.</li>
-        </ul>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">1.4 Driver-Initiated Cancellations</h3>
-        <p className="mb-2 text-gray-700">Drivers may cancel your booking if:</p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>They have waited at the pickup location for 45 minutes or more from the scheduled pickup time.</li>
-          <li>Incorrect or misleading pickup details are provided.</li>
-          <li>You are unreachable on the phone number or email provided at the time of booking.</li>
-        </ul>
-        <p className="mb-2 text-gray-700">In such cases, the Company may, at its sole discretion:</p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>Forfeit the complete advance amount paid by you, or</li>
-          <li>Charge waiting fees: ₹3.50/minute (Hatchback/Sedan), ₹4.00/minute (SUV/Innova), ₹10.00/minute (Tempo Traveller) after the first 45 minutes.</li>
-        </ul>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">1.5 Force Majeure Cancellations</h3>
-        <p className="mb-2 text-gray-700">If a booking is canceled due to events beyond human control, including but not limited to:</p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>Natural disasters (floods, earthquakes, cyclones, storms)</li>
-          <li>Acts of God (fire, lightning)</li>
-          <li>War, riots, civil disturbances, terrorist acts</li>
-          <li>Government restrictions or road closures</li>
-          <li>Epidemics or pandemics</li>
-        </ul>
-        <p className="mb-6 text-gray-700">You will be issued a voucher of equivalent value to the advance paid, valid indefinitely for future bookings.</p>
-
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">2. Refund Policy</h2>
-        <h3 className="text-xl font-medium text-gray-700 mb-2">2.1 Processing Time</h3>
-        <p className="mb-4 text-gray-700">
-          Refunds will be processed within 7–10 business days from the date of cancellation
-          confirmation. Processing time depends on your payment method and bank policies. The
-          Company shall not be responsible for delays caused by third-party payment processors or
-          incorrect account details provided by you.
-        </p>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">2.2 Non-Refundable Circumstances</h3>
-        <p className="mb-2 text-gray-700">No refund or voucher will be provided if:</p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>You cancel after receiving driver/vehicle details.</li>
-          <li>You fail to show up at the pickup location within the driver’s waiting time limit.</li>
-          <li>You engage in misconduct, abuse, or inappropriate behavior toward the driver or company staff.</li>
-          <li>You make direct payments to the driver outside the invoiced amount.</li>
-        </ul>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">2.3 Refund or Voucher Eligibility</h3>
-        <p className="mb-2 text-gray-700">You may receive either a refund or a voucher of equivalent value (at the Company’s sole discretion) if:</p>
-        <ul className="list-disc list-inside mb-4 text-gray-700">
-          <li>The allocated driver cancels without a valid reason, and no replacement driver can be arranged in reasonable time.</li>
-          <li>The allocated vehicle suffers a breakdown during the trip and cannot be repaired or replaced in a reasonable time.</li>
-          <li>Cancellation occurs due to force majeure events (Section 1.5).</li>
-          <li>You request a change in vehicle type, trip duration, or itinerary in advance, and such change is confirmed by the Company.</li>
-        </ul>
-
-        <h3 className="text-xl font-medium text-gray-700 mb-2">2.4 Voucher Terms</h3>
-        <ul className="list-disc list-inside mb-6 text-gray-700">
-          <li>Vouchers issued have no expiry date unless otherwise stated.</li>
-          <li>Vouchers are non-transferable and can only be used by the original booking customer.</li>
-          <li>Vouchers cannot be exchanged for cash.</li>
-        </ul>
-
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">3. Limitation of Liability</h2>
-        <ul className="list-disc list-inside mb-6 text-gray-700">
-          <li>The Company shall not be responsible for any loss, theft, damage, or injury arising during the trip, as drivers operate as independent contractors.</li>
-          <li>We will, however, provide reasonable assistance to help you recover any verifiable loss.</li>
-          <li>The Company’s liability is strictly limited to the refund or voucher amount as per this Policy.</li>
-        </ul>
-
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">4. Governing Law and Jurisdiction</h2>
-        <p className="mb-6 text-gray-700">
-          This Policy shall be governed by and construed in accordance with the laws of India. All
-          disputes shall be subject to the exclusive jurisdiction of the courts in Gorakhpur, Uttar
-          Pradesh.
-        </p>
-
-        <div className="border-t border-gray-200 pt-6 mt-6 text-gray-700">
-          <p className="font-semibold">Marco Cabs – Eightbit Solutions Private Limited</p>
-          <p>403-C Bank Road, Purdilpur, Gorakhpur, Uttar Pradesh – 273001</p>
-          <p>Customer Care: +91-XXXXXXXXXX | Email: support@marcocabs.com</p>
-        </div>
-      </main>
-
-      {/* <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <div className="text-2xl font-bold">MARCO</div>
-              <p className="text-gray-400 text-sm mt-1">Your reliable travel partner across India</p>
-            </div>
-            <div className="flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                </svg>
-              </a>
-            </div>
+        {/* Sidebar Navigation */}
+        <aside className="lg:w-1/4 hidden lg:block">
+          <div className="sticky top-24 bg-white rounded-xl shadow-sm border border-gray-100 p-2 overflow-hidden">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-3 border-b border-gray-100 mb-2">
+              Sections
+            </h3>
+            <nav className="space-y-0.5">
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={`w-full text-left px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${activeSection === section.id
+                    ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
+                    }`}
+                >
+                  {section.title}
+                </button>
+              ))}
+            </nav>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between">
-            <div className="text-sm text-gray-400 mb-4 md:mb-0">
-              &copy; {new Date().getFullYear()} Marco Cab Services. All rights reserved.
-            </div>
-            <div className="flex space-x-6">
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</a>
-            </div>
+        </aside>
+
+        {/* Content Area */}
+        <main className="lg:w-3/4 w-full space-y-8">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+            <p className="text-gray-500 text-sm mb-2 font-medium">Last Updated: August 13, 2025</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">Cancellation and Refund Policy</h2>
+            <p className="text-gray-600 leading-relaxed text-lg">
+              We strive to be transparent with our cancellation terms. Please review the conditions under which cancellations and refunds are processed.
+            </p>
           </div>
-        </div>
-      </footer> */}
+
+          <div className="space-y-6">
+
+            <section id="cancellation" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  <span className="font-bold text-xl">1</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Cancellation Policy</h2>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                    1.1 How to Cancel
+                  </h3>
+                  <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    Call our 24x7 Helpline at <strong>+91-XXXXXXXXXX</strong>. Cancellations via SMS/Email are not valid.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="border border-green-200 bg-green-50 p-4 rounded-xl">
+                    <h4 className="font-bold text-green-800 mb-2">Before Driver Details Shared</h4>
+                    <p className="text-sm text-green-700">No cancellation fee. Full refund of advance amount.</p>
+                  </div>
+                  <div className="border border-red-200 bg-red-50 p-4 rounded-xl">
+                    <h4 className="font-bold text-red-800 mb-2">After Driver Details Shared</h4>
+                    <p className="text-sm text-red-700">No cancellation accepted. Advance amount forfeited.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">1.4 Driver Cancellations</h3>
+                  <p className="text-gray-600 mb-2">Drivers may cancel if:</p>
+                  <ul className="list-disc list-inside text-gray-600 text-sm mb-2">
+                    <li>You are unreachable.</li>
+                    <li>Incorrect pickup details.</li>
+                    <li>Wait time exceeds 45 mins.</li>
+                  </ul>
+                  <p className="text-sm text-red-500 font-medium">Check waiting fees: ₹3.50 - ₹10.00 / min after 45 mins.</p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">1.5 Force Majeure</h3>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-gray-700 text-sm mb-2">For cancellations due to Natural Disasters, Riots, or Acts of God:</p>
+                    <p className="font-bold text-blue-700">-&gt; You receive a voucher of equivalent value, valid indefinitely.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="refund" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  <span className="font-bold text-xl">2</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Refund Policy</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 border-l-4 border-blue-500 bg-gray-50">
+                  <h4 className="font-bold text-gray-800">Processing Time</h4>
+                  <p className="text-gray-600 text-sm">7–10 business days from cancellation confirmation.</p>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2">Eligibility for Refund/Voucher</h4>
+                  <ul className="list-none space-y-2">
+                    {[
+                      'Driver cancels without valid reason',
+                      'Vehicle breakdown during trip (unrepairable)',
+                      'Force Majeure events',
+                      'Trip change confirmed by Company'
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-center gap-2 text-gray-700 text-sm">
+                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2">Non-Refundable If:</h4>
+                  <ul className="list-disc list-inside text-gray-600 text-sm">
+                    <li>You cancel after receiving driver details.</li>
+                    <li>No-Show at pickup.</li>
+                    <li>Misconduct with driver.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="liability" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  <span className="font-bold text-xl">3</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Limitation of Liability</h2>
+              </div>
+              <p className="text-gray-700 mb-2">Drivers act as independent contractors.</p>
+              <ul className="list-disc list-inside text-gray-600 text-sm">
+                <li>Company is not responsible for loss, theft, or injury during the trip.</li>
+                <li>Liability is strictly limited to the refund/voucher amount.</li>
+              </ul>
+            </section>
+
+            <section id="law" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                  <span className="font-bold text-xl">4</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Governing Law</h2>
+              </div>
+              <p className="text-gray-700 mb-4">Governed by laws of India. Jurisdiction: Courts in Gorakhpur, Uttar Pradesh.</p>
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <p className="font-bold text-gray-900">Marco Cabs – Eightbit Solutions Private Limited</p>
+                <p className="text-gray-600 text-sm">403-C Bank Road, Purdilpur, Gorakhpur, Uttar Pradesh – 273001</p>
+                <p className="text-blue-600 text-sm mt-1">support@marcocabs.com | +91-XXXXXXXXXX</p>
+              </div>
+            </section>
+
+          </div>
+        </main>
+      </div>
+
+      <Footer />
     </div>
   );
 };

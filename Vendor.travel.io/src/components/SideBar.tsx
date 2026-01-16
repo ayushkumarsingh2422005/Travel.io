@@ -9,7 +9,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, kycCompleted }) => {
   const location = useLocation();
-  
+
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
     { id: "booking", label: "Bookings", icon: "📅", path: "/booking" },
@@ -46,24 +46,23 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, kycCompleted }) => {
           </div>
         )}
         <div className={`space-y-1 ${!kycCompleted ? 'pointer-events-none opacity-50' : ''}`}>
-        {menuItems.map((item) => (
+          {menuItems.map((item) => (
             <Link
-            key={item.id} 
+              key={item.id}
               to={item.path}
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                location.pathname === item.path
+              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${location.pathname === item.path
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+                }`}
               onClick={() => onMenuClick(item.id)}
-          >
+            >
               <span className="mr-3">{item.icon}</span>
               {item.label}
             </Link>
-        ))}
-      </div>
+          ))}
+        </div>
       </nav>
-      
+
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
         <button
