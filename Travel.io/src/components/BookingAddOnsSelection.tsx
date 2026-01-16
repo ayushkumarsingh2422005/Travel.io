@@ -133,10 +133,10 @@ const BookingAddOnsSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-50 p-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-t-2xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-4 rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center">
             <svg className="w-8 h-8 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -151,7 +151,7 @@ const BookingAddOnsSelection: React.FC = () => {
         {/* Main Content */}
         <div className="bg-white rounded-b-2xl shadow-2xl overflow-hidden">
           {/* Trip Type Header */}
-          <div className="bg-blue-600 text-white p-6 rounded-t-lg">
+          <div className="bg-indigo-600 text-white p-6 rounded-t-lg">
             <h2 className="text-xl font-bold mb-2">Tripe type: {formData.tripType === 'one_way' ? 'One Way' : 'Round Trip'}</h2>
             <p className="text-sm">Departure Date & Time: {formData.departureDate || '31/12/2022 at 5:30 PM'}</p>
           </div>
@@ -164,7 +164,7 @@ const BookingAddOnsSelection: React.FC = () => {
               placeholder="Name"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
             <input
@@ -173,7 +173,7 @@ const BookingAddOnsSelection: React.FC = () => {
               placeholder="Mobile Number"
               value={formData.mobile}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
             <input
@@ -182,7 +182,7 @@ const BookingAddOnsSelection: React.FC = () => {
               placeholder="Email Address"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
             <input
@@ -191,16 +191,16 @@ const BookingAddOnsSelection: React.FC = () => {
               placeholder="Pickup Address"
               value={formData.pickupAddress}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {/* Add-Ons Section */}
-          <div className="bg-gradient-to-br from-blue-400 to-blue-500 p-6 space-y-3">
+          <div className="bg-gradient-to-br from-indigo-400 to-indigo-500 p-6 space-y-3">
             {addOns.map(addon => (
               <label
                 key={addon.id}
-                className="flex items-center justify-between p-3 bg-blue-400 rounded-lg cursor-pointer hover:bg-blue-300 transition-all"
+                className="flex items-center justify-between p-3 bg-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-300 transition-all"
               >
                 <span className="text-white font-medium text-sm flex-1">
                   {addon.name} for Rs. {Math.round(calculateAddOnPrice(addon))}
@@ -209,19 +209,19 @@ const BookingAddOnsSelection: React.FC = () => {
                   type="checkbox"
                   checked={formData.selectedAddOns.includes(addon.id)}
                   onChange={() => toggleAddOn(addon.id)}
-                  className="w-5 h-5 text-blue-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
+                  className="w-5 h-5 text-indigo-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
                 />
               </label>
             ))}
 
             {/* Terms and Conditions */}
-            <label className="flex items-center p-3 bg-blue-400 rounded-lg cursor-pointer">
+            <label className="flex items-center p-3 bg-indigo-400 rounded-lg cursor-pointer">
               <span className="text-white text-sm flex-1">
-                I agree with <span className="text-blue-200 underline">Terms of Use</span> & <span className="text-blue-200 underline">Cancellation Policy</span> of this service
+                I agree with <span className="text-indigo-200 underline">Terms of Use</span> & <span className="text-indigo-200 underline">Cancellation Policy</span> of this service
               </span>
               <input
                 type="checkbox"
-                className="w-5 h-5 text-blue-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
+                className="w-5 h-5 text-indigo-600 bg-white border-2 border-white rounded focus:ring-2 focus:ring-white"
               />
             </label>
 
@@ -239,7 +239,7 @@ const BookingAddOnsSelection: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-all shadow-lg disabled:bg-gray-400"
+              className="w-full bg-indigo-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg disabled:bg-gray-400"
             >
               {loading ? 'Processing...' : `Pay Rs. ${Math.round(calculateAdvancePayment())} advance & book`}
             </button>

@@ -17,35 +17,52 @@ const DriverRewards: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchText, setSearchText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
-  
+
+  // Dummy data in JSON format
+  const dummyDrivers = [
+    {
+      id: 1,
+      driverName: "Akash Rai",
+      phoneNo: "xx xxxx xxxx",
+      language: "Hindi/English",
+      dlNo: "UP522024(7)",
+      validity: "06/09/2047",
+      rewardEarned: "200 INR"
+    },
+    {
+      id: 2,
+      driverName: "Akash Rai",
+      phoneNo: "xx xxxx xxxx",
+      language: "Hindi/English",
+      dlNo: "UP522024(7)",
+      validity: "06/09/2047",
+      rewardEarned: "200 INR"
+    }
+  ];
+
   useEffect(() => {
     // Simulate API call to fetch driver rewards
     const fetchDrivers = async () => {
       setLoading(true);
       try {
-        // Replace with actual API call
-        // const response = await fetch('/api/driver-rewards');
-        // const data = await response.json();
-        // setDrivers(data);
-        
         // Using mock data for demonstration
         setTimeout(() => {
           setDrivers(dummyDrivers);
           setLoading(false);
-          toast.success('Driver rewards loaded successfully!'); // Success toast
+          toast.success('Driver rewards loaded successfully!');
         }, 500);
       } catch (error) {
         console.error('Error fetching driver rewards:', error);
         setDrivers([]);
         setLoading(false);
-        toast.error('Failed to load driver rewards.'); // Error toast
+        toast.error('Failed to load driver rewards.');
       }
     };
 
     fetchDrivers();
   }, []);
 
-  const filteredDrivers = drivers.filter(driver => 
+  const filteredDrivers = drivers.filter(driver =>
     driver.driverName.toLowerCase().includes(searchText.toLowerCase()) ||
     driver.dlNo.toLowerCase().includes(searchText.toLowerCase()) ||
     driver.phoneNo.toLowerCase().includes(searchText.toLowerCase())
@@ -70,7 +87,7 @@ const DriverRewards: React.FC = () => {
 
   const handleShowReviews = (id: number) => {
     // Implement show reviews functionality
-    toast(`Showing reviews for driver ${id}`); // Changed to generic toast
+    toast(`Showing reviews for driver ${id}`);
   };
 
   const handleAddReward = (id: number) => {
@@ -89,7 +106,7 @@ const DriverRewards: React.FC = () => {
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[0, 1, 2].map((idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow-md p-6">
+          <div key={idx} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">
@@ -102,14 +119,16 @@ const DriverRewards: React.FC = () => {
                     {idx === 0
                       ? drivers.length
                       : idx === 1
-                      ? totalRewardsEarned + ' INR'
-                      : drivers.length > 0 ? (totalRewardsEarned / drivers.length).toFixed(0) + ' INR' : 0}
+                        ? totalRewardsEarned + ' INR'
+                        : drivers.length > 0 ? (totalRewardsEarned / drivers.length).toFixed(0) + ' INR' : 0}
                   </p>
                 )}
               </div>
-              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-yellow-100' : 'bg-green-100'} rounded-lg`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-yellow-700' : 'text-green-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {/* ...icon paths... */}
+              <div className={`p-3 ${idx === 0 ? 'bg-indigo-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-indigo-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {idx === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />}
+                  {idx === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                  {idx === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
                 </svg>
               </div>
             </div>
@@ -118,7 +137,7 @@ const DriverRewards: React.FC = () => {
       </div>
 
       {/* Search and Actions */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-1/2">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -131,17 +150,17 @@ const DriverRewards: React.FC = () => {
               placeholder="Search by driver name, phone or DL number"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all duration-200"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500">
+            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 bg-white">
               <option value="">Sort By: Rewards (High to Low)</option>
               <option value="rewards_low">Sort By: Rewards (Low to High)</option>
               <option value="name_asc">Sort By: Name (A to Z)</option>
               <option value="name_desc">Sort By: Name (Z to A)</option>
             </select>
-            <button className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+            <button className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-md shadow-indigo-200">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -152,11 +171,11 @@ const DriverRewards: React.FC = () => {
       </div>
 
       {/* Drivers Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-gray-50/50">
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b"></th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Driver Name</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Phone No.</th>
@@ -190,7 +209,8 @@ const DriverRewards: React.FC = () => {
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
                       <button
                         onClick={() => handleDeleteDriver(driver.id)}
-                        className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
+                        className="text-red-500 p-2 hover:bg-red-50 rounded-full transition-colors"
+                        title="Delete Driver"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -198,7 +218,7 @@ const DriverRewards: React.FC = () => {
                       </button>
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      <div className="font-medium">{driver.driverName || "—"}</div>
+                      <div className="font-medium text-gray-900">{driver.driverName || "—"}</div>
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       {driver.phoneNo || "—"}
@@ -207,7 +227,7 @@ const DriverRewards: React.FC = () => {
                       {driver.language ? (
                         <div className="flex flex-wrap gap-1">
                           {driver.language.split('/').map((lang, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                            <span key={index} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
                               {lang.trim()}
                             </span>
                           ))}
@@ -222,7 +242,7 @@ const DriverRewards: React.FC = () => {
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
                       {driver.rewardEarned ? (
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                           {driver.rewardEarned}
                         </span>
                       ) : "—"}
@@ -231,13 +251,13 @@ const DriverRewards: React.FC = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleShowReviews(driver.id)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                          className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-100 transition-colors"
                         >
                           Reviews
                         </button>
                         <button
-                          onClick={() => handleAddReward(driver.id)} // Add onClick handler
-                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                          onClick={() => handleAddReward(driver.id)}
+                          className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors border border-green-200"
                         >
                           Add Reward
                         </button>
@@ -253,27 +273,5 @@ const DriverRewards: React.FC = () => {
     </div>
   );
 };
-
-// Dummy data in JSON format
-const dummyDrivers = [
-  {
-    id: 1,
-    driverName: "Akash Rai",
-    phoneNo: "xx xxxx xxxx",
-    language: "Hindi/English",
-    dlNo: "UP522024(7)",
-    validity: "06/09/2047",
-    rewardEarned: "200 INR"
-  },
-  {
-    id: 2,
-    driverName: "Akash Rai",
-    phoneNo: "xx xxxx xxxx",
-    language: "Hindi/English",
-    dlNo: "UP522024(7)",
-    validity: "06/09/2047",
-    rewardEarned: "200 INR"
-  }
-];
 
 export default DriverRewards;

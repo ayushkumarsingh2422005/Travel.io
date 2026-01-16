@@ -41,7 +41,7 @@ const CancellationPolicy = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 to-blue-600 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-indigo-700 to-indigo-600 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/10 p-2 rounded-lg">
@@ -75,7 +75,7 @@ const CancellationPolicy = () => {
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={`w-full text-left px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${activeSection === section.id
-                    ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-4 border-indigo-600'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
                     }`}
                 >
@@ -100,7 +100,7 @@ const CancellationPolicy = () => {
 
             <section id="cancellation" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">1</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Cancellation Policy</h2>
@@ -141,9 +141,9 @@ const CancellationPolicy = () => {
 
                 <div>
                   <h3 className="text-lg font-bold text-gray-800 mb-2">1.5 Force Majeure</h3>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                     <p className="text-gray-700 text-sm mb-2">For cancellations due to Natural Disasters, Riots, or Acts of God:</p>
-                    <p className="font-bold text-blue-700">-&gt; You receive a voucher of equivalent value, valid indefinitely.</p>
+                    <p className="font-bold text-indigo-700">-&gt; You receive a voucher of equivalent value, valid indefinitely.</p>
                   </div>
                 </div>
               </div>
@@ -151,14 +151,14 @@ const CancellationPolicy = () => {
 
             <section id="refund" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">2</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Refund Policy</h2>
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 border-l-4 border-blue-500 bg-gray-50">
+                <div className="p-4 border-l-4 border-indigo-500 bg-gray-50">
                   <h4 className="font-bold text-gray-800">Processing Time</h4>
                   <p className="text-gray-600 text-sm">7–10 business days from cancellation confirmation.</p>
                 </div>
@@ -193,7 +193,7 @@ const CancellationPolicy = () => {
 
             <section id="liability" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">3</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Limitation of Liability</h2>
@@ -207,7 +207,7 @@ const CancellationPolicy = () => {
 
             <section id="law" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">4</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Governing Law</h2>
@@ -216,7 +216,7 @@ const CancellationPolicy = () => {
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <p className="font-bold text-gray-900">Marco Cabs – Eightbit Solutions Private Limited</p>
                 <p className="text-gray-600 text-sm">403-C Bank Road, Purdilpur, Gorakhpur, Uttar Pradesh – 273001</p>
-                <p className="text-blue-600 text-sm mt-1">support@marcocabs.com | +91-XXXXXXXXXX</p>
+                <p className="text-indigo-600 text-sm mt-1">support@marcocabs.com | +91-XXXXXXXXXX</p>
               </div>
             </section>
 

@@ -50,7 +50,7 @@ const TermsOfUse = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 to-blue-600 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-indigo-700 to-indigo-600 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/10 p-2 rounded-lg">
@@ -84,7 +84,7 @@ const TermsOfUse = () => {
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={`w-full text-left px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${activeSection === section.id
-                    ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-4 border-indigo-600'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
                     }`}
                 >
@@ -109,7 +109,7 @@ const TermsOfUse = () => {
 
             <section id="contract" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">1</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Contractual Relationship</h2>
@@ -124,7 +124,7 @@ const TermsOfUse = () => {
 
             <section id="definitions" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">2</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Definitions</h2>
@@ -146,7 +146,7 @@ const TermsOfUse = () => {
 
             <section id="scope" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">3</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Scope of Services</h2>
@@ -161,14 +161,14 @@ const TermsOfUse = () => {
 
             <section id="eligibility" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">4</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">User Eligibility & Responsibilities</h2>
               </div>
               <div className="space-y-4">
                 <div className="flex gap-4 items-start">
-                  <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded text-sm font-bold">Age</div>
+                  <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded text-sm font-bold">Age</div>
                   <p className="text-gray-700">Must be at least 18 years old. Minors must be accompanied by an adult.</p>
                 </div>
                 <div>
@@ -193,7 +193,7 @@ const TermsOfUse = () => {
 
             <section id="luggage" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">5</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Luggage Policy</h2>
@@ -204,15 +204,15 @@ const TermsOfUse = () => {
 
             <section id="booking" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">6</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Booking Process</h2>
               </div>
               <p className="text-gray-700 mb-3">Bookings can be made via Website, App, or Helpline.</p>
-              <div className="bg-blue-50 p-4 rounded-xl">
-                <h4 className="font-semibold text-blue-800 mb-2">Fare Estimates may vary due to:</h4>
-                <div className="flex flex-wrap gap-2 text-sm text-blue-700">
+              <div className="bg-indigo-50 p-4 rounded-xl">
+                <h4 className="font-semibold text-indigo-800 mb-2">Fare Estimates may vary due to:</h4>
+                <div className="flex flex-wrap gap-2 text-sm text-indigo-700">
                   <span className="bg-white px-2 py-1 rounded shadow-sm">Traffic</span>
                   <span className="bg-white px-2 py-1 rounded shadow-sm">Route changes</span>
                   <span className="bg-white px-2 py-1 rounded shadow-sm">Waiting time</span>
@@ -223,7 +223,7 @@ const TermsOfUse = () => {
 
             <section id="cancellation" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">7</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Cancellation & No-Show Policy</h2>
@@ -252,7 +252,7 @@ const TermsOfUse = () => {
 
             <section id="payments" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">8</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Payments & Charges</h2>
@@ -268,7 +268,7 @@ const TermsOfUse = () => {
 
             <section id="standards" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">9</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Driver & Vehicle Standards</h2>
@@ -294,7 +294,7 @@ const TermsOfUse = () => {
 
             <section id="delays" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">10</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Delays & Force Majeure</h2>
@@ -304,7 +304,7 @@ const TermsOfUse = () => {
 
             <section id="liability" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">11</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Liability & Indemnity</h2>
@@ -317,7 +317,7 @@ const TermsOfUse = () => {
 
             <section id="disputes" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">12</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Dispute Resolution</h2>
@@ -327,7 +327,7 @@ const TermsOfUse = () => {
 
             <section id="contact" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">13</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Contact Information</h2>
@@ -338,7 +338,7 @@ const TermsOfUse = () => {
                 <div className="mt-4 pt-4 border-t border-gray-200 grid md:grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-gray-500 uppercase font-bold">Email</span>
-                    <p className="text-blue-600">support@marcocabs.com</p>
+                    <p className="text-indigo-600">support@marcocabs.com</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 uppercase font-bold">Phone</span>

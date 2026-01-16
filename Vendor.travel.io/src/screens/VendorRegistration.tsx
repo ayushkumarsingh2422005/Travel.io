@@ -41,9 +41,9 @@ const VendorRegistration: React.FC = () => {
     ifscCode: '',
     accountHolderName: ''
   });
-  
+
   const [stepIndex, setStepIndex] = useState<number>(0);
-  const [otpSent, setOtpSent] = useState<{aadhar: boolean, pan: boolean}>({
+  const [otpSent, setOtpSent] = useState<{ aadhar: boolean, pan: boolean }>({
     aadhar: false,
     pan: false
   });
@@ -62,7 +62,7 @@ const VendorRegistration: React.FC = () => {
   // Simulate loading cities data
   useEffect(() => {
     setCitiesLoading(true);
-    
+
     // Simulate API fetch with setTimeout
     const timer = setTimeout(() => {
       setCities([
@@ -79,7 +79,7 @@ const VendorRegistration: React.FC = () => {
       ]);
       setCitiesLoading(false);
     }, 1500);
-    
+
     return () => {
       clearTimeout(timer);
     };
@@ -92,7 +92,7 @@ const VendorRegistration: React.FC = () => {
       [name]: value
     }));
   };
-  
+
   const sendOtp = (type: 'aadhar' | 'pan') => {
     // Simulate OTP sending
     toast.success(`OTP sent successfully for ${type}!`);
@@ -105,7 +105,7 @@ const VendorRegistration: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate submission with delay
     setTimeout(() => {
       console.log('Form submitted:', formData);
@@ -114,11 +114,11 @@ const VendorRegistration: React.FC = () => {
       // Add your form submission logic here
     }, 2000);
   };
-  
+
   const nextStep = () => {
     setStepIndex(prev => Math.min(prev + 1, 3));
   };
-  
+
   const prevStep = () => {
     setStepIndex(prev => Math.max(prev - 1, 0));
   };
@@ -126,7 +126,7 @@ const VendorRegistration: React.FC = () => {
   // Spinner component for loading states
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center">
-      <svg className="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg className="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
@@ -134,9 +134,9 @@ const VendorRegistration: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header - Updated to match VendorProfile style */}
-      <header className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 shadow-lg">
+      <header className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-6 shadow-lg">
         <div className="container mx-auto max-w-6xl flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="text-2xl font-bold tracking-tight">MARCO</div>
@@ -157,17 +157,16 @@ const VendorRegistration: React.FC = () => {
           <div className="flex items-center justify-between relative">
             <div className="w-full absolute top-1/2 h-0.5 bg-gray-200 -z-10"></div>
             {[0, 1, 2, 3].map((step) => (
-              <div 
-                key={step} 
-                className={`flex flex-col items-center ${step <= stepIndex ? 'text-green-600' : 'text-gray-400'}`}
+              <div
+                key={step}
+                className={`flex flex-col items-center ${step <= stepIndex ? 'text-indigo-600' : 'text-gray-400'}`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold mb-2 ${
-                  step < stepIndex 
-                    ? 'bg-green-600 text-white' 
-                    : step === stepIndex 
-                    ? 'bg-white border-2 border-green-600 text-green-600 shadow-md' 
-                    : 'bg-white border-2 border-gray-300 text-gray-400'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold mb-2 shadow-sm transition-all duration-300 ${step < stepIndex
+                    ? 'bg-indigo-600 text-white'
+                    : step === stepIndex
+                      ? 'bg-white border-2 border-indigo-600 text-indigo-600 shadow-md scale-110'
+                      : 'bg-white border-2 border-gray-300 text-gray-400'
+                  }`}>
                   {step < stepIndex ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -176,7 +175,7 @@ const VendorRegistration: React.FC = () => {
                     step + 1
                   )}
                 </div>
-                <span className="text-xs font-medium">
+                <span className={`text-xs font-medium ${step === stepIndex ? 'text-indigo-700 font-bold' : ''}`}>
                   {step === 0 ? 'Basic Info' : step === 1 ? 'Identity' : step === 2 ? 'Business' : 'Verify'}
                 </span>
               </div>
@@ -185,28 +184,32 @@ const VendorRegistration: React.FC = () => {
         </div>
 
         {/* Hero Banner - Updated style */}
-        <div className="bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white rounded-2xl p-8 mb-8 shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 text-white rounded-2xl p-8 mb-8 shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNGMwLTIuMjA5IDEuNzkxLTQgNC00czQgMS43OTEgNCA0LTEuNzkxIDQtNCA0LTQtMS43OTEtNC00eiIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIuMSIvPjwvZz48L3N2Zz4=')] opacity-10"></div>
           <div className="relative">
             <h1 className="text-3xl font-bold tracking-tight">
               Zero Commission, Fair Compensation!
             </h1>
-            <p className="mt-3 text-lg text-green-50">
+            <p className="mt-3 text-lg text-indigo-100">
               Join our vendor network and enjoy benefits that help your business grow.
             </p>
           </div>
         </div>
 
         {/* Registration Form - Updated container style */}
-        <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-            {stepIndex === 0 
-              ? 'Basic Information' 
-              : stepIndex === 1 
-              ? 'Identity Details' 
-              : stepIndex === 2
-              ? 'Business Details'
-              : 'Verify Your Details'}
+        <div className="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            {stepIndex === 0 && <span className="text-indigo-600">📝</span>}
+            {stepIndex === 1 && <span className="text-indigo-600">🆔</span>}
+            {stepIndex === 2 && <span className="text-indigo-600">🏢</span>}
+            {stepIndex === 3 && <span className="text-indigo-600">✅</span>}
+            {stepIndex === 0
+              ? 'Basic Information'
+              : stepIndex === 1
+                ? 'Identity Details'
+                : stepIndex === 2
+                  ? 'Business Details'
+                  : 'Verify Your Details'}
           </h2>
 
           {isSubmitting && (
@@ -232,7 +235,7 @@ const VendorRegistration: React.FC = () => {
                         value={formData.city}
                         onChange={handleInputChange}
                         disabled={citiesLoading}
-                        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all appearance-none ${citiesLoading ? 'text-gray-400' : 'text-gray-700'}`}
+                        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all appearance-none outline-none ${citiesLoading ? 'text-gray-400' : 'text-gray-700'}`}
                       >
                         <option value="">{citiesLoading ? 'Loading cities...' : 'Select your city'}</option>
                         {!citiesLoading && cities.map(city => (
@@ -241,7 +244,7 @@ const VendorRegistration: React.FC = () => {
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                         {citiesLoading ? (
-                          <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
@@ -263,7 +266,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Enter your email address"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                     />
                   </div>
 
@@ -276,7 +279,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Enter your mobile number"
                       value={formData.mobile}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                     />
                   </div>
 
@@ -289,7 +292,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Number of cars on your name"
                       value={formData.numberOfCars}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -308,7 +311,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Your full name as per Aadhar card"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                     />
                   </div>
 
@@ -322,16 +325,15 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter 12-digit Aadhar number"
                         value={formData.aadharNumber}
                         onChange={handleInputChange}
-                        className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => sendOtp('aadhar')}
-                        className={`px-4 py-2 rounded-lg ${
-                          otpSent.aadhar 
-                            ? 'bg-gray-100 text-green-600 border border-green-200' 
-                            : 'bg-green-600 text-white'
-                        }`}
+                        className={`px-4 py-2 rounded-lg font-medium shadow-sm transition-colors ${otpSent.aadhar
+                            ? 'bg-gray-100 text-indigo-600 border border-indigo-200 hover:bg-indigo-50'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent'
+                          }`}
                       >
                         {otpSent.aadhar ? 'Resend OTP' : 'Get OTP'}
                       </button>
@@ -348,7 +350,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter OTP sent to your Aadhar"
                         value={formData.aadharOTP}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                       />
                     </div>
                   )}
@@ -363,16 +365,15 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter 10-digit PAN number"
                         value={formData.panNumber}
                         onChange={handleInputChange}
-                        className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => sendOtp('pan')}
-                        className={`px-4 py-2 rounded-lg ${
-                          otpSent.pan 
-                            ? 'bg-gray-100 text-green-600 border border-green-200' 
-                            : 'bg-green-600 text-white'
-                        }`}
+                        className={`px-4 py-2 rounded-lg font-medium shadow-sm transition-colors ${otpSent.pan
+                            ? 'bg-gray-100 text-indigo-600 border border-indigo-200 hover:bg-indigo-50'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent'
+                          }`}
                       >
                         {otpSent.pan ? 'Resend OTP' : 'Get OTP'}
                       </button>
@@ -389,7 +390,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter OTP sent for PAN verification"
                         value={formData.panOTP}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none"
                       />
                     </div>
                   )}
@@ -409,7 +410,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Enter your business name"
                       value={formData.businessName}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 outline-none"
                     />
                   </div>
 
@@ -420,7 +421,7 @@ const VendorRegistration: React.FC = () => {
                       name="businessType"
                       value={formData.businessType}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 appearance-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 appearance-none outline-none"
                     >
                       <option value="">Select business type</option>
                       {businessTypes.map(type => (
@@ -438,7 +439,7 @@ const VendorRegistration: React.FC = () => {
                       placeholder="Enter GST number (if applicable)"
                       value={formData.gstNumber}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 outline-none"
                     />
                   </div>
 
@@ -451,7 +452,7 @@ const VendorRegistration: React.FC = () => {
                       value={formData.businessAddress}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 outline-none resize-none"
                     />
                   </div>
                 </div>
@@ -468,7 +469,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter bank name"
                         value={formData.bankName}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 outline-none"
                       />
                     </div>
 
@@ -481,7 +482,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter account number"
                         value={formData.accountNumber}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 font-mono"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 font-mono outline-none"
                       />
                     </div>
 
@@ -494,7 +495,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter IFSC code"
                         value={formData.ifscCode}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50 font-mono uppercase"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 font-mono uppercase outline-none"
                       />
                     </div>
 
@@ -507,7 +508,7 @@ const VendorRegistration: React.FC = () => {
                         placeholder="Enter account holder name"
                         value={formData.accountHolderName}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 outline-none"
                       />
                     </div>
                   </div>
@@ -517,7 +518,7 @@ const VendorRegistration: React.FC = () => {
 
             {stepIndex === 3 && (
               <div className="space-y-6">
-                <div className="bg-gray-50 p-6 rounded-xl">
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
                   <h3 className="font-medium text-gray-800 mb-4">Review Your Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -582,7 +583,7 @@ const VendorRegistration: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
                   <div className="flex gap-4">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -591,23 +592,23 @@ const VendorRegistration: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-yellow-800 mb-2">Important Note</h3>
                       <p className="text-sm text-yellow-700">
-                        By submitting this form, you confirm that all provided information is accurate. 
-                        False information may lead to rejection of your application. Your business details 
+                        By submitting this form, you confirm that all provided information is accurate.
+                        False information may lead to rejection of your application. Your business details
                         will be verified by our team before approval.
                       </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
-                    id="terms" 
-                    className="rounded text-green-600 focus:ring-green-500 h-5 w-5"
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    className="rounded text-indigo-600 focus:ring-indigo-500 h-5 w-5"
                     required // Added required for terms and conditions
                   />
                   <label htmlFor="terms" className="text-sm text-gray-700">
-                    I agree to the <a href="#" className="text-green-600 hover:underline">Terms and Conditions</a> and confirm that all information provided is accurate
+                    I agree to the <a href="#" className="text-indigo-600 hover:underline">Terms and Conditions</a> and confirm that all information provided is accurate
                   </label>
                 </div>
               </div>
@@ -618,26 +619,26 @@ const VendorRegistration: React.FC = () => {
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md"
+                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md font-medium"
                 >
                   Back
                 </button>
               ) : (
-                <div></div> 
+                <div></div>
               )}
-              
+
               {stepIndex < 3 ? (
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-lg hover:shadow-indigo-200 transform hover:-translate-y-0.5 font-medium"
                 >
                   Continue
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-lg hover:shadow-indigo-200 transform hover:-translate-y-0.5 font-medium"
                 >
                   Submit Application
                 </button>
@@ -645,12 +646,12 @@ const VendorRegistration: React.FC = () => {
             </div>
           </form>
         </div>
-        
+
         <div className="text-center text-sm text-gray-500">
-          Already registered? <a href="#" className="text-green-600 hover:underline">Sign in to your account</a>
+          Already registered? <a href="#" className="text-indigo-600 hover:underline font-medium">Sign in to your account</a>
         </div>
       </div>
-      
+
       {/* Footer - Updated style */}
       <footer className="bg-white border-t border-gray-200 p-6 text-center text-sm text-gray-500">
         <div className="container mx-auto max-w-6xl">

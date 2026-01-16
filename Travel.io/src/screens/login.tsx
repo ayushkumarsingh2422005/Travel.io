@@ -73,28 +73,28 @@ export default function Login() {
       <div className="flex-grow flex items-center justify-center">
         <div className="flex flex-col h-140 md:flex-row rounded-2xl shadow-2xl overflow-hidden bg-white/90">
           {/* Carousel Section */}
-          <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-blue-700 p-8 w-96 relative">
+          <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-indigo-600 to-indigo-700 p-8 w-96 relative">
             <img
               src={carouselImages[carouselIdx]}
               alt="Customer"
               className="w-64 h-80 object-cover rounded-xl shadow-lg border-4 border-white"
             />
             <div className="absolute w-2/3 bottom-10 left-1/2 -translate-x-1/2 bg-white/80 rounded-lg px-6 py-3 shadow text-center">
-              <h2 className="text-xl font-bold text-blue-700 mb-1">Welcome Back!</h2>
-              <p className="text-blue-700 text-sm">Trusted by 500+ happy customers</p>
+              <h2 className="text-xl font-bold text-indigo-700 mb-1">Welcome Back!</h2>
+              <p className="text-indigo-700 text-sm">Trusted by 500+ happy customers</p>
             </div>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
               {carouselImages.map((_, idx) => (
                 <span
                   key={idx}
-                  className={`block w-2 h-2 rounded-full ${carouselIdx === idx ? 'bg-white' : 'bg-blue-300'}`}
+                  className={`block w-2 h-2 rounded-full ${carouselIdx === idx ? 'bg-white' : 'bg-indigo-300'}`}
                 />
               ))}
             </div>
           </div>
           {/* Login Form Section */}
           <div className="bg-white text-black p-8 w-full md:w-96 flex flex-col justify-center">
-            <h1 className="text-3xl font-bold text-center mb-6 text-blue-700">Log In</h1>
+            <h1 className="text-3xl font-bold text-center mb-6 text-indigo-700">Log In</h1>
             <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
               <input
                 name="email"
@@ -103,7 +103,7 @@ export default function Login() {
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="p-3 border rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="p-3 border rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
               />
               <input
                 name="password"
@@ -112,11 +112,11 @@ export default function Login() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                className="p-3 border rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="p-3 border rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
               />
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-colors shadow-md"
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-medium rounded-lg transition-colors shadow-md"
               >
                 Login
               </button>
@@ -130,7 +130,7 @@ export default function Login() {
             </div>
             <div className="text-center text-gray-500 mt-4">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-blue-700 font-medium hover:underline">Sign Up</Link>
+              <Link to="/signup" className="text-indigo-700 font-medium hover:underline">Sign Up</Link>
             </div>
           </div>
         </div>

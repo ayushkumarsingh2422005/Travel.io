@@ -524,7 +524,7 @@ export default function Cabs() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-md">
+      <header className="bg-gradient-to-r from-indigo-600 to-indigo-700 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="text-2xl font-bold text-white">Select Your Cab</div>
           <UserAvatar />
@@ -534,8 +534,8 @@ export default function Cabs() {
       {/* Booking Section */}
       <div className="container mx-auto px-4 pt-6">
         <div className="bg-white shadow-md rounded-xl p-6">
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <p className="text-sm text-indigo-800">
               <span className="text-red-500">*</span> Fields marked with red asterisk are required for booking
             </p>
           </div>
@@ -546,7 +546,7 @@ export default function Cabs() {
                 <button
                   type="button"
                   className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Round Trip"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-indigo-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   onClick={() => handleTripTypeChange("Round Trip")}
@@ -556,7 +556,7 @@ export default function Cabs() {
                 <button
                   type="button"
                   className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "One Way"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-indigo-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   onClick={() => handleTripTypeChange("One Way")}
@@ -566,7 +566,7 @@ export default function Cabs() {
                 <button
                   type="button"
                   className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Hourly Rental"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-indigo-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   onClick={() => handleTripTypeChange("Hourly Rental")}
@@ -589,7 +589,7 @@ export default function Cabs() {
                   value={bookingForm.pickupLocation}
                   onChange={handlePickupLocationChange}
                   placeholder="Pickup location"
-                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                   required
                 />
                 {showPickupSuggestions && pickupSuggestions.length > 0 && (
@@ -621,7 +621,7 @@ export default function Cabs() {
                       value={stop.location}
                       onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
                       placeholder="Stop location"
-                      className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                     />
                     {stop.showSuggestions && stop.suggestions.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
@@ -669,7 +669,7 @@ export default function Cabs() {
                     value={bookingForm.destination}
                     onChange={handleDestinationChange}
                     placeholder="Destination"
-                    className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                    className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                     required
                   />
                   {showDestinationSuggestions && destinationSuggestions.length > 0 && (
@@ -693,7 +693,7 @@ export default function Cabs() {
                 <button
                   type="button"
                   onClick={handleAddStop}
-                  className="w-full p-3 rounded-lg border border-dashed border-blue-500 text-blue-600 mb-4 flex items-center justify-center hover:bg-blue-50 transition-colors"
+                  className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -715,7 +715,7 @@ export default function Cabs() {
                     value={bookingForm.pickupDate}
                     onChange={handleBookingChange}
                     min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                     required
                   />
                 </div>
@@ -732,7 +732,7 @@ export default function Cabs() {
                       value={bookingForm.dropDate}
                       onChange={handleBookingChange}
                       min={bookingForm.pickupDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -750,7 +750,7 @@ export default function Cabs() {
           {displayedCategories.map((category) => (
             <div
               key={category.id}
-              className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${selectedCabCategory === category.id ? 'border-blue-500' : 'border-gray-200'
+              className={`bg-white rounded-xl shadow-lg overflow-hidden border-2 ${selectedCabCategory === category.id ? 'border-indigo-500' : 'border-gray-200'
                 } hover:shadow-xl transition-all duration-300 cursor-pointer`}
               onClick={() => handleSelectCab(category.id)}
             >
@@ -764,7 +764,7 @@ export default function Cabs() {
                 ) : (
                   <span className="text-gray-400 text-sm">No Image</span>
                 )}
-                <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
+                <div className="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded">
                   {category.segment || 'Sedan'}
                 </div>
               </div>
@@ -777,7 +777,7 @@ export default function Cabs() {
                 {bookingForm.tripType === 'Hourly Rental' ? (
                   <>
                     <div className="flex items-baseline mb-3">
-                      <span className="text-2xl font-bold text-blue-600">₹{category.base_price}</span>
+                      <span className="text-2xl font-bold text-indigo-600">₹{category.base_price}</span>
                       <span className="text-sm text-gray-500 ml-1">
                         ({category.package_hours}h / {category.package_km}km)
                       </span>
@@ -791,7 +791,7 @@ export default function Cabs() {
                 ) : (
                   <>
                     <div className="flex items-baseline mb-3">
-                      <span className="text-2xl font-bold text-blue-600">₹{category.price_per_km}/km</span>
+                      <span className="text-2xl font-bold text-indigo-600">₹{category.price_per_km}/km</span>
                     </div>
                     <ul className="text-sm text-gray-700 space-y-1 mb-4">
                       <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
@@ -804,7 +804,7 @@ export default function Cabs() {
 
                 <button
                   type="button"
-                  className="w-full py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
+                  className="w-full py-2 px-4 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 transition-colors"
                   onClick={() => {
                     handleSelectCab(category.id)
                   }}
@@ -826,16 +826,16 @@ export default function Cabs() {
             return (
               <div
                 key={idx}
-                className={`transition-all duration-300 border rounded-xl shadow-md overflow-hidden ${isOpen ? 'border-l-8 border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                className={`transition-all duration-300 border rounded-xl shadow-md overflow-hidden ${isOpen ? 'border-l-8 border-indigo-600 bg-indigo-50' : 'border-gray-200 bg-white'}`}
               >
                 <button
-                  className="w-full flex justify-between items-center px-6 py-5 font-semibold text-lg text-gray-800 focus:outline-none hover:bg-blue-100 transition-colors"
+                  className="w-full flex justify-between items-center px-6 py-5 font-semibold text-lg text-gray-800 focus:outline-none hover:bg-indigo-100 transition-colors"
                   onClick={() => handleFaqClick(idx)}
                   aria-expanded={isOpen}
                 >
                   <span>{faq.q}</span>
                   <svg
-                    className={`w-6 h-6 ml-4 transform transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-600' : 'rotate-0 text-gray-400'}`}
+                    className={`w-6 h-6 ml-4 transform transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-gray-400'}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -844,7 +844,7 @@ export default function Cabs() {
                   </svg>
                 </button>
                 <div
-                  className={`transition-all duration-300 px-6 text-gray-700 text-base bg-blue-50 ${isOpen ? 'max-h-96 py-4 opacity-100' : 'max-h-0 py-0 opacity-0'} whitespace-pre-line`}
+                  className={`transition-all duration-300 px-6 text-gray-700 text-base bg-indigo-50 ${isOpen ? 'max-h-96 py-4 opacity-100' : 'max-h-0 py-0 opacity-0'} whitespace-pre-line`}
                   style={{ overflow: 'hidden' }}
                 >
                   {faq.a}

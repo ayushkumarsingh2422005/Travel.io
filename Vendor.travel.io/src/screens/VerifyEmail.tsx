@@ -1,7 +1,7 @@
 import axios from "../api/axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom"
-import toast from 'react-hot-toast'; 
+import toast from 'react-hot-toast';
 
 const VerifyEmail = () => {
     const [searchParams] = useSearchParams();
@@ -44,12 +44,12 @@ const VerifyEmail = () => {
     }, [token, navigate]);
 
     return (
-        <div className="min-h-screen bg-[url('/bg/carbg.jpg')] bg-cover bg-center bg-gray-500 bg-blend-multiply flex items-center justify-center">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden p-8 text-center">
-                
+        <div className="min-h-screen bg-[url('/bg/carbg.jpg')] bg-cover bg-center bg-gray-500 bg-blend-multiply flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden p-8 text-center backdrop-blur-sm bg-opacity-95">
+
                 {status === 'verifying' && (
                     <div className="flex flex-col items-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Verifying Email...</h2>
                         <p className="text-gray-600">Please wait while we verify your email address.</p>
                     </div>
@@ -57,16 +57,16 @@ const VerifyEmail = () => {
 
                 {status === 'success' && (
                     <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Email Verified!</h2>
                         <p className="text-gray-600 mb-6">Your email has been successfully verified. Redirecting to login...</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/login')}
-                            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
                         >
                             Go to Login
                         </button>
@@ -82,9 +82,9 @@ const VerifyEmail = () => {
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Failed</h2>
                         <p className="text-gray-600 mb-6">The verification link is invalid or has expired.</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/login')}
-                            className="text-green-600 font-medium hover:underline"
+                            className="text-indigo-600 font-medium hover:underline"
                         >
                             Back to Login
                         </button>

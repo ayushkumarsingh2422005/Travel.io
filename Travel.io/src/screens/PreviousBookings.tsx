@@ -41,7 +41,7 @@ const PreviousBookings = () => {
   const getStatusColor = (status: BookingResponse['data']['status']) => {
     switch (status) {
       case 'completed':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-indigo-100 text-indigo-700';
       case 'cancelled':
         return 'bg-red-100 text-red-700';
       case 'ongoing':
@@ -49,7 +49,7 @@ const PreviousBookings = () => {
       case 'approved':
         return 'bg-yellow-100 text-yellow-700';
       case 'waiting':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-indigo-100 text-indigo-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -143,7 +143,7 @@ const PreviousBookings = () => {
           <label htmlFor="status-filter" className="sr-only">Filter by Status</label>
           <select
             id="status-filter"
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-700 px-4 py-2 rounded-lg w-full md:w-60 transition-all duration-200"
+            className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white text-gray-700 px-4 py-2 rounded-lg w-full md:w-60 transition-all duration-200"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -214,7 +214,7 @@ const PreviousBookings = () => {
 
                         <div className="flex items-start">
                           <div className="flex-shrink-0 mt-1 mr-4">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             </div>
                           </div>
@@ -296,7 +296,7 @@ const PreviousBookings = () => {
                           })()}
                         </div>
                       )}
-                      <button className="text-gray-400 hover:text-blue-600 transition-colors">
+                      <button className="text-gray-400 hover:text-indigo-600 transition-colors">
                         <span className="sr-only">View Details</span>
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
@@ -321,7 +321,7 @@ const PreviousBookings = () => {
               <button
                 key={index}
                 onClick={() => setCurrentPage(index + 1)}
-                className={`px-4 py-2 border rounded-lg ${currentPage === index + 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-4 py-2 border rounded-lg ${currentPage === index + 1 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {index + 1}

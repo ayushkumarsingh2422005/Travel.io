@@ -69,7 +69,7 @@ const BookingDetails = () => {
   const getStatusColor = (status: BookingDetailsResponse['data']['status']) => {
     switch (status) {
       case 'completed':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-indigo-100 text-indigo-700';
       case 'cancelled':
         return 'bg-red-100 text-red-700';
       case 'ongoing':
@@ -77,7 +77,7 @@ const BookingDetails = () => {
       case 'approved':
         return 'bg-yellow-100 text-yellow-700';
       case 'waiting':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-indigo-100 text-indigo-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -87,7 +87,7 @@ const BookingDetails = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading booking details...</p>
         </div>
       </div>
@@ -108,7 +108,7 @@ const BookingDetails = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-800 to-blue-600 text-white shadow-lg">
+      <header className="bg-gradient-to-r from-indigo-800 to-indigo-600 text-white shadow-lg">
         <div className="container mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -120,7 +120,7 @@ const BookingDetails = () => {
             </div>
             <button
               onClick={() => navigate('/previous-bookings')}
-              className="text-white hover:text-blue-100 transition-colors"
+              className="text-white hover:text-indigo-100 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -142,7 +142,7 @@ const BookingDetails = () => {
             {/* Trip Summary */}
             <div className="space-y-6">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -159,7 +159,7 @@ const BookingDetails = () => {
                   <DetailItem label="Price" value={`₹${bookingDetails.price.toLocaleString()}`} />
                   <DetailItem label="Cab Category" value={bookingDetails.cab_category_name} />
                   {bookingDetails.cab_category_image && (
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <span className="font-medium text-gray-700">Category Image</span>
                       <img src={bookingDetails.cab_category_image} alt={bookingDetails.cab_category_name} className="h-12 w-12 object-contain rounded-md" />
                     </div>
@@ -171,7 +171,7 @@ const BookingDetails = () => {
                     <DetailItem label="Vehicle Per KM Charge" value={`₹${typeof bookingDetails.per_km_charge === 'number' ? bookingDetails.per_km_charge.toFixed(2) : parseFloat(bookingDetails.per_km_charge as any).toFixed(2)}`} />
                   )}
                 </div>
-                
+
                 {/* OTP Display for Approved Bookings */}
                 {bookingDetails.booking_otp && ['approved', 'preongoing'].includes(bookingDetails.status) && (
                   <div className="p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg mx-6 mb-6">
@@ -202,7 +202,7 @@ const BookingDetails = () => {
             <div className="space-y-6">
               {/* Route Details */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -220,7 +220,7 @@ const BookingDetails = () => {
 
               {/* People Details */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -259,7 +259,7 @@ interface DetailItemProps {
 }
 
 const DetailItem: React.FC<DetailItemProps> = ({ label, value, colorClass }) => (
-  <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+  <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
     <span className="font-medium text-gray-700">{label}</span>
     <span className={`font-semibold text-gray-800 ${colorClass}`}>{value}</span>
   </div>

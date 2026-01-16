@@ -291,12 +291,12 @@ const Booking: React.FC = () => {
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Bookings Dashboard</h1>
 
       {/* Search and Filter Section */}
-      <div className="bg-white p-6 rounded-xl shadow-md mb-8">
+      <div className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-100">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Search and Filter</h2>
         <div className="flex flex-wrap gap-4 items-center">
           <div className="w-full md:w-auto">
             <select
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-6 py-3 rounded-lg w-full md:w-60 transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white text-gray-700 px-6 py-3 rounded-lg w-full md:w-60 transition-all duration-200"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as BookingData['status'])}
               disabled={searchLoading}
@@ -312,7 +312,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Search by booking ID"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               disabled={searchLoading}
@@ -324,7 +324,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Pickup Location"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={pickupLocationFilter}
               onChange={(e) => setPickupLocationFilter(e.target.value)}
               disabled={searchLoading}
@@ -334,7 +334,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Dropoff Location"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={dropoffLocationFilter}
               onChange={(e) => setDropoffLocationFilter(e.target.value)}
               disabled={searchLoading}
@@ -344,7 +344,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Vehicle Model"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={vehicleModelFilter}
               onChange={(e) => setVehicleModelFilter(e.target.value)}
               disabled={searchLoading}
@@ -354,7 +354,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Cab Category"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={cabCategoryFilter}
               onChange={(e) => setCabCategoryFilter(e.target.value)}
               disabled={searchLoading}
@@ -364,7 +364,7 @@ const Booking: React.FC = () => {
             <input
               type="text"
               placeholder="Customer Name"
-              className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg p-3 w-full transition-all duration-200"
+              className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-lg p-3 w-full transition-all duration-200"
               value={customerNameFilter}
               onChange={(e) => setCustomerNameFilter(e.target.value)}
               disabled={searchLoading}
@@ -373,7 +373,7 @@ const Booking: React.FC = () => {
 
           <div className="w-full md:w-auto">
             <button
-              className={`${searchLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-8 py-3 rounded-lg font-medium shadow-sm transition-all duration-200 flex items-center justify-center`}
+              className={`${searchLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-8 py-3 rounded-lg font-medium shadow-sm transition-all duration-200 flex items-center justify-center`}
               onClick={handleSearch}
               disabled={searchLoading}
             >
@@ -399,12 +399,12 @@ const Booking: React.FC = () => {
       </div>
 
       {/* Bookings Table */}
-      <div className="bg-white p-6 rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white p-6 rounded-xl shadow-md overflow-hidden border border-gray-100">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Available Bookings</h2>
         <div className="overflow-x-auto max-w-full">
           <table className="w-full min-w-max table-fixed">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-gray-50/50">
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Booking ID</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Customer Name</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Cab Category</th>
@@ -449,8 +449,8 @@ const Booking: React.FC = () => {
                     </td>
                     <td className="p-3 text-sm border-b border-gray-100">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
-                        booking.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                          booking.status === 'preongoing' ? 'bg-indigo-100 text-indigo-700' :
+                        booking.status === 'approved' ? 'bg-indigo-100 text-indigo-700' :
+                          booking.status === 'preongoing' ? 'bg-blue-100 text-blue-700' :
                             booking.status === 'ongoing' ? 'bg-purple-100 text-purple-700' :
                               booking.status === 'completed' ? 'bg-green-100 text-green-700' :
                                 'bg-red-100 text-red-700'
@@ -462,7 +462,7 @@ const Booking: React.FC = () => {
                       <div className="flex flex-wrap gap-2">
                         {booking.status === 'waiting' && (
                           <button
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
                             onClick={() => openApproveModal(booking)}
                             disabled={updateLoading}
                           >
@@ -471,7 +471,7 @@ const Booking: React.FC = () => {
                         )}
                         {booking.status === 'approved' && (
                           <button
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
                             onClick={() => handleUpdateStatus(booking.id, 'preongoing')}
                             disabled={updateLoading}
                           >
@@ -489,7 +489,7 @@ const Booking: React.FC = () => {
                         )}
                         {booking.status === 'ongoing' && (
                           <button
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
                             onClick={() => handleUpdateStatus(booking.id, 'completed')}
                             disabled={updateLoading}
                           >
@@ -516,13 +516,13 @@ const Booking: React.FC = () => {
 
         {/* Pagination Controls */}
         {totalBookingsCount > 0 && (
-          <div className="flex flex-wrap justify-between items-center mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+          <div className="flex flex-wrap justify-between items-center mt-6 p-4 bg-gray-50/50 rounded-lg border border-gray-100">
             <div className="text-sm text-gray-600 mb-2 md:mb-0">
               Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalBookingsCount)} of {totalBookingsCount} bookings
             </div>
             <div className="flex items-center gap-2">
               <button
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || loading || searchLoading}
               >
@@ -532,7 +532,7 @@ const Booking: React.FC = () => {
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages || loading || searchLoading}
               >
@@ -541,7 +541,7 @@ const Booking: React.FC = () => {
             </div>
             <div className="w-full md:w-auto mt-2 md:mt-0">
               <select
-                className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-700 px-3 py-2 rounded-lg text-sm w-full md:w-auto transition-all duration-200"
+                className="border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white text-gray-700 px-3 py-2 rounded-lg text-sm w-full md:w-auto transition-all duration-200"
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
@@ -560,10 +560,10 @@ const Booking: React.FC = () => {
       </div>
 
       {showApproveModal && selectedBookingForApproval && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
-          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full"> {/* Increased max-w-md to max-w-lg */}
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4 z-50">
+          <div className="bg-white p-8 rounded-xl shadow-xl max-w-lg w-full"> {/* Increased max-w-md to max-w-lg */}
             <h3 className="text-lg font-bold mb-4">
-              Approve Booking <span className="break-all">{selectedBookingForApproval.id}</span> {/* Added break-all */}
+              Approve Booking <span className="break-all text-indigo-600">{selectedBookingForApproval.id}</span> {/* Added break-all */}
             </h3>
             <div className="mb-4">
               <label htmlFor="driver-select" className="block text-sm font-medium text-gray-700 mb-2">
@@ -571,7 +571,7 @@ const Booking: React.FC = () => {
               </label>
               <select
                 id="driver-select"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                 value={selectedDriver}
                 onChange={(e) => setSelectedDriver(e.target.value)}
                 disabled={updateLoading}
@@ -590,7 +590,7 @@ const Booking: React.FC = () => {
               </label>
               <select
                 id="vehicle-select"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                 value={selectedVehicle}
                 onChange={(e) => setSelectedVehicle(e.target.value)}
                 disabled={updateLoading}
@@ -609,14 +609,14 @@ const Booking: React.FC = () => {
             </div>
             <div className="flex justify-end gap-3">
               <button
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-150"
                 onClick={closeApproveModal}
                 disabled={updateLoading}
               >
                 Cancel
               </button>
               <button
-                className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
+                className={`${updateLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-4 py-2 rounded-lg transition-colors duration-150`}
                 onClick={handleAcceptBooking}
                 disabled={updateLoading}
               >
@@ -628,25 +628,25 @@ const Booking: React.FC = () => {
       )}
 
       {showCancelModal && selectedBookingForCancellation && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4">
-          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
-            <h3 className="text-lg font-bold mb-4">
-              Cancel Booking <span className="break-all">{selectedBookingForCancellation.id}</span>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4 z-50">
+          <div className="bg-white p-8 rounded-xl shadow-xl max-w-lg w-full">
+            <h3 className="text-lg font-bold mb-4 text-gray-900">
+              Cancel Booking <span className="break-all text-red-600">{selectedBookingForCancellation.id}</span>
             </h3>
-            <p className="mb-4 text-gray-700">
+            <p className="mb-4 text-gray-600">
               Are you sure you want to cancel this booking? This action cannot be undone.
-              Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms and Conditions</a> for more details on cancellation policies.
+              Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Terms and Conditions</a> for more details on cancellation policies.
             </p>
             <div className="flex justify-end gap-3">
               <button
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition-colors duration-150"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-150"
                 onClick={closeCancelModal}
                 disabled={updateLoading}
               >
                 No, Keep Booking
               </button>
               <button
-                className={`${updateLoading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-md transition-colors duration-150`}
+                className={`${updateLoading ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'} text-white px-4 py-2 rounded-lg transition-colors duration-150`}
                 onClick={handleConfirmCancel}
                 disabled={updateLoading}
               >
@@ -660,7 +660,7 @@ const Booking: React.FC = () => {
       {/* Driver Tracking Link Modal */}
       {showDriverTrackingModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4 z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+          <div className="bg-white p-8 rounded-xl shadow-xl max-w-lg w-full">
             <div className="text-center mb-6">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
                 <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,8 +673,8 @@ const Booking: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-md mb-6 break-all border border-gray-200">
-              <p className="text-sm font-mono text-blue-600 text-center select-all cursor-pointer" onClick={() => {
+            <div className="bg-gray-50 p-4 rounded-lg mb-6 break-all border border-gray-200">
+              <p className="text-sm font-mono text-indigo-600 text-center select-all cursor-pointer hover:text-indigo-800" onClick={() => {
                 navigator.clipboard.writeText(generatedTrackingLink);
                 toast.success('Link copied to clipboard!');
               }}>
@@ -684,7 +684,7 @@ const Booking: React.FC = () => {
 
             <div className="flex justify-center gap-3">
               <button
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition-colors duration-150 font-medium"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-colors duration-150 font-medium"
                 onClick={() => {
                   navigator.clipboard.writeText(generatedTrackingLink);
                   toast.success('Link copied to clipboard!');
@@ -693,7 +693,7 @@ const Booking: React.FC = () => {
                 Copy Link
               </button>
               <button
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-md transition-colors duration-150 font-medium"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg transition-colors duration-150 font-medium"
                 onClick={() => setShowDriverTrackingModal(false)}
               >
                 Close

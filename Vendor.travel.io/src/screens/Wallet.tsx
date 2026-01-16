@@ -65,7 +65,7 @@ const WalletComponent: React.FC = () => {
     setProcessing(true);
     try {
       const orderRes = await api.post('/wallet/recharge/create', { amount: rechargeAmount });
-      
+
       if (orderRes.data.success) {
         const options = {
           key: orderRes.data.key_id,
@@ -96,11 +96,11 @@ const WalletComponent: React.FC = () => {
           },
           prefill: {
             name: "Vendor",
-            email: "vendor@example.com", 
+            email: "vendor@example.com",
             contact: ""
           },
           theme: {
-            color: "#3399cc"
+            color: "#6366F1" // Indigo
           }
         };
 
@@ -117,26 +117,32 @@ const WalletComponent: React.FC = () => {
 
   return (
     <div className="w-full relative">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Wallet Dashboard</h1>
+
       {/* Wallet Balance and Top-up Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-md p-6 flex flex-col col-span-2">
-          <span className="text-gray-500 text-sm font-medium mb-2">Current Balance</span>
-          <div className="flex items-end justify-between">
+        <div className="bg-white rounded-xl shadow-md p-6 flex flex-col col-span-2 border border-blue-50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50"></div>
+          <span className="text-gray-500 text-sm font-medium mb-2 relative z-10">Current Balance</span>
+          <div className="flex items-end justify-between relative z-10">
             {loading ? (
-              <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-10 w-40 bg-gray-200 rounded animate-pulse" />
             ) : (
               <div className="flex flex-col">
-                 <span className={`text-4xl font-bold ${walletStats.currentBalance < 500 ? 'text-red-500' : 'text-gray-800'}`}>
-                    ₹{walletStats.currentBalance.toLocaleString()}
+                <span className={`text-4xl font-bold ${walletStats.currentBalance < 500 ? 'text-red-500' : 'text-gray-900'}`}>
+                  ₹{walletStats.currentBalance.toLocaleString()}
+                </span>
+                {walletStats.currentBalance < 500 && (
+                  <span className="text-sm text-red-500 font-medium mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Low Balance! Min ₹500 required.
                   </span>
-                  {walletStats.currentBalance < 500 && (
-                      <span className="text-sm text-red-500 font-medium mt-1">Low Balance! Min ₹500 required to accept bookings.</span>
-                  )}
+                )}
               </div>
             )}
-            <button 
+            <button
               onClick={() => setShowRechargeModal(true)}
-              className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center shadow-sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2.5 font-medium text-sm transition-all shadow-md shadow-indigo-200 flex items-center transform hover:-translate-y-0.5"
               disabled={loading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -147,12 +153,13 @@ const WalletComponent: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 flex flex-col">
-          <span className="text-gray-500 text-sm font-medium mb-2">Lifetime Earnings</span>
+        <div className="bg-white rounded-xl shadow-md p-6 flex flex-col border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-50 rounded-full blur-2xl opacity-50"></div>
+          <span className="text-gray-500 text-sm font-medium mb-2 relative z-10">Lifetime Earnings</span>
           {loading ? (
-            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse" />
           ) : (
-            <span className="text-3xl font-bold text-gray-800">
+            <span className="text-3xl font-bold text-gray-900 relative z-10">
               ₹{walletStats.lifetimeEarnings.toLocaleString()}
             </span>
           )}
@@ -160,16 +167,16 @@ const WalletComponent: React.FC = () => {
       </div>
 
       {/* Transaction History */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-             <h2 className="text-lg font-semibold text-gray-800">Wallet Transactions</h2>
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-lg font-semibold text-gray-800">Transaction History</h2>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date</th>
+              <tr className="bg-gray-50/50">
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date & Time</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Description</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Type</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Amount</th>
@@ -189,31 +196,35 @@ const WalletComponent: React.FC = () => {
                 ))
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    No transactions found
+                  <td colSpan={5} className="p-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                      <p className="font-medium">No transactions found yet</p>
+                      <p className="text-sm mt-1">Your wallet activity will appear here.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 transactions.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-sm text-gray-600 border-b border-gray-100">
-                      {new Date(t.created_at).toLocaleString('en-IN', { 
-                          day: 'numeric', month: 'short', year: 'numeric',
-                          hour: '2-digit', minute:'2-digit' 
+                      {new Date(t.created_at).toLocaleString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
                       })}
                     </td>
                     <td className="p-4 text-sm text-gray-800 border-b border-gray-100 font-medium">
                       {t.description || 'Transaction'}
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${t.type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {t.type.toUpperCase()}
-                        </span>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${t.type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {t.type.toUpperCase()}
+                      </span>
                     </td>
                     <td className={`p-4 text-sm font-bold border-b border-gray-100 ${t.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
                       {t.type === 'credit' ? '+' : '-'}₹{t.amount}
                     </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100 font-mono">
                       ₹{t.balance_after}
                     </td>
                   </tr>
@@ -224,53 +235,68 @@ const WalletComponent: React.FC = () => {
         </div>
       </div>
 
-        {/* Recharge Modal */}
-        {showRechargeModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 transform transition-all scale-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-gray-900">Add Money</h3>
-                        <button onClick={() => setShowRechargeModal(false)} className="text-gray-400 hover:text-gray-500">
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Enter Amount (₹)</label>
-                        <input 
-                            type="number"
-                            value={rechargeAmount}
-                            onChange={(e) => setRechargeAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-2xl font-bold text-center"
-                            placeholder="500"
-                        />
-                         <div className="flex justify-between gap-2 mt-3">
-                            {[500, 1000, 2000].map(amt => (
-                                <button 
-                                    key={amt}
-                                    onClick={() => setRechargeAmount(amt)}
-                                    className={`flex-1 py-1 rounded-md text-sm font-medium border ${rechargeAmount === amt ? 'bg-green-50 border-green-500 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                    ₹{amt}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleRecharge}
-                        disabled={processing || rechargeAmount <= 0}
-                        className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all
-                            ${processing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'}
-                        `}
-                    >
-                        {processing ? 'Processing...' : `Proceed to Pay ₹${rechargeAmount}`}
-                    </button>
-                </div>
+      {/* Recharge Modal */}
+      {showRechargeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-auto transform transition-all scale-100">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Add Money</h3>
+              <button onClick={() => setShowRechargeModal(false)} className="text-gray-400 hover:text-gray-500 bg-gray-50 p-1 rounded-full transition-colors">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-        )}
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Enter Amount (₹)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-xl">₹</span>
+                <input
+                  type="number"
+                  value={rechargeAmount}
+                  onChange={(e) => setRechargeAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-2xl font-bold text-gray-800"
+                  placeholder="500"
+                />
+              </div>
+              <div className="flex justify-between gap-2 mt-4">
+                {[500, 1000, 2000].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setRechargeAmount(amt)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${rechargeAmount === amt ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-xs text-center text-gray-500 mb-4">
+              Secured by Razorpay. Updates balance instantly.
+            </p>
+
+            <button
+              onClick={handleRecharge}
+              disabled={processing || rechargeAmount <= 0}
+              className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all
+                            ${processing ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-300 transform hover:-translate-y-0.5'}
+                        `}
+            >
+              {processing ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : `Proceed to Pay ₹${rechargeAmount}`}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

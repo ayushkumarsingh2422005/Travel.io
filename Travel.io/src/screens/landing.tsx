@@ -450,15 +450,15 @@ export default function MarcoCabService() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with Logo */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-md">
+      <header className="bg-gradient-to-r from-indigo-600 to-indigo-700 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <div className="text-2xl font-bold text-white">MARCO</div>
             <div className="hidden md:flex ml-10 space-x-6">
-              <a href="#services" className="text-white hover:text-blue-100 transition-colors">Services</a>
-              <a href="#reviews" className="text-white hover:text-blue-100 transition-colors">Reviews</a>
-              <a href="#contact" className="text-white hover:text-blue-100 transition-colors">Contact</a>
-              <a href="#partner" className="text-white hover:text-blue-100 transition-colors">Partner with us</a>
+              <a href="#services" className="text-white hover:text-indigo-100 transition-colors">Services</a>
+              <a href="#reviews" className="text-white hover:text-indigo-100 transition-colors">Reviews</a>
+              <a href="#contact" className="text-white hover:text-indigo-100 transition-colors">Contact</a>
+              <a href="#partner" className="text-white hover:text-indigo-100 transition-colors">Partner with us</a>
             </div>
           </div>
           {/* <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
@@ -467,7 +467,7 @@ export default function MarcoCabService() {
             </svg>
           </button> */}
           <div className="hidden md:block">
-            <Link to={"/login"} className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors">
+            <Link to={"/login"} className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
               Call Us
             </Link>
           </div>
@@ -480,7 +480,7 @@ export default function MarcoCabService() {
           <div className="flex flex-col md:flex-row gap-8">
             <div className="w-full md:w-1/2 flex flex-col justify-center">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Reliable Travel Partner</h1>
-              <p className="text-xl mb-8 text-blue-50">Experience comfortable, safe and affordable cab services throughout India.</p>
+              <p className="text-xl mb-8 text-indigo-50">Experience comfortable, safe and affordable cab services throughout India.</p>
               <div className="flex flex-wrap gap-4 mb-8">
                 {data.serviceTypes.slice(0, 4).map((type, index) => (
                   <span key={index} className="px-4 py-2 bg-white/20 rounded-full text-sm">
@@ -501,14 +501,14 @@ export default function MarcoCabService() {
                 </div>
                 <div className="ml-4">
                   <div className="text-xl font-bold">500+</div>
-                  <div className="text-sm text-blue-100">Happy Customers</div>
+                  <div className="text-sm text-indigo-100">Happy Customers</div>
                 </div>
               </div>
             </div>
 
             <div className="w-full md:w-1/2 text-black">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
                   <h2 className="text-xl font-bold text-white">Book Your Ride</h2>
                 </div>
 
@@ -518,7 +518,7 @@ export default function MarcoCabService() {
                       <button
                         type="button"
                         className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Round Trip"
-                          ? "bg-blue-600 text-white"
+                          ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         onClick={() => handleTripTypeChange("Round Trip")}
@@ -528,7 +528,7 @@ export default function MarcoCabService() {
                       <button
                         type="button"
                         className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "One Way"
-                          ? "bg-blue-600 text-white"
+                          ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         onClick={() => handleTripTypeChange("One Way")}
@@ -538,7 +538,7 @@ export default function MarcoCabService() {
                       <button
                         type="button"
                         className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors whitespace-nowrap ${bookingForm.tripType === "Hourly Rental"
-                          ? "bg-blue-600 text-white"
+                          ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         onClick={() => handleTripTypeChange("Hourly Rental")}
@@ -560,7 +560,7 @@ export default function MarcoCabService() {
                         value={bookingForm.pickupLocation}
                         onChange={handlePickupLocationChange}
                         placeholder="Pickup location"
-                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-h-500"
+                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-h-500"
                       />
                       {showPickupSuggestions && pickupSuggestions.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
@@ -591,7 +591,7 @@ export default function MarcoCabService() {
                             value={stop.location}
                             onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
                             placeholder="Stop location"
-                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:focus:border-blue-500"
+                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
                           />
                           {stop.showSuggestions && stop.suggestions.length > 0 && (
                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
@@ -637,7 +637,7 @@ export default function MarcoCabService() {
                           value={bookingForm.destination}
                           onChange={handleDestinationChange}
                           placeholder="Destination"
-                          className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                          className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                         />
                         {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
@@ -661,7 +661,7 @@ export default function MarcoCabService() {
                     <button
                       type="button"
                       onClick={handleAddStop}
-                      className="w-full p-3 rounded-lg border border-dashed border-blue-500 text-blue-600 mb-4 flex items-center justify-center hover:bg-blue-50 transition-colors"
+                      className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -679,7 +679,7 @@ export default function MarcoCabService() {
                       value={bookingForm.pickupDate}
                       onChange={handleBookingChange}
                       min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -697,7 +697,7 @@ export default function MarcoCabService() {
                         value={bookingForm.dropDate}
                         onChange={handleBookingChange}
                         min={bookingForm.pickupDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                        className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                        className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                         required
                       />
                     </div>
@@ -706,7 +706,7 @@ export default function MarcoCabService() {
 
                   <button
                     type="submit"
-                    className="w-full p-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                    className="w-full p-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
                   >
                     Check Price & Book
                   </button>
@@ -729,14 +729,14 @@ export default function MarcoCabService() {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-12">
             {data.services.map((service) => (
               <div key={service.id} className="bg-white rounded-xl shadow-md p-6 transform transition-transform hover:scale-105">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-14 h-14 rounded-full flex items-center justify-center mb-4 mx-auto text-white">
+                <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 w-14 h-14 rounded-full flex items-center justify-center mb-4 mx-auto text-white">
                   <span className="text-xl">{service.icon}</span>
                 </div>
                 <h3 className="text-lg font-semibold text-center mb-4">{service.title}</h3>
                 <ul className="space-y-2">
                   {service.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start">
-                      <svg className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-indigo-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       <span className="text-gray-700">{feature}</span>
@@ -751,7 +751,7 @@ export default function MarcoCabService() {
             <button
               type="button"
               onClick={handleBookNow}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-transform hover:-translate-y-1"
+              className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform transition-transform hover:-translate-y-1"
             >
               Book Your Cab Now
             </button>
@@ -760,7 +760,7 @@ export default function MarcoCabService() {
       </section >
 
       {/* Customer Reviews Section */}
-      < section id="reviews" className="py-16 bg-gradient-to-r from-blue-50 to-blue-50" >
+      < section id="reviews" className="py-16 bg-gradient-to-r from-indigo-50 to-indigo-50" >
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">What Our Customers Say</h2>
@@ -771,7 +771,7 @@ export default function MarcoCabService() {
             {data.reviews.map((review) => (
               <div key={review.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-center mb-4">
-                  <div className="w-14 h-14 rounded-full overflow-hidden mr-4 border-2 border-blue-500">
+                  <div className="w-14 h-14 rounded-full overflow-hidden mr-4 border-2 border-indigo-500">
                     <img src={review.avatarUrl} alt={review.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
@@ -805,7 +805,7 @@ export default function MarcoCabService() {
           </div>
 
           <div className="flex justify-center mt-12">
-            <button className="flex items-center text-blue-600 font-medium hover:text-blue-700 transition-colors">
+            <button className="flex items-center text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
               View all reviews
               <svg className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -821,9 +821,9 @@ export default function MarcoCabService() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Contact Us Form */}
             <div id="contact" className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
                 <h2 className="text-xl font-bold text-white">Contact Us</h2>
-                <p className="text-blue-100 text-sm">Drop a message, we're always here for you!</p>
+                <p className="text-indigo-100 text-sm">Drop a message, we're always here for you!</p>
               </div>
 
               <form onSubmit={handleContactSubmit} className="p-6">
@@ -836,7 +836,7 @@ export default function MarcoCabService() {
                       value={contactForm.name}
                       onChange={handleContactChange}
                       placeholder="Enter your name"
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -849,7 +849,7 @@ export default function MarcoCabService() {
                       value={contactForm.email}
                       onChange={handleContactChange}
                       placeholder="Your email address"
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -864,7 +864,7 @@ export default function MarcoCabService() {
                         value={contactForm.mobile}
                         onChange={handleContactChange}
                         placeholder="Your mobile number"
-                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500 max-w-[180px] sm:max-w-none"
+                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>
@@ -878,7 +878,7 @@ export default function MarcoCabService() {
                       onChange={handleContactChange}
                       placeholder="Write your message for us"
                       rows={4}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     ></textarea>
                   </div>
@@ -887,13 +887,13 @@ export default function MarcoCabService() {
                 <div className="mt-6 bg-gray-50 -mx-6 -mb-6 px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
                   <div className="mb-4 sm:mb-0">
                     <div className="flex items-center mb-1">
-                      <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <span className="text-sm text-gray-600">{data.contactInfo.email}</span>
                     </div>
                     <div className="flex items-center">
-                      <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                       <span className="text-sm text-gray-600">{data.contactInfo.phone}</span>
@@ -901,7 +901,7 @@ export default function MarcoCabService() {
                   </div>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
                   >
                     Send Message
                   </button>
@@ -911,9 +911,9 @@ export default function MarcoCabService() {
 
             {/* Partner with us Form */}
             <div id="partner" className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
                 <h2 className="text-xl font-bold text-white">Partner with Us</h2>
-                <p className="text-blue-100 text-sm">Attach your car with us and start earning!</p>
+                <p className="text-indigo-100 text-sm">Attach your car with us and start earning!</p>
               </div>
 
               <form onSubmit={handlePartnerSubmit} className="p-6">
@@ -926,7 +926,7 @@ export default function MarcoCabService() {
                       value={partnerForm.name}
                       onChange={handlePartnerChange}
                       placeholder="Enter your name"
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -939,7 +939,7 @@ export default function MarcoCabService() {
                       value={partnerForm.email}
                       onChange={handlePartnerChange}
                       placeholder="Your email address"
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -954,7 +954,7 @@ export default function MarcoCabService() {
                         value={partnerForm.mobile}
                         onChange={handlePartnerChange}
                         placeholder="Your mobile number"
-                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500 max-w-[180px] sm:max-w-none"
+                        className="flex-1 p-3 rounded-r-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 max-w-[180px] sm:max-w-none"
                         required
                       />
                     </div>
@@ -968,7 +968,7 @@ export default function MarcoCabService() {
                       onChange={handlePartnerChange}
                       placeholder="Tell us about your car and services"
                       rows={4}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     ></textarea>
                   </div>
@@ -977,13 +977,13 @@ export default function MarcoCabService() {
                 <div className="mt-6 bg-gray-50 -mx-6 -mb-6 px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
                   <div className="mb-4 sm:mb-0">
                     <div className="flex items-center mb-1">
-                      <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <span className="text-sm text-gray-600">{data.partnerInfo.email}</span>
                     </div>
                     <div className="flex items-center">
-                      <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                       <span className="text-sm text-gray-600">{data.partnerInfo.phone}</span>
@@ -991,7 +991,7 @@ export default function MarcoCabService() {
                   </div>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
                   >
                     Send Message
                   </button>

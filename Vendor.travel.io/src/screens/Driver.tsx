@@ -4,19 +4,19 @@ import toast from 'react-hot-toast'; // Already imported, but good to confirm
 
 interface Driver {
   id: string;
-  vendor_id ?: string;
+  vendor_id?: string;
   address: string;
   name: string;
   phone: string;
   languages: string[];
   dl_number: string;
-  dl_data: any; 
-  dl_issue_date?: string; 
+  dl_data: any;
+  dl_issue_date?: string;
   dl_expiry_date?: string;
-  dob?: string; 
+  dob?: string;
   approval_status?: string;
-  is_active ?: boolean;
-  vehicle_id ?: string;
+  is_active?: boolean;
+  vehicle_id?: string;
   image?: string;
 }
 
@@ -97,7 +97,7 @@ const DriverManagementComponent: React.FC = () => {
     setSearchTerm(e.target.value);
   };
 
-  const filteredDrivers = drivers.filter(driver => 
+  const filteredDrivers = drivers.filter(driver =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.dl_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -141,11 +141,11 @@ const DriverManagementComponent: React.FC = () => {
 
     setEditAutoFetchData({
       name: driver.name,
-      IssueDate: driver.dl_issue_date || '', 
+      IssueDate: driver.dl_issue_date || '',
       ExpiryDate: driver.dl_expiry_date || '', // Updated to match backend mapping if possible, or keep relying on dl_data
       address: driver.address,
       dl_number: driver.dl_number,
-      dl_data: '', 
+      dl_data: '',
       dob: driver.dob || ''
     });
     setSelectedLanguages(driver.languages || []);
@@ -186,7 +186,7 @@ const DriverManagementComponent: React.FC = () => {
       }
 
       const updatedDLNumber = editDlState + editDlRtoCode + editDlIssueYear + editDlNumberPart;
-      const updatedDOB = editDateOfBirth; 
+      const updatedDOB = editDateOfBirth;
 
       const formData = new FormData();
       formData.append('name', editAutoFetchData.name);
@@ -200,7 +200,7 @@ const DriverManagementComponent: React.FC = () => {
       formData.append('languages', JSON.stringify(selectedLanguages));
 
       if (driverPhoto) {
-          formData.append('image', driverPhoto);
+        formData.append('image', driverPhoto);
       }
 
       const response = await axios.put(`/driver/${currentDriverToEdit.id}`, formData, {
@@ -229,7 +229,7 @@ const DriverManagementComponent: React.FC = () => {
     }
   };
 
-  const handleDeleteDriver = async(driverId: string) => {
+  const handleDeleteDriver = async (driverId: string) => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
@@ -238,38 +238,38 @@ const DriverManagementComponent: React.FC = () => {
       }
 
       const response = await axios.delete(`/driver/${driverId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if(response.data.success){
-          toast.success(response.data.message);
-          setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
-        }
-        else{
-          toast.error(response.data.message || 'Failed to delete driver.');
-        }
-      
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
+      }
+      else {
+        toast.error(response.data.message || 'Failed to delete driver.');
+      }
+
     } catch (error: any) {
-        console.log(error);
-        toast.error(error.response?.data?.message || 'Something Went Wrong while deleting driver.');
+      console.log(error);
+      toast.error(error.response?.data?.message || 'Something Went Wrong while deleting driver.');
     }
   };
-  
+
   const handleShowBookingHistory = (driverId: string) => {
     // Implement show booking history functionality
     toast(`Showing booking history for driver ${driverId}`);
   };
-  
-  const handleConfirmAddDriver = async() => {
+
+  const handleConfirmAddDriver = async () => {
     try {
-       const token = localStorage.getItem("marcocabs_vendor_token");
+      const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
         toast.error('You must be logged in to add a driver.');
         return;
       }
-      
+
       const formData = new FormData();
       formData.append('name', AutoFetchData.name);
       formData.append('phone', phone);
@@ -279,31 +279,31 @@ const DriverManagementComponent: React.FC = () => {
       formData.append('dl_number', fullDLNumber);
 
       // Pass dl_data which is already a JSON string from verification
-      formData.append('dl_data', AutoFetchData.dl_data); 
-      
+      formData.append('dl_data', AutoFetchData.dl_data);
+
       if (AutoFetchData.dob) formData.append('dob', AutoFetchData.dob);
 
       formData.append('languages', JSON.stringify(selectedLanguages));
 
       if (driverPhoto) {
-          formData.append('image', driverPhoto);
+        formData.append('image', driverPhoto);
       }
 
       const response = await axios.post('/driver', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if(response.data.success){
+      if (response.data.success) {
         toast.success('Driver Added Successfully');
         setDrivers((prev) => [...prev, response.data.driver]);
       }
-      else{
+      else {
         toast.error(response.data.message || 'Please Check Driver Details');
       }
-      
+
     } catch (error: any) {
       console.log(error);
       toast.error(error.response?.data?.message || 'Please Check Driver Details');
@@ -320,7 +320,7 @@ const DriverManagementComponent: React.FC = () => {
     setSelectedLanguages(['Hindi', 'English']);
   };
 
-  const handleFetchDetails=async()=>{
+  const handleFetchDetails = async () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
@@ -329,41 +329,41 @@ const DriverManagementComponent: React.FC = () => {
       }
 
       const DLNumber = dlState + dlRtoCode + dlIssueYear + dl_number;
-       
+
       const [year, month, day] = dateOfBirth.split('-');
       const DOB = `${year}-${month}-${day}`;
 
-      const response = await axios.post('/driver/verify-license',{
-        dl_number:DLNumber,
-        dob:DOB
+      const response = await axios.post('/driver/verify-license', {
+        dl_number: DLNumber,
+        dob: DOB
       }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        
-        console.log(response.data);
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if(response.data.success){
-          if(response.data.data.dl_status!=="ACTIVE"){
-            toast.error('The Driving License is not Active');
-            return ;
-          }
-          console.log("setting the data");
-          setAutoFetchData({
-            name:response.data.data.name ?? '',
-            IssueDate:response.data.data.date_of_issue ?? '',
-            ExpiryDate:response.data.data.non_transport_to ?? '',
-            address:response.data.data.complete_address ?? '',
-            dl_number:response.data.data.dl_number ?? '',
-            dl_data:JSON.stringify(response.data.data) ?? '',
-            dob: response.data.data.dob ?? ''
-          });
-          toast.success('Driver License Verified Successfully');
+      console.log(response.data);
+
+      if (response.data.success) {
+        if (response.data.data.dl_status !== "ACTIVE") {
+          toast.error('The Driving License is not Active');
+          return;
         }
-        else{
-          toast.error(response.data.message || 'Verification Failed');
-        }
+        console.log("setting the data");
+        setAutoFetchData({
+          name: response.data.data.name ?? '',
+          IssueDate: response.data.data.date_of_issue ?? '',
+          ExpiryDate: response.data.data.non_transport_to ?? '',
+          address: response.data.data.complete_address ?? '',
+          dl_number: response.data.data.dl_number ?? '',
+          dl_data: JSON.stringify(response.data.data) ?? '',
+          dob: response.data.data.dob ?? ''
+        });
+        toast.success('Driver License Verified Successfully');
+      }
+      else {
+        toast.error(response.data.message || 'Verification Failed');
+      }
     } catch (error: any) {
       console.log(error);
       toast.error(error.response?.data?.message || 'Verification Failed');
@@ -380,8 +380,8 @@ const DriverManagementComponent: React.FC = () => {
   // };
 
   const getApprovalStatusBadgeClass = (status: string | undefined) => {
-    switch(status?.toLowerCase()) {
-      case 'approved': return 'bg-green-100 text-green-800';
+    switch (status?.toLowerCase()) {
+      case 'approved': return 'bg-green-100 text-green-800'; // Keep green for success
       case 'awaited': return 'bg-yellow-100 text-yellow-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -394,7 +394,7 @@ const DriverManagementComponent: React.FC = () => {
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[0, 1, 2].map((idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow-md p-6">
+          <div key={idx} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">
@@ -404,17 +404,19 @@ const DriverManagementComponent: React.FC = () => {
                   <div className="h-7 w-16 bg-gray-200 rounded animate-pulse mt-1" />
                 ) : (
                   <p className="text-2xl font-bold text-gray-800 mt-1">
-                  {idx === 0
+                    {idx === 0
                       ? drivers.length
                       : idx === 1
-                      ? drivers.filter(driver => driver.approval_status === 'approved').length
-                      : drivers.filter(driver => driver.approval_status === 'pending').length}
+                        ? drivers.filter(driver => driver.approval_status === 'approved').length
+                        : drivers.filter(driver => driver.approval_status === 'pending').length}
                   </p>
                 )}
               </div>
-              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {/* ...icon paths... */}
+              <div className={`p-3 ${idx === 0 ? 'bg-indigo-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-indigo-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {idx === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />}
+                  {idx === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                  {idx === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />}
                 </svg>
               </div>
             </div>
@@ -423,7 +425,7 @@ const DriverManagementComponent: React.FC = () => {
       </div>
 
       {/* Search and Add Driver */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-1/2">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -436,7 +438,7 @@ const DriverManagementComponent: React.FC = () => {
               placeholder="Search driver by name or DL number"
               value={searchTerm}
               onChange={handleSearch}
-              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all duration-200"
             />
           </div>
           <div className="flex gap-3">
@@ -455,7 +457,7 @@ const DriverManagementComponent: React.FC = () => {
             </button>
             <button
               onClick={handleAddDriver}
-              className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 whitespace-nowrap shadow-md shadow-indigo-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -467,11 +469,11 @@ const DriverManagementComponent: React.FC = () => {
       </div>
 
       {/* Drivers Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-gray-50/50">
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Driver Name</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Phone No.</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Languages</th>
@@ -509,7 +511,7 @@ const DriverManagementComponent: React.FC = () => {
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       <div className="flex flex-wrap gap-1">
                         {driver.languages && driver.languages.map((lang, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                          <span key={index} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
                             {lang}
                           </span>
                         ))}
@@ -526,7 +528,7 @@ const DriverManagementComponent: React.FC = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEditDriver(driver)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           title="Edit Driver"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -554,13 +556,13 @@ const DriverManagementComponent: React.FC = () => {
 
       {/* Add Driver Modal */}
       {showAddDriverModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 rounded-t-xl">
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-white text-xl font-semibold">Add New Driver</h2>
-                <button 
+                <h2 className="text-white text-xl font-bold">Add New Driver</h2>
+                <button
                   onClick={handleCloseModal}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
                 >
@@ -569,58 +571,61 @@ const DriverManagementComponent: React.FC = () => {
                   </svg>
                 </button>
               </div>
-              <p className="text-green-50 mt-2">
+              <p className="text-indigo-100 mt-2 text-sm">
                 Only provide drivers that you know and can guarantee for good service
               </p>
             </div>
-            
+
             {/* Modal Body */}
             <div className="p-6">
               <div className="space-y-6">
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-6">
                   <div className="flex gap-3">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div>
-                      <h3 className="font-medium text-yellow-800 mb-1">Important Note</h3>
-                      <p className="text-sm text-yellow-700">
-                        You are responsible for the drivers you add to the platform. 
+                      <h3 className="font-bold text-yellow-800 mb-1 text-sm">Important Note</h3>
+                      <p className="text-xs text-yellow-700">
+                        You are responsible for the drivers you add to the platform.
                         Make sure they are reliable and provide good service to customers.
                       </p>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Driver License Details */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Driver License Information</h3>
-                  <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">1</span>
+                    Driver License Information
+                  </h3>
+                  <div className="space-y-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Number</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Number Breakdown</label>
                       <div className="grid grid-cols-4 gap-3">
                         <input
                           type="text"
                           placeholder="State"
                           value={dlState}
                           onChange={(e) => setDlState(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={2}
                         />
                         <input
                           type="text"
-                          placeholder="RTO Code"
+                          placeholder="RTO"
                           value={dlRtoCode}
                           onChange={(e) => setDlRtoCode(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={2}
                         />
                         <input
                           type="text"
-                          placeholder="Issue Year"
+                          placeholder="Year"
                           value={dlIssueYear}
                           onChange={(e) => setDlIssueYear(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={4}
                         />
                         <input
@@ -628,28 +633,28 @@ const DriverManagementComponent: React.FC = () => {
                           placeholder="7 Digits"
                           value={dl_number}
                           onChange={(e) => setdl_number(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={7}
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col md:flex-row gap-4">
                       <div className="w-full md:w-1/2">
-                        <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <label htmlFor="dateOfBirth" className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Date of Birth</label>
                         <input
                           type="date"
                           id="dateOfBirth"
                           value={dateOfBirth}
                           onChange={(e) => setDateOfBirth(e.target.value)}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                         />
                       </div>
-                      
+
                       <div className="w-full md:w-1/2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fetch Details</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Action</label>
                         <button
-                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium shadow-md shadow-indigo-200"
                           onClick={handleFetchDetails}
                         >
                           Verify & Fetch Details
@@ -658,130 +663,145 @@ const DriverManagementComponent: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Auto Fetched Details */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Driver Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">2</span>
+                    Driver Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label>
                       <input
                         type="text"
                         placeholder="Auto fetch name"
                         disabled
                         value={AutoFetchData.name}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Issue Date</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Issue Date</label>
                       <input
                         type="text"
                         placeholder="Auto fetch issue date"
                         disabled
                         value={AutoFetchData.IssueDate}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Expiring Date</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Expiring Date</label>
                       <input
                         type="text"
                         placeholder="Auto fetch expiry date"
                         disabled
                         value={AutoFetchData.ExpiryDate}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Phone Number</label>
+                      <input
+                        type="text"
+                        placeholder="Phone Number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
+                        maxLength={12}
                       />
                     </div>
                   </div>
                 </div>
 
 
-                 <div>
-                   <input
-                          type="text"
-                          placeholder="Phone Number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                          maxLength={12}
-                        />
-                 </div>
-
-
                 {/* Document Upload */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Document Upload</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">3</span>
+                    Documents
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Image</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Image</label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 group-hover:text-indigo-500 transition-colors mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        <button className="text-sm text-indigo-600 font-bold hover:underline">Browse Files</button>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Driver Photo</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <input 
-                            type="file" 
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Driver Photo</label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                        <div className="relative w-full flex flex-col items-center">
+                          <input
+                            type="file"
                             accept="image/*"
                             onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                    setDriverPhoto(e.target.files[0]);
-                                }
+                              if (e.target.files && e.target.files[0]) {
+                                setDriverPhoto(e.target.files[0]);
+                              }
                             }}
-                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                        />
-                         {driverPhoto && <span className="text-xs text-green-600 mt-2">Selected: {driverPhoto.name}</span>}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 group-hover:text-indigo-500 transition-colors mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mb-1">Drop driver photo or</span>
+                          <span className="text-sm text-indigo-600 font-bold hover:underline">Browse Files</span>
+                        </div>
+                        {driverPhoto && <span className="text-xs text-indigo-600 mt-2 font-medium bg-indigo-50 px-2 py-1 rounded">Selected: {driverPhoto.name}</span>}
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Languages */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Languages Known</label>
-                  <div className="bg-white border border-gray-300 rounded-lg">
-                    <div className="p-4 flex flex-wrap gap-2">
-                      {selectedLanguages.map((lang, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center">
-                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                          <button className="ml-2 text-green-600 hover:text-green-800">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </span>
-                      ))}
-                      <button 
-                        onClick={handleChooseLanguages}
-                        className="px-3 py-1 border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        + Add Language
-                      </button>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 pl-10">Languages Known</label>
+                  <div className="pl-10">
+                    <div className="bg-white border border-gray-300 rounded-xl p-4">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedLanguages.map((lang, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm flex items-center font-medium">
+                            {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                            <button className="ml-2 text-indigo-600 hover:text-indigo-900">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </span>
+                        ))}
+                        <button
+                          onClick={handleChooseLanguages}
+                          className="px-3 py-1 border-2 border-dashed border-gray-300 rounded-full text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 font-medium transition-colors"
+                        >
+                          + Add Language
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Modal Footer */}
             <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
-              <button 
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+              <button
+                className="px-6 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-semibold"
                 onClick={handleCloseModal}
               >
                 Cancel
               </button>
-              <button 
-                className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              <button
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold shadow-md shadow-indigo-200"
                 onClick={handleConfirmAddDriver}
               >
                 Add Driver
@@ -793,12 +813,12 @@ const DriverManagementComponent: React.FC = () => {
 
       {/* Edit Driver Modal */}
       {showEditDriverModal && currentDriverToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 rounded-t-xl">
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-white text-xl font-semibold">Edit Driver</h2>
+                <h2 className="text-white text-xl font-bold">Edit Driver</h2>
                 <button
                   onClick={handleCloseEditModal}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
@@ -808,7 +828,7 @@ const DriverManagementComponent: React.FC = () => {
                   </svg>
                 </button>
               </div>
-              <p className="text-green-50 mt-2">
+              <p className="text-indigo-100 mt-2 text-sm">
                 Update the details for {currentDriverToEdit.name}
               </p>
             </div>
@@ -818,33 +838,36 @@ const DriverManagementComponent: React.FC = () => {
               <div className="space-y-6">
                 {/* Driver License Details */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Driver License Information</h3>
-                  <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">1</span>
+                    Driver License Information
+                  </h3>
+                  <div className="space-y-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Number</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Number</label>
                       <div className="grid grid-cols-4 gap-3">
                         <input
                           type="text"
                           placeholder="State"
                           value={editDlState}
                           onChange={(e) => setEditDlState(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={2}
                         />
                         <input
                           type="text"
-                          placeholder="RTO Code"
+                          placeholder="RTO"
                           value={editDlRtoCode}
                           onChange={(e) => setEditDlRtoCode(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={2}
                         />
                         <input
                           type="text"
-                          placeholder="Issue Year"
+                          placeholder="Year"
                           value={editDlIssueYear}
                           onChange={(e) => setEditDlIssueYear(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={4}
                         />
                         <input
@@ -852,7 +875,7 @@ const DriverManagementComponent: React.FC = () => {
                           placeholder="7 Digits"
                           value={editDlNumberPart}
                           onChange={(e) => setEditDlNumberPart(e.target.value)}
-                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                           maxLength={7}
                         />
                       </div>
@@ -860,20 +883,20 @@ const DriverManagementComponent: React.FC = () => {
 
                     <div className="flex flex-col md:flex-row gap-4">
                       <div className="w-full md:w-1/2">
-                        <label htmlFor="editDateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <label htmlFor="editDateOfBirth" className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Date of Birth</label>
                         <input
                           type="date"
                           id="editDateOfBirth"
                           value={editDateOfBirth}
                           onChange={(e) => setEditDateOfBirth(e.target.value)}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
                         />
                       </div>
 
                       <div className="w-full md:w-1/2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fetch Details</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Action</label>
                         <button
-                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md shadow-indigo-200"
                           onClick={handleFetchDetails} // This will update AutoFetchData, not editAutoFetchData
                         >
                           Verify & Fetch Details
@@ -885,83 +908,92 @@ const DriverManagementComponent: React.FC = () => {
 
                 {/* Auto Fetched Details */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Driver Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">2</span>
+                    Driver Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label>
                       <input
                         type="text"
                         placeholder="Auto fetch name"
                         disabled
                         value={editAutoFetchData.name}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Issue Date</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Issue Date</label>
                       <input
                         type="text"
                         placeholder="Auto fetch issue date"
                         disabled
                         value={editAutoFetchData.IssueDate}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Expiring Date</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Expiring Date</label>
                       <input
                         type="text"
                         placeholder="Auto fetch expiry date"
                         disabled
                         value={editAutoFetchData.ExpiryDate}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Phone Number</label>
+                      <input
+                        type="text"
+                        placeholder="Phone Number"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
+                        maxLength={12}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Phone Number"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-500 transition-all"
-                    maxLength={12}
-                  />
-                </div>
-
                 {/* Document Upload (Placeholder for now) */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Document Upload</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">3</span>
+                    Documents
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-10">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DL Image</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">DL Image</label>
+                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span className="text-sm text-gray-500 mb-1">Drop file here or</span>
-                        <button className="text-sm text-green-600 font-medium">Browse Files</button>
+                        <button className="text-sm text-indigo-600 font-bold hover:underline">Browse Files</button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Driver Photo</label>
-                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
-                        <input 
-                            type="file" 
-                            accept="image/*"
-                            onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                    setDriverPhoto(e.target.files[0]);
-                                }
-                            }}
-                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Driver Photo</label>
+                      <div className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setDriverPhoto(e.target.files[0]);
+                            }
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
-                         {driverPhoto && <span className="text-xs text-green-600 mt-2">Selected: {driverPhoto.name}</span>}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {driverPhoto ? <span className="text-xs text-indigo-600 mt-2 font-medium bg-indigo-50 px-2 py-1 rounded">Selected: {driverPhoto.name}</span> : <span className="text-sm text-indigo-600 font-bold hover:underline">Browse Files</span>}
                       </div>
                     </div>
                   </div>
@@ -969,30 +1001,32 @@ const DriverManagementComponent: React.FC = () => {
 
                 {/* Languages */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Languages Known</label>
-                  <div className="bg-white border border-gray-300 rounded-lg">
-                    <div className="p-4 flex flex-wrap gap-2">
-                       {selectedLanguages.map((lang, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center">
-                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                          <button 
-                             className="ml-2 text-green-600 hover:text-green-800"
-                             onClick={() => {
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 pl-10">Languages Known</label>
+                  <div className="pl-10">
+                    <div className="bg-white border border-gray-300 rounded-xl p-4">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedLanguages.map((lang, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm flex items-center font-medium">
+                            {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                            <button
+                              className="ml-2 text-indigo-600 hover:text-indigo-900"
+                              onClick={() => {
                                 // Logic to remove language if needed
-                             }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </span>
-                      ))}
-                      <button
-                        onClick={handleChooseLanguages}
-                        className="px-3 py-1 border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        + Add Language
-                      </button>
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </span>
+                        ))}
+                        <button
+                          onClick={handleChooseLanguages}
+                          className="px-3 py-1 border-2 border-dashed border-gray-300 rounded-full text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 font-medium transition-colors"
+                        >
+                          + Add Language
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1002,13 +1036,13 @@ const DriverManagementComponent: React.FC = () => {
             {/* Modal Footer */}
             <div className="p-6 bg-gray-50 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
               <button
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                className="px-6 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-semibold"
                 onClick={handleCloseEditModal}
               >
                 Cancel
               </button>
               <button
-                className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold shadow-md shadow-indigo-200"
                 onClick={handleUpdateDriver}
               >
                 Save Changes

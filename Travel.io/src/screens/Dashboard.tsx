@@ -197,7 +197,7 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-start">
-                          <span className="text-blue-500 mr-3 mt-1">🕒</span>
+                          <span className="text-indigo-500 mr-3 mt-1">🕒</span>
                           <div>
                             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Date & Time</p>
                             <p className="text-gray-800 font-medium">
@@ -214,9 +214,9 @@ const Dashboard = () => {
                       <p>Driver: Pending Assignment...</p>
                     </div>
                     {activeBooking.booking_otp && (
-                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-center shadow-sm max-w-sm mx-auto">
-                        <p className="text-sm text-blue-700 font-bold uppercase tracking-widest mb-1">Start Ride OTP</p>
-                        <p className="text-4xl font-extrabold text-blue-900 tracking-[0.2em]">{activeBooking.booking_otp}</p>
+                      <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-center shadow-sm max-w-sm mx-auto">
+                        <p className="text-sm text-indigo-700 font-bold uppercase tracking-widest mb-1">Start Ride OTP</p>
+                        <p className="text-4xl font-extrabold text-indigo-900 tracking-[0.2em]">{activeBooking.booking_otp}</p>
                       </div>
                     )}
                   </div>
@@ -250,7 +250,7 @@ const Dashboard = () => {
 
                       <div className="flex items-start">
                         <div className="flex-shrink-0 mt-1 mr-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           </div>
                         </div>
@@ -315,10 +315,10 @@ const Dashboard = () => {
               {/* Full Width OTP Banner (Outside Grid) */}
               {activeBooking.status !== 'waiting' && activeBooking.booking_otp && (
                 <div className="mt-8 pt-6 border-t border-dashed border-gray-200">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 text-center max-w-2xl mx-auto shadow-sm">
-                    <p className="text-sm text-blue-600 font-bold uppercase tracking-widest mb-2">Share this OTP with your driver</p>
-                    <div className="inline-block bg-white px-8 py-3 rounded-xl border-2 border-blue-200 shadow-sm">
-                      <p className="text-5xl font-black text-blue-600 tracking-[0.2em] font-mono">{activeBooking.booking_otp}</p>
+                  <div className="bg-gradient-to-r from-indigo-50 to-indigo-50 border border-indigo-100 rounded-2xl p-6 text-center max-w-2xl mx-auto shadow-sm">
+                    <p className="text-sm text-indigo-600 font-bold uppercase tracking-widest mb-2">Share this OTP with your driver</p>
+                    <div className="inline-block bg-white px-8 py-3 rounded-xl border-2 border-indigo-200 shadow-sm">
+                      <p className="text-5xl font-black text-indigo-600 tracking-[0.2em] font-mono">{activeBooking.booking_otp}</p>
                     </div>
                     <p className="text-xs text-gray-500 mt-3">Do not share this OTP until you are in the cab.</p>
                   </div>
@@ -331,7 +331,7 @@ const Dashboard = () => {
               <p className="text-gray-600 mb-4">Looking to book a ride?</p>
               <Link
                 to="/"
-                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 Book Now
               </Link>
@@ -345,7 +345,7 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-gray-800">Recent Bookings</h2>
             <Link
               to="/previous-bookings"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-indigo-600 hover:text-indigo-700 font-medium"
             >
               View All
             </Link>
@@ -370,7 +370,7 @@ const Dashboard = () => {
                     <div className="text-right">
                       <p className="font-semibold text-gray-800">₹{booking.price.toLocaleString()}</p>
                       <span className={`text-sm ${booking.status === 'completed'
-                        ? 'text-blue-600'
+                        ? 'text-indigo-600'
                         : 'text-red-600'
                         }`}>
                         {booking.status}

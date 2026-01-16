@@ -91,7 +91,7 @@ const DriverTracking: React.FC = () => {
     if (loading && !bookingDetails) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
             </div>
         );
     }
@@ -112,56 +112,63 @@ const DriverTracking: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+            <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl border border-gray-100">
                 <div className="md:flex">
                     <div className="p-8 w-full">
-                        <div className="uppercase tracking-wide text-sm text-green-500 font-semibold mb-1">Driver Portal</div>
-                        <h1 className="block mt-1 text-lg leading-tight font-medium text-black">Trip Details</h1>
+                        <div className="uppercase tracking-wide text-sm text-indigo-600 font-bold mb-1">Driver Portal</div>
+                        <h1 className="block mt-1 text-2xl leading-tight font-bold text-gray-900">Trip Details</h1>
 
                         {bookingDetails ? (
                             <div className="mt-6 space-y-4">
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="text-gray-500">Customer</span>
-                                    <span className="font-medium">{bookingDetails.customer_name}</span>
+                                <div className="flex justify-between border-b border-gray-100 pb-3">
+                                    <span className="text-gray-500 text-sm">Customer</span>
+                                    <span className="font-semibold text-gray-900">{bookingDetails.customer_name}</span>
                                 </div>
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="text-gray-500">Phone</span>
-                                    <a href={`tel:${bookingDetails.customer_phone}`} className="font-medium text-blue-600">{bookingDetails.customer_phone}</a>
+                                <div className="flex justify-between border-b border-gray-100 pb-3">
+                                    <span className="text-gray-500 text-sm">Phone</span>
+                                    <a href={`tel:${bookingDetails.customer_phone}`} className="font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                        </svg>
+                                        {bookingDetails.customer_phone}
+                                    </a>
                                 </div>
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="text-gray-500">Pickup</span>
-                                    <span className="font-medium text-right">{bookingDetails.pickup_location}</span>
+                                <div className="flex justify-between border-b border-gray-100 pb-3">
+                                    <span className="text-gray-500 text-sm">Pickup</span>
+                                    <span className="font-medium text-right text-gray-900 max-w-[60%]">{bookingDetails.pickup_location}</span>
                                 </div>
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="text-gray-500">Dropoff</span>
-                                    <span className="font-medium text-right">{bookingDetails.dropoff_location}</span>
+                                <div className="flex justify-between border-b border-gray-100 pb-3">
+                                    <span className="text-gray-500 text-sm">Dropoff</span>
+                                    <span className="font-medium text-right text-gray-900 max-w-[60%]">{bookingDetails.dropoff_location}</span>
                                 </div>
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="text-gray-500">Date</span>
-                                    <span className="font-medium">{new Date(bookingDetails.pickup_date).toLocaleString()}</span>
+                                <div className="flex justify-between border-b border-gray-100 pb-3">
+                                    <span className="text-gray-500 text-sm">Date</span>
+                                    <span className="font-medium text-gray-900">{new Date(bookingDetails.pickup_date).toLocaleString()}</span>
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-gray-500 mt-4">Loading details...</p>
+                            <div className="flex justify-center items-center py-8">
+                                <div className="animate-pulse text-gray-400">Loading details...</div>
+                            </div>
                         )}
 
                         <div className="mt-8">
                             {bookingDetails?.status === 'completed' ? (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                                    <svg className="mx-auto h-12 w-12 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center shadow-sm">
+                                    <svg className="mx-auto h-12 w-12 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
-                                    <h3 className="text-lg font-bold text-blue-800">Trip Completed</h3>
-                                    <p className="text-blue-600">This trip has been successfully completed.</p>
+                                    <h3 className="text-lg font-bold text-green-800">Trip Completed</h3>
+                                    <p className="text-green-600 text-sm mt-1">This trip has been successfully completed.</p>
                                 </div>
                             ) : tripStarted || (bookingDetails?.status === 'ongoing') ? (
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                                    <svg className="mx-auto h-12 w-12 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <h3 className="text-lg font-bold text-green-800">Trip Started</h3>
-                                    <p className="text-green-600 mb-4">Drive safely!</p>
-                                    
+                                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6 text-center shadow-sm">
+                                    <div className="animate-pulse mb-3">
+                                        <span className="inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-indigo-800 mb-1">Trip Started</h3>
+                                    <p className="text-indigo-600 mb-6 text-sm">Drive safely to the destination!</p>
+
                                     <button
                                         onClick={async () => {
                                             if (!confirm('Are you sure you want to complete this trip?')) return;
@@ -173,7 +180,7 @@ const DriverTracking: React.FC = () => {
                                                 if (response.data.success) {
                                                     toast.success('Trip Completed Successfully!');
                                                     setBookingDetails(prev => prev ? { ...prev, status: 'completed' } : null);
-                                                    setTripStarted(false); 
+                                                    setTripStarted(false);
                                                 }
                                             } catch (err: any) {
                                                 console.error('Error completing trip:', err);
@@ -183,22 +190,22 @@ const DriverTracking: React.FC = () => {
                                             }
                                         }}
                                         disabled={loading}
-                                        className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        className="w-full py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
                                     >
                                         {loading ? 'Processing...' : 'Complete Trip'}
                                     </button>
                                 </div>
                             ) : (
-                                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                                <form onSubmit={handleVerifyOtp} className="space-y-5 bg-gray-50 p-6 rounded-xl border border-gray-100">
                                     <div>
-                                        <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 mb-2 text-center">
                                             Enter Start OTP (from Customer)
                                         </label>
                                         <input
                                             type="text"
                                             id="otp"
-                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm tracking-widest text-center text-2xl"
-                                            placeholder="XXXXXX"
+                                            className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm tracking-[1em] text-center text-2xl font-mono transition-shadow"
+                                            placeholder="••••••"
                                             value={otp}
                                             onChange={(e) => setOtp(e.target.value)}
                                             maxLength={6}
@@ -208,9 +215,17 @@ const DriverTracking: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={loading || otp.length < 4}
-                                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400"
+                                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all"
                                     >
-                                        {loading ? 'Verifying...' : 'Start Trip'}
+                                        {loading ? (
+                                            <span className="flex items-center gap-2">
+                                                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Verifying...
+                                            </span>
+                                        ) : 'Start Trip'}
                                     </button>
                                 </form>
                             )}

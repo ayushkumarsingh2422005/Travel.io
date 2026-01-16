@@ -373,7 +373,7 @@ export default function BookingPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading booking details and profile...</p>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function BookingPage() {
                 value={formData.phone}
                 onChange={handleFormChange}
                 placeholder="e.g., 9876543210"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                 required
               />
               {!userProfile?.is_phone_verified && formData.phone && (
@@ -406,7 +406,7 @@ export default function BookingPage() {
                   type="button"
                   onClick={handleSendOtp}
                   disabled={loading}
-                  className="mt-2 w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                  className="mt-2 w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
                 >
                   {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
                 </button>
@@ -419,7 +419,7 @@ export default function BookingPage() {
                 name="gender"
                 value={formData.gender}
                 onChange={handleFormChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                 required
               >
                 <option value="Select Gender">Select Gender</option>
@@ -437,7 +437,7 @@ export default function BookingPage() {
                 value={formData.age}
                 onChange={handleFormChange}
                 placeholder="Your age"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                 required
               />
             </div>
@@ -450,14 +450,14 @@ export default function BookingPage() {
                 onChange={handleFormChange}
                 placeholder="Your current address"
                 rows={3}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                 required
               ></textarea>
             </div>
             <button
               type="submit"
               disabled={loading || (formData.gender === 'Select Gender' || !formData.age || !formData.current_address || !formData.phone)}
-              className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+              className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
             >
               {loading ? 'Saving Profile...' : 'Save Profile and Continue'}
             </button>
@@ -478,7 +478,7 @@ export default function BookingPage() {
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="XXXXXX"
                       maxLength={6}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:border-blue-500 text-center tracking-widest"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 text-center tracking-widest"
                       required
                     />
                   </div>
@@ -493,7 +493,7 @@ export default function BookingPage() {
                     <button
                       type="submit"
                       disabled={loading || otp.length !== 6}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
                     >
                       {loading ? 'Verifying...' : 'Verify OTP'}
                     </button>
@@ -510,7 +510,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-800 to-blue-600 text-white shadow-lg">
+      <header className="bg-gradient-to-r from-indigo-800 to-indigo-600 text-white shadow-lg">
         <div className="container mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -522,7 +522,7 @@ export default function BookingPage() {
             </div>
             <button
               onClick={() => navigate('/prices', { state: bookingData })}
-              className="text-white hover:text-blue-100 transition-colors"
+              className="text-white hover:text-indigo-100 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -546,7 +546,7 @@ export default function BookingPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Trip Details Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -557,33 +557,33 @@ export default function BookingPage() {
 
                 <div className="p-6">
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="font-medium text-gray-700">Trip Type</span>
                       </div>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
                         {bookingData.tripType}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17.25V21.75A2.25 2.25 0 0011.25 24h1.5A2.25 2.25 0 0015 21.75V17.25m-3 0V14.25m0 3l-2.25-2.25m2.25 2.25l2.25-2.25m-2.25-10.5H12a2.25 2.25 0 00-2.25 2.25v1.5A2.25 2.25 0 0012 9h.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span className="font-medium text-gray-700">Cab Category</span>
                       </div>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
                         {bookingData.cab_category_name}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
                         <span className="font-medium text-gray-700">Distance</span>
@@ -591,9 +591,9 @@ export default function BookingPage() {
                       <span className="font-semibold text-gray-800">{bookingData.distance}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span className="font-medium text-gray-700">Duration</span>
@@ -601,9 +601,9 @@ export default function BookingPage() {
                       <span className="font-semibold text-gray-800">{bookingData.duration}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="font-medium text-gray-700">Pickup Date & Time</span>
@@ -614,9 +614,9 @@ export default function BookingPage() {
                     </div>
 
 
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="font-medium text-gray-700">Return Date & Time</span>
@@ -632,7 +632,7 @@ export default function BookingPage() {
 
               {/* Route Details Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -644,9 +644,9 @@ export default function BookingPage() {
                 <div className="p-6">
                   <div className="space-y-6">
                     <div className="relative pl-8 pb-6">
-                      <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-blue-200"></div>
+                      <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-indigo-200"></div>
                       <div className="flex items-center mb-2">
-                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
+                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-md">
                           <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                           </svg>
@@ -658,7 +658,7 @@ export default function BookingPage() {
 
                     {bookingData.stops?.map((stop, index) => (
                       <div key={index} className="relative pl-8 pb-6">
-                        <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-blue-200"></div>
+                        <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-indigo-200"></div>
                         <div className="flex items-center mb-2">
                           <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
                             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -672,7 +672,7 @@ export default function BookingPage() {
                     ))}
 
                     <div className="relative pl-8">
-                      <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-blue-200"></div>
+                      <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-indigo-200"></div>
                       <div className="flex items-center mb-2">
                         <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
                           <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -701,7 +701,7 @@ export default function BookingPage() {
             <div className="space-y-6">
               {/* Price Summary Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -719,7 +719,7 @@ export default function BookingPage() {
                     {addOnsTotal > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Add-Ons Total</span>
-                        <span className="font-semibold text-blue-600">+₹{addOnsTotal.toLocaleString()}</span>
+                        <span className="font-semibold text-indigo-600">+₹{addOnsTotal.toLocaleString()}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center">
@@ -736,7 +736,7 @@ export default function BookingPage() {
                           <span className="text-lg font-bold text-gray-800">Total Upfront Payment</span>
                           <p className="text-xs text-gray-500">To pay now to confirm booking</p>
                         </div>
-                        <span className="text-xl font-bold text-blue-600">₹{pricing.totalUpfrontPayment.toLocaleString()}</span>
+                        <span className="text-xl font-bold text-indigo-600">₹{pricing.totalUpfrontPayment.toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -755,7 +755,7 @@ export default function BookingPage() {
 
               {/* Partner ID Input */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -775,7 +775,7 @@ export default function BookingPage() {
                       value={partnerId}
                       onChange={(e) => setPartnerId(e.target.value)}
                       placeholder="Enter partner ID if referred"
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-blue-200 focus:border-blue-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Leave blank if you weren't referred by a partner
@@ -799,7 +799,7 @@ export default function BookingPage() {
                 <button
                   onClick={handleCreateBooking}
                   disabled={loading || bookingData.isRouteLoading} // Disable if loading or route is still loading
-                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"
                 >
                   {loading ? (
                     <>

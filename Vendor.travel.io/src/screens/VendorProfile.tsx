@@ -605,18 +605,18 @@ const VendorProfile: React.FC = () => {
 
   if (!vendorInfo) {
     return (
-      <div className="w-full p-6 bg-white rounded-xl shadow-md">
+      <div className="w-full p-6 bg-white rounded-2xl shadow-sm">
         <p className="text-center text-gray-500">No vendor information found.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50/50 p-4 sm:p-6 lg:p-8">
       {/* Profile Header */}
-      <div className="bg-white shadow-lg rounded-xl p-6 sm:p-8 mb-6 border border-gray-200">
+      <div className="bg-white shadow-sm rounded-2xl p-6 sm:p-8 mb-6 border border-gray-100">
         <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
-          <div className="w-32 h-32 rounded-full bg-gray-100 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-md overflow-hidden ring-4 ring-green-200">
+          <div className="w-32 h-32 rounded-full bg-indigo-50 flex-shrink-0 transform hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden ring-4 ring-indigo-50 p-1">
             {vendorInfo.profilePic ? (
               <img
                 src={vendorInfo.profilePic}
@@ -624,8 +624,8 @@ const VendorProfile: React.FC = () => {
                 className="w-full h-full object-cover rounded-full"
               />
             ) : (
-              <div className="w-full h-full rounded-full flex items-center justify-center bg-gray-200">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-full h-full rounded-full flex items-center justify-center bg-indigo-100 text-indigo-300">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -633,19 +633,19 @@ const VendorProfile: React.FC = () => {
           </div>
 
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">{vendorInfo.fullName}</h1>
-            <p className="text-gray-700 text-base sm:text-lg mb-1">{vendorInfo.email}</p>
-            <p className="text-gray-700 text-base sm:text-lg">{vendorInfo.mobile}</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">{vendorInfo.fullName}</h1>
+            <p className="text-gray-500 text-base sm:text-lg mb-1">{vendorInfo.email}</p>
+            <p className="text-gray-500 text-base sm:text-lg font-mono">{vendorInfo.mobile}</p>
 
             <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getKycStatusClass(vendorInfo.kycStatus)}`}>
+              <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ${getKycStatusClass(vendorInfo.kycStatus)}`}>
                 KYC: {vendorInfo.kycStatus}
               </span>
-              <span className="px-4 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                Member since {new Date(vendorInfo.joinDate).toLocaleDateString()}
+              <span className="px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-xs font-bold uppercase tracking-wide">
+                Member since {new Date(vendorInfo.joinDate).getFullYear()}
               </span>
-              <span className="px-4 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-                {vendorInfo.businessType}
+              <span className="px-4 py-1.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-xs font-bold uppercase tracking-wide">
+                {vendorInfo.businessType || 'N/A'}
               </span>
             </div>
           </div>
@@ -653,7 +653,7 @@ const VendorProfile: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
             <Link
               to="/dashboard"
-              className="px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-2 text-base font-medium shadow-md"
+              className="px-6 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-gray-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
@@ -664,12 +664,23 @@ const VendorProfile: React.FC = () => {
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 flex items-center justify-center gap-2 text-base font-medium shadow-md"
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-indigo-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 Edit Profile
+              </button>
+            )}
+            {isEditing && (
+              <button
+                onClick={handleSaveProfile}
+                className="px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-green-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
               </button>
             )}
           </div>
@@ -678,146 +689,139 @@ const VendorProfile: React.FC = () => {
 
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-200">
-          <p className="text-sm font-medium text-gray-500 mb-1">Total Cars</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.numberOfCars}</p>
-          <p className="text-xs text-gray-600 mt-1">Registered vehicles</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-200">
-          <p className="text-sm font-medium text-gray-500 mb-1">Total Earnings</p>
-          <p className="text-2xl font-bold text-gray-900">₹{vendorInfo.totalEarnings.toLocaleString()}</p>
-          <p className="text-xs text-gray-600 mt-1">Lifetime earnings</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-200">
-          <p className="text-sm font-medium text-gray-500 mb-1">Wallet Balance</p>
-          <p className="text-2xl font-bold text-gray-900">₹{vendorInfo.walletBalance.toLocaleString()}</p>
-          <p className="text-xs text-gray-600 mt-1">Available balance</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-200">
-          <p className="text-sm font-medium text-gray-500 mb-1">Rating</p>
-          <p className="text-2xl font-bold text-gray-900">{vendorInfo.starRating}</p>
-          <p className="text-xs text-gray-600 mt-1">Customer rating</p>
-        </div>
+        {[
+          { label: 'Total Cars', value: vendorInfo.numberOfCars, sub: 'Registered vehicles', icon: '🚗', color: 'bg-blue-50 text-blue-600' },
+          { label: 'Total Earnings', value: `₹${vendorInfo.totalEarnings.toLocaleString()}`, sub: 'Lifetime earnings', icon: '💰', color: 'bg-green-50 text-green-600' },
+          { label: 'Wallet Balance', value: `₹${vendorInfo.walletBalance.toLocaleString()}`, sub: 'Available balance', icon: '💼', color: 'bg-purple-50 text-purple-600' },
+          { label: 'Rating', value: vendorInfo.starRating, sub: 'Customer rating', icon: '⭐', color: 'bg-orange-50 text-orange-600' }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mr-4 flex-shrink-0 ${item.color}`}>
+              {item.icon}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-400 mb-0.5">{item.label}</p>
+              <p className="text-xl font-bold text-gray-900">{item.value}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{item.sub}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div className="bg-white shadow-md rounded-t-xl border-x border-t border-gray-200">
-        <div className="flex overflow-x-auto space-x-1 p-2">
+      <div className="bg-white shadow-sm rounded-t-2xl border-x border-t border-gray-100 px-6 pt-6">
+        <div className="flex overflow-x-auto space-x-4 border-b border-gray-100">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'profile'
-              ? 'bg-green-50 text-green-800'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            className={`pb-4 px-2 text-sm font-bold transition-all relative ${activeTab === 'profile'
+              ? 'text-indigo-600'
+              : 'text-gray-400 hover:text-gray-600'
               }`}
           >
             Profile Details
+            {activeTab === 'profile' && <span className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></span>}
           </button>
           <button
             onClick={() => setActiveTab('business')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'business'
-              ? 'bg-green-50 text-green-800'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            className={`pb-4 px-2 text-sm font-bold transition-all relative ${activeTab === 'business'
+              ? 'text-indigo-600'
+              : 'text-gray-400 hover:text-gray-600'
               }`}
           >
             Business Details
+            {activeTab === 'business' && <span className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></span>}
           </button>
           <button
             onClick={() => setActiveTab('bank')}
-            className={`flex-shrink-0 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'bank'
-              ? 'bg-green-50 text-green-800'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            className={`pb-4 px-2 text-sm font-bold transition-all relative ${activeTab === 'bank'
+              ? 'text-indigo-600'
+              : 'text-gray-400 hover:text-gray-600'
               }`}
           >
             Bank Details
+            {activeTab === 'bank' && <span className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></span>}
           </button>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white shadow-lg rounded-b-xl p-6 sm:p-8 mb-8 border-x border-b border-gray-200">
+      <div className="bg-white shadow-sm rounded-b-2xl p-6 sm:p-8 mb-8 border-x border-b border-gray-100">
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* Full Name */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
               {isEditing ? (
                 <input
                   type="text"
                   name="fullName"
                   value={editedInfo.fullName || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.fullName}</p>
+                <p className="text-gray-900 text-lg font-semibold">{vendorInfo.fullName}</p>
               )}
             </div>
 
             {/* Email */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-              <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.email || 'No email address added'}</p>
-
-              {vendorInfo.email && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.isEmailVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {vendorInfo.isEmailVerified ? 'Verified' : 'Not Verified'}
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Email</label>
+              <div className="flex items-center justify-between">
+                <p className="text-gray-900 text-lg font-semibold">{vendorInfo.email || 'No email address added'}</p>
+                {vendorInfo.email && (
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${vendorInfo.isEmailVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {vendorInfo.isEmailVerified ? 'VERIFIED' : 'UNVERIFIED'}
                   </span>
-                  {!vendorInfo.isEmailVerified && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleVerifyEmail}
-                        className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
-                      >
-                        Verify Email
-                      </button>
-                      <button
-                        onClick={() => fetchVendorData(true)}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
-                        title="Click this after verifying in your email"
-                      >
-                        Check Status
-                      </button>
-                    </div>
-                  )}
+                )}
+              </div>
+              {!vendorInfo.isEmailVerified && vendorInfo.email && (
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={handleVerifyEmail}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    Verify Email Now
+                  </button>
+                  <button
+                    onClick={() => fetchVendorData(true)}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 underline ml-3"
+                  >
+                    Check Status
+                  </button>
                 </div>
-              )}
-              {!vendorInfo.email && (
-                <p className="text-gray-600 text-sm mt-1">Please add an email address to verify</p>
               )}
             </div>
 
             {/* Phone */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Phone</label>
               {isEditing ? (
                 <input
                   type="tel"
                   name="mobile"
                   value={editedInfo.mobile || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.mobile || 'No phone number added'}</p>
-              )}
-
-              {vendorInfo.mobile && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.isPhoneVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {vendorInfo.isPhoneVerified ? 'Verified' : 'Not Verified'}
-                  </span>
-                  {!vendorInfo.isPhoneVerified && (
-                    <button
-                      onClick={handleVerifyPhone}
-                      className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
-                    >
-                      Verify Phone
-                    </button>
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-900 text-lg font-semibold font-mono">{vendorInfo.mobile || 'No phone number'}</p>
+                  {vendorInfo.mobile && (
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${vendorInfo.isPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {vendorInfo.isPhoneVerified ? 'VERIFIED' : 'UNVERIFIED'}
+                    </span>
                   )}
+                </div>
+              )}
+              {!vendorInfo.isPhoneVerified && vendorInfo.mobile && !isEditing && (
+                <div className="mt-3">
+                  <button
+                    onClick={handleVerifyPhone}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    Verify Phone Now
+                  </button>
                   {showPhoneOtp && (
                     <div className="flex flex-col sm:flex-row gap-2 mt-3 w-full">
                       <input
@@ -825,166 +829,140 @@ const VendorProfile: React.FC = () => {
                         value={phoneOtp}
                         onChange={(e) => setPhoneOtp(e.target.value)}
                         placeholder="Enter OTP"
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 mt-3 transition-all duration-200 text-gray-800"
+                        className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm"
                       />
-                      <button onClick={handleVerifyPhoneOtp} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm mt-2 hover:bg-green-700 transition-colors">
-                        Verify OTP
+                      <button onClick={handleVerifyPhoneOtp} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-colors">
+                        Verify
                       </button>
                     </div>
                   )}
                 </div>
               )}
-              {!vendorInfo.mobile && (
-                <p className="text-gray-600 text-sm mt-1">Please add a phone number to verify</p>
-              )}
             </div>
 
-            {/* City (Disabled for editing) */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">City</label>
-              <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.city || 'Not added'}</p>
-              {isEditing && (
-                <p className="text-gray-500 text-xs mt-1">City cannot be edited directly.</p>
-              )}
+            {/* City */}
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">City</label>
+              <p className="text-gray-900 text-lg font-semibold">{vendorInfo.city || 'Not added'}</p>
             </div>
 
             {/* Age */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Age</label>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Age</label>
               {isEditing ? (
                 <input
                   type="number"
                   name="age"
                   value={editedInfo.age || ''}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.age} years</p>
+                <p className="text-gray-900 text-lg font-semibold">{vendorInfo.age} years</p>
               )}
             </div>
 
             {/* Gender */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Gender</label>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Gender</label>
               {isEditing ? (
                 <select
                   name="gender"
-                  value={editedInfo.gender || ''}
+                  value={editedInfo.gender}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium bg-white"
                 >
-                  <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
               ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.gender}</p>
+                <p className="text-gray-900 text-lg font-semibold">{vendorInfo.gender}</p>
               )}
             </div>
 
             {/* Current Address */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Current Address</label>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 md:col-span-2">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Current Address</label>
               {isEditing ? (
                 <textarea
                   name="currentAddress"
                   value={editedInfo.currentAddress || ''}
                   onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
+                  rows={2}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.currentAddress}</p>
-              )}
-            </div>
-
-            {/* Number of Cars (Disabled for editing) */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Number of Cars</label>
-              <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.numberOfCars}</p>
-              {isEditing && (
-                <p className="text-gray-500 text-xs mt-1">Number of cars cannot be edited directly.</p>
+                <p className="text-gray-900 text-lg font-semibold">{vendorInfo.currentAddress}</p>
               )}
             </div>
 
             {/* Aadhar Number */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Aadhar Number</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="aadhar_number"
-                  value={editedInfo.aadhar_number || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                  disabled={vendorInfo.is_aadhar_verified} // Disable input if already verified
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Aadhar Number</label>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-gray-900 text-lg font-semibold">
                   {vendorInfo.aadhar_number ? `XXXX XXXX ${vendorInfo.aadhar_number.slice(-4)}` : 'Not added'}
                 </p>
-              )}
-
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.is_aadhar_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {vendorInfo.is_aadhar_verified ? 'Verified' : 'Not Verified'}
+                <span className={`px-2 py-1 rounded text-xs font-bold ${vendorInfo.is_aadhar_verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {vendorInfo.is_aadhar_verified ? 'VERIFIED' : 'UNVERIFIED'}
                 </span>
-                {!vendorInfo.is_aadhar_verified && editedInfo.aadhar_number && (
-                  <button
-                    onClick={handleVerifyAadhar}
-                    className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
-                  >
-                    Verify Aadhar (Digilocker)
-                  </button>
-                )}
               </div>
+              {!vendorInfo.is_aadhar_verified && isEditing && (
+                <button
+                  onClick={handleVerifyAadhar}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Verify via Digilocker
+                </button>
+              )}
             </div>
 
             {/* PAN Number */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">PAN Number</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="panNumber"
-                  value={editedInfo.panNumber || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                  disabled={vendorInfo.is_pan_verified} // Disable input if already verified
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">
-                  {vendorInfo.panNumber ? `XXXXX${vendorInfo.panNumber.slice(-5)}` : 'Not added'}
-                </p>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${vendorInfo.is_pan_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {vendorInfo.is_pan_verified ? 'Verified' : 'Not Verified'}
-                </span>
-                {!vendorInfo.is_pan_verified && editedInfo.panNumber && (
-                  <button
-                    onClick={handleVerifyPan}
-                    className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors"
-                  >
-                    Verify PAN
-                  </button>
+            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">PAN Number</label>
+              <div className="mb-2">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="panNumber"
+                    value={editedInfo.panNumber || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
+                    placeholder="Enter PAN Number"
+                  />
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-gray-900 text-lg font-semibold">
+                      {vendorInfo.panNumber ? `${vendorInfo.panNumber}` : 'Not added'}
+                    </p>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${vendorInfo.is_pan_verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {vendorInfo.is_pan_verified ? 'VERIFIED' : 'UNVERIFIED'}
+                    </span>
+                  </div>
                 )}
               </div>
+              {!vendorInfo.is_pan_verified && isEditing && editedInfo.panNumber && (
+                <button
+                  onClick={handleVerifyPan}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Verify PAN Now
+                </button>
+              )}
             </div>
 
             {isEditing && (
-              <div className="md:col-span-2 flex justify-end gap-3 mt-6 sm:mt-8">
+              <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base shadow-sm"
+                  className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base shadow-md"
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold text-sm shadow-md shadow-indigo-200"
                 >
                   Save Changes
                 </button>
@@ -994,81 +972,39 @@ const VendorProfile: React.FC = () => {
         )}
 
         {activeTab === 'business' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {/* Business Name */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Business Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="businessName"
-                  value={editedInfo.businessName || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.businessName || 'Not added'}</p>
-              )}
-            </div>
-
-            {/* Business Type */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Business Type</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="businessType"
-                  value={editedInfo.businessType || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.businessType || 'Not added'}</p>
-              )}
-            </div>
-
-            {/* GST Number */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">GST Number</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="gstNumber"
-                  value={editedInfo.gstNumber || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.gstNumber || 'Not added'}</p>
-              )}
-            </div>
-
-            {/* Business Address */}
-            <div className="md:col-span-2 bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Business Address</label>
-              {isEditing ? (
-                <textarea
-                  name="businessAddress"
-                  value={editedInfo.businessAddress || ''}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.businessAddress || 'Not added'}</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              { label: 'Business Name', key: 'businessName' },
+              { label: 'Business Type', key: 'businessType' },
+              { label: 'GST Number', key: 'gstNumber' },
+              { label: 'Business Address', key: 'businessAddress' },
+            ].map((field) => (
+              <div key={field.key} className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{field.label}</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name={field.key}
+                    value={(editedInfo as any)[field.key] || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
+                  />
+                ) : (
+                  <p className="text-gray-900 text-lg font-semibold">{(vendorInfo as any)[field.key] || 'Not provided'}</p>
+                )}
+              </div>
+            ))}
             {isEditing && (
-              <div className="md:col-span-2 flex justify-end gap-3 mt-6 sm:mt-8">
+              <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base shadow-sm"
+                  className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base shadow-md"
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold text-sm shadow-md shadow-indigo-200"
                 >
                   Save Changes
                 </button>
@@ -1078,83 +1014,39 @@ const VendorProfile: React.FC = () => {
         )}
 
         {activeTab === 'bank' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {/* Bank Name */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Bank Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="bankName"
-                  value={editedInfo.bankName || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.bankName || 'Not added'}</p>
-              )}
-            </div>
-
-            {/* Account Number */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Account Number</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="accountNumber"
-                  value={editedInfo.accountNumber || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 font-mono text-base sm:text-lg font-semibold">
-                  {vendorInfo.accountNumber ? `${'•'.repeat(vendorInfo.accountNumber.length - 4)}${vendorInfo.accountNumber.slice(-4)}` : 'Not added'}
-                </p>
-              )}
-            </div>
-
-            {/* IFSC Code */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">IFSC Code</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="ifscCode"
-                  value={editedInfo.ifscCode || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 font-mono text-base sm:text-lg font-semibold">{vendorInfo.ifscCode || 'Not added'}</p>
-              )}
-            </div>
-
-            {/* Account Holder Name */}
-            <div className="bg-gray-50 p-5 rounded-xl shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Account Holder Name</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="accountHolderName"
-                  value={editedInfo.accountHolderName || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 text-gray-800"
-                />
-              ) : (
-                <p className="text-gray-900 text-base sm:text-lg font-semibold">{vendorInfo.accountHolderName || 'Not added'}</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              { label: 'Bank Name', key: 'bankName' },
+              { label: 'Account Number', key: 'accountNumber' },
+              { label: 'IFSC Code', key: 'ifscCode' },
+              { label: 'Account Holder Name', key: 'accountHolderName' },
+            ].map((field) => (
+              <div key={field.key} className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{field.label}</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name={field.key}
+                    value={(editedInfo as any)[field.key] || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 text-gray-900 font-medium"
+                  />
+                ) : (
+                  <p className="text-gray-900 text-lg font-semibold">{(vendorInfo as any)[field.key] || 'Not provided'}</p>
+                )}
+              </div>
+            ))}
             {isEditing && (
-              <div className="md:col-span-2 flex justify-end gap-3 mt-6 sm:mt-8">
+              <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base shadow-sm"
+                  className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base shadow-md"
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold text-sm shadow-md shadow-indigo-200"
                 >
                   Save Changes
                 </button>

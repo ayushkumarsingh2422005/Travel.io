@@ -80,7 +80,7 @@ export default function AddOnsSelector({ baseFare, onAddOnsChange }: AddOnsSelec
     return (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="p-6 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
           <p className="text-gray-600 mt-2">Loading add-ons...</p>
         </div>
       </div>
@@ -93,14 +93,14 @@ export default function AddOnsSelector({ baseFare, onAddOnsChange }: AddOnsSelec
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-      <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+      <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
         <h2 className="text-xl font-bold flex items-center">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Enhance Your Trip (Optional)
         </h2>
-        <p className="text-blue-100 text-sm mt-1">Select add-ons for a better travel experience</p>
+        <p className="text-indigo-100 text-sm mt-1">Select add-ons for a better travel experience</p>
       </div>
 
       <div className="p-6 space-y-3">
@@ -112,15 +112,15 @@ export default function AddOnsSelector({ baseFare, onAddOnsChange }: AddOnsSelec
             <label
               key={addon.id}
               className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                ? 'border-indigo-500 bg-indigo-50'
+                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                 }`}
             >
               <input
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => handleToggleAddOn(addon.id)}
-                className="w-5 h-5 text-blue-600 mt-0.5 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-5 h-5 text-indigo-600 mt-0.5 rounded focus:ring-2 focus:ring-indigo-500"
               />
 
               <div className="ml-4 flex-1">
@@ -131,7 +131,7 @@ export default function AddOnsSelector({ baseFare, onAddOnsChange }: AddOnsSelec
                       <p className="text-sm text-gray-600 mt-1">{addon.description}</p>
                     )}
                   </div>
-                  <span className="text-blue-600 font-bold ml-4 whitespace-nowrap">
+                  <span className="text-indigo-600 font-bold ml-4 whitespace-nowrap">
                     ₹{Math.round(price)}
                     {addon.pricing_type === 'percentage' && (
                       <span className="text-xs font-normal text-gray-500 ml-1">({addon.percentage_value}%)</span>
@@ -144,8 +144,8 @@ export default function AddOnsSelector({ baseFare, onAddOnsChange }: AddOnsSelec
         })}
 
         {selectedAddOnIds.length > 0 && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm font-medium text-blue-800">
+          <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+            <p className="text-sm font-medium text-indigo-800">
               {selectedAddOnIds.length} add-on{selectedAddOnIds.length > 1 ? 's' : ''} selected
             </p>
           </div>

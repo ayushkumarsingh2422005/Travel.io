@@ -8,7 +8,7 @@ interface Vehicle {
   carBrand: string;
   carType: string;
   rcNumber: string;
-  expiredDoc: string;
+  expiredDoc: string; // 'Valid', 'Expired', 'Awaited'
   expiryDate: string;
 }
 
@@ -16,7 +16,27 @@ const Inventory: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [searchText, setSearchText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
-  
+
+  // Dummy data in JSON format - moved inside or keep outside
+  const dummyVehicles = [
+    {
+      id: 1,
+      carBrand: "Swift Dzire CNG + Petrol",
+      carType: "Sedan",
+      rcNumber: "UPXXPRXXXX",
+      expiredDoc: "Valid",
+      expiryDate: "2024-12-31"
+    },
+    {
+      id: 2,
+      carBrand: "Ertiga",
+      carType: "SUV",
+      rcNumber: "UPXXPRXXXX",
+      expiredDoc: "Awaited",
+      expiryDate: "Pending"
+    }
+  ];
+
   useEffect(() => {
     // Load dummy data - replace with API call when ready
     const fetchVehicles = async () => {
@@ -26,25 +46,25 @@ const Inventory: React.FC = () => {
         setTimeout(() => {
           setVehicles(dummyVehicles);
           setLoading(false);
-          toast.success('Vehicles loaded successfully!'); // Success toast
+          toast.success('Vehicles loaded successfully!');
         }, 500);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         setLoading(false);
-        toast.error('Failed to load vehicles.'); // Error toast
+        toast.error('Failed to load vehicles.');
       }
     };
 
     fetchVehicles();
   }, []);
 
-  const filteredVehicles = vehicles.filter(vehicle => 
+  const filteredVehicles = vehicles.filter(vehicle =>
     vehicle.rcNumber.toLowerCase().includes(searchText.toLowerCase()) ||
     vehicle.carBrand.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const getDocStatusClass = (status: string) => {
-    switch(status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'valid': return 'bg-green-100 text-green-800';
       case 'expired': return 'bg-red-100 text-red-800';
       case 'awaited': return 'bg-yellow-100 text-yellow-800';
@@ -65,7 +85,7 @@ const Inventory: React.FC = () => {
 
   const handleShowBookingHistory = (id: number) => {
     // Implement show booking history functionality
-    toast(`Showing booking history for vehicle ${id}`); // Changed to generic toast
+    toast(`Showing booking history for vehicle ${id}`);
   };
 
   const handleAddVehicle = () => {
@@ -84,7 +104,7 @@ const Inventory: React.FC = () => {
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[0, 1, 2].map((idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow-md p-6">
+          <div key={idx} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">
@@ -97,14 +117,16 @@ const Inventory: React.FC = () => {
                     {idx === 0
                       ? vehicles.length
                       : idx === 1
-                      ? vehicles.filter(vehicle => vehicle.expiredDoc.toLowerCase() === 'valid').length
-                      : vehicles.filter(vehicle => vehicle.expiredDoc.toLowerCase() === 'awaited').length}
+                        ? vehicles.filter(vehicle => vehicle.expiredDoc.toLowerCase() === 'valid').length
+                        : vehicles.filter(vehicle => vehicle.expiredDoc.toLowerCase() === 'awaited').length}
                   </p>
                 )}
               </div>
-              <div className={`p-3 ${idx === 0 ? 'bg-blue-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-blue-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {/* ...icon paths... */}
+              <div className={`p-3 ${idx === 0 ? 'bg-indigo-100' : idx === 1 ? 'bg-green-100' : 'bg-yellow-100'} rounded-lg`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${idx === 0 ? 'text-indigo-700' : idx === 1 ? 'text-green-700' : 'text-yellow-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {idx === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 19H5V5h14m0 0a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h14z" />}
+                  {idx === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                  {idx === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />}
                 </svg>
               </div>
             </div>
@@ -113,7 +135,7 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* Search and Actions */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-1/2">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -126,12 +148,12 @@ const Inventory: React.FC = () => {
               placeholder="Search by RC number or vehicle brand"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-500"
+              className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all duration-200"
             />
           </div>
           <button
-            onClick={handleAddVehicle} // Add onClick handler
-            className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            onClick={handleAddVehicle}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 whitespace-nowrap shadow-md shadow-indigo-200"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -142,11 +164,11 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* Vehicles Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-gray-50/50">
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b"></th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Car Brand</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Car Type</th>
@@ -179,7 +201,8 @@ const Inventory: React.FC = () => {
                     <td className="p-4 text-sm border-b border-gray-100 text-center">
                       <button
                         onClick={() => handleDeleteVehicle(vehicle.id)}
-                        className="text-red-500 p-1 hover:bg-red-50 rounded-full transition-colors"
+                        className="text-red-500 p-2 hover:bg-red-50 rounded-full transition-colors"
+                        title="Delete Vehicle"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -191,7 +214,7 @@ const Inventory: React.FC = () => {
                     </td>
                     <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
                       {vehicle.carType ? (
-                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
                           {vehicle.carType}
                         </span>
                       ) : "—"}
@@ -213,11 +236,11 @@ const Inventory: React.FC = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleShowBookingHistory(vehicle.id)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                          className="px-3 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 transition-colors"
                         >
                           History
                         </button>
-                        <button className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors">
+                        <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200 transition-colors">
                           Edit
                         </button>
                       </div>
@@ -232,25 +255,5 @@ const Inventory: React.FC = () => {
     </div>
   );
 };
-
-// Dummy data in JSON format
-const dummyVehicles = [
-  {
-    id: 1,
-    carBrand: "Swift Dzire CNG + Petrol",
-    carType: "Sedan",
-    rcNumber: "UPXXPRXXXX",
-    expiredDoc: "Valid",  
-    expiryDate: "Approved"
-  },
-  {
-    id: 2,
-    carBrand: "Ertiga",
-    carType: "SUV",
-    rcNumber: "UPXXPRXXXX",
-    expiredDoc: "Awaited",
-    expiryDate: "Awaited"
-  }
-];
 
 export default Inventory;

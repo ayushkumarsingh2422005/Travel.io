@@ -50,7 +50,7 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 to-blue-600 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-indigo-700 to-indigo-600 shadow-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/10 p-2 rounded-lg">
@@ -84,8 +84,8 @@ const PrivacyPolicy = () => {
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={`w-full text-left px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${activeSection === section.id
-                      ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-4 border-indigo-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
                     }`}
                 >
                   {section.title}
@@ -110,7 +110,7 @@ const PrivacyPolicy = () => {
             {/* 1. Introduction */}
             <section id="introduction" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">1</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Introduction</h2>
@@ -118,23 +118,23 @@ const PrivacyPolicy = () => {
               <p className="text-gray-600 leading-relaxed mb-4">
                 Marco Cabs, operated by Eightbit Solutions Private Limited, (“Marco Cabs”, “we”, “us”, “our”), is committed to protecting the privacy and security of the personal information of all individuals who access our website, mobile applications, or use our services (“Services”).
               </p>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <p className="font-medium text-blue-900 mb-2">This Privacy Policy explains:</p>
+              <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                <p className="font-medium text-indigo-900 mb-2">This Privacy Policy explains:</p>
                 <ul className="grid md:grid-cols-2 gap-3">
-                  <li className="flex items-start gap-2 text-blue-800 text-sm">
-                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <li className="flex items-start gap-2 text-indigo-800 text-sm">
+                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     What information we collect.
                   </li>
-                  <li className="flex items-start gap-2 text-blue-800 text-sm">
-                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <li className="flex items-start gap-2 text-indigo-800 text-sm">
+                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     How we use and protect it.
                   </li>
-                  <li className="flex items-start gap-2 text-blue-800 text-sm">
-                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <li className="flex items-start gap-2 text-indigo-800 text-sm">
+                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     Your rights regarding data.
                   </li>
-                  <li className="flex items-start gap-2 text-blue-800 text-sm">
-                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <li className="flex items-start gap-2 text-indigo-800 text-sm">
+                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     Our legal obligations.
                   </li>
                 </ul>
@@ -144,7 +144,7 @@ const PrivacyPolicy = () => {
             {/* 2. Scope */}
             <section id="scope" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">2</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Scope and Applicability</h2>
@@ -165,7 +165,7 @@ const PrivacyPolicy = () => {
             {/* 3. Information Collection */}
             <section id="collection" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">3</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Information We Collect</h2>
@@ -217,7 +217,7 @@ const PrivacyPolicy = () => {
             {/* 4. Usage */}
             <section id="usage" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">4</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">How We Use Your Information</h2>
@@ -231,8 +231,8 @@ const PrivacyPolicy = () => {
                   { title: 'Service Improvement', desc: 'Analyze performance and develop features.' },
                   { title: 'Marketing', desc: 'Send relevant offers (only if opted-in).' },
                 ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-200 transition-colors">
-                    <div className="w-2 h-2 mt-2 rounded-full bg-blue-500 shrink-0"></div>
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 transition-colors">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-indigo-500 shrink-0"></div>
                     <div>
                       <h4 className="font-semibold text-gray-800 text-sm">{item.title}</h4>
                       <p className="text-xs text-gray-500">{item.desc}</p>
@@ -248,7 +248,7 @@ const PrivacyPolicy = () => {
             {/* 5. Sharing */}
             <section id="sharing" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">5</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Sharing of Information</h2>
@@ -276,7 +276,7 @@ const PrivacyPolicy = () => {
             {/* 6. Retention */}
             <section id="retention" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">6</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Data Retention</h2>
@@ -297,7 +297,7 @@ const PrivacyPolicy = () => {
             {/* 7. Cookies */}
             <section id="cookies" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">7</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Cookies & Tracking</h2>
@@ -308,14 +308,14 @@ const PrivacyPolicy = () => {
             {/* 8. Security */}
             <section id="security" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">8</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Data Security</h2>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 {['SSL/TLS Encryption', 'Restricted Access', 'Security Audits', 'Multi-factor Auth'].map((tag, i) => (
-                  <span key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium border border-blue-100">
+                  <span key={i} className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium border border-indigo-100">
                     {tag}
                   </span>
                 ))}
@@ -326,25 +326,25 @@ const PrivacyPolicy = () => {
             {/* 9. Your Rights */}
             <section id="rights" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                   <span className="font-bold text-xl">9</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Your Rights</h2>
               </div>
               <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div className="p-4 border rounded-lg hover:border-blue-400 transition-colors">
+                <div className="p-4 border rounded-lg hover:border-indigo-400 transition-colors">
                   <h4 className="font-bold text-gray-800">Access & Update</h4>
                   <p className="text-sm text-gray-600">View and correct your personal data.</p>
                 </div>
-                <div className="p-4 border rounded-lg hover:border-blue-400 transition-colors">
+                <div className="p-4 border rounded-lg hover:border-indigo-400 transition-colors">
                   <h4 className="font-bold text-gray-800">Withdraw Consent</h4>
                   <p className="text-sm text-gray-600">Opt-out of marketing anytime.</p>
                 </div>
-                <div className="p-4 border rounded-lg hover:border-blue-400 transition-colors">
+                <div className="p-4 border rounded-lg hover:border-indigo-400 transition-colors">
                   <h4 className="font-bold text-gray-800">Delete Account</h4>
                   <p className="text-sm text-gray-600">Request removal (subject to pending items).</p>
                 </div>
-                <div className="p-4 border rounded-lg hover:border-blue-400 transition-colors">
+                <div className="p-4 border rounded-lg hover:border-indigo-400 transition-colors">
                   <h4 className="font-bold text-gray-800">Grievance Redressal</h4>
                   <p className="text-sm text-gray-600">Contact our officer for concerns.</p>
                 </div>
@@ -353,7 +353,7 @@ const PrivacyPolicy = () => {
                 <h4 className="font-bold text-gray-800 mb-2">Grievance Officer</h4>
                 <div className="text-sm text-gray-700 space-y-1">
                   <p>Name: [To be appointed]</p>
-                  <p>Email: <a href="mailto:privacy@marcocabs.com" className="text-blue-600 hover:underline">privacy@marcocabs.com</a></p>
+                  <p>Email: <a href="mailto:privacy@marcocabs.com" className="text-indigo-600 hover:underline">privacy@marcocabs.com</a></p>
                   <p>Phone: +91-XXXXXXXXXX</p>
                 </div>
               </div>
@@ -377,7 +377,7 @@ const PrivacyPolicy = () => {
 
             <section id="deletion" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 scroll-mt-24 hover:shadow-md transition-all">
               <h2 className="text-xl font-bold text-gray-800 mb-2">13. Account Deletion</h2>
-              <p className="text-gray-600 mb-2">Email <a href="mailto:support@marcocabs.com" className="text-blue-600 hover:underline">support@marcocabs.com</a> to request deletion.</p>
+              <p className="text-gray-600 mb-2">Email <a href="mailto:support@marcocabs.com" className="text-indigo-600 hover:underline">support@marcocabs.com</a> to request deletion.</p>
               <div className="text-sm bg-yellow-50 text-yellow-800 p-3 rounded-lg border border-yellow-200">
                 <strong>Note:</strong> Data is anonymized after deletion. Transaction history is kept for legal reasons.
               </div>
