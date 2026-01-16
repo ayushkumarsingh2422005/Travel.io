@@ -313,7 +313,11 @@ const getDrivers = async (req, res) => {
                     driver.dl_expiry_date = parsedData.non_transport_to || parsedData.transport_to || null;
                 } catch (error) {
                     console.error('Error parsing DL data for driver:', driver.id, error);
-                    // Keep as string if parsing fails
+                    // Set to null if parsing fails to avoid sending corrupted data
+                    driver.dl_data = null;
+                    driver.dl_issue_date = null;
+                    driver.dob = null;
+                    driver.dl_expiry_date = null;
                 }
             }
             if (driver.languages) {

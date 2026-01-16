@@ -296,3 +296,14 @@ export const getVendorPenaltiesService = async (page: number = 1, limit: number 
   const response = await vendorBookingAxios.get('/vendor/penalties', { params: { page, limit } });
   return response.data;
 };
+// Submit a dispute for a penalty
+export const submitPenaltyDisputeService = async (paymentId: string, reason: string): Promise<{ success: boolean; message: string }> => {
+  const response = await vendorBookingAxios.post(`/vendor/penalty/${paymentId}/dispute`, { reason });
+  return response.data;
+};
+
+// Accept and pay a penalty
+export const acceptPenaltyService = async (paymentId: string): Promise<{ success: boolean; message: string }> => {
+  const response = await vendorBookingAxios.post(`/vendor/penalty/${paymentId}/accept`);
+  return response.data;
+};

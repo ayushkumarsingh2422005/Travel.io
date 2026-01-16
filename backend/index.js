@@ -16,8 +16,11 @@ const BookingTrigger = require('./utils/BookingTrigger');
 const transactiontrigger = require('./utils/transactionTrigger');
 const createvendorbanktale = require('./models/vendorbankModel');
 const createCabCategoriesTable = require('./models/cabCategoryModel');
-// const createAddOnTable = require('./models/addOnModel');
-// const createPenaltyTable = require('./models/penaltyModel');
+const createVendorWalletTable = require('./models/vendorWalletModel');
+const { createPenaltyRulesTable, createPenaltyDisputesTable } = require('./models/penaltyModel');
+const createAddOnTable = require('./models/addOnModel');
+const addTripTypeToBookings = require('./migrate_bookings_add_trip_type');
+
 const makeid = require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
@@ -59,14 +62,14 @@ app.use('/uploads', express.static('uploads'));
 
 const createTables = async () => {
   await createUsersTable();
-  await addResetFieldsToUsers(); // Add reset password fields to existing users table
+  await addResetFieldsToUsers();
   await createvendorbanktale();
   await createVendorsTable();
   await createVendorBankTable();
-  await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
+  await addIsActiveToVendors();
   await createVehiclesTable();
-  await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
-  await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
+  await addPerKmChargeToVehicles();
+  await addRcFieldsToVehicles();
   await createDriversTable();
   await addImageToDrivers();
   await updateDriversSchema();
@@ -86,6 +89,11 @@ const createTables = async () => {
   await BookingTrigger();
   await makeid();
   await createCabCategoriesTable();
+  await createVendorWalletTable();
+  await createPenaltyRulesTable();
+  await createPenaltyDisputesTable();
+  await createAddOnTable();
+  await addTripTypeToBookings();
 };
 createTables();
 

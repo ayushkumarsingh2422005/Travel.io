@@ -4,6 +4,7 @@ import { checkAuth, getUserDetailsFromToken } from '../utils/verifytoken';
 import toast from 'react-hot-toast';
 import { createPaymentOrder, verifyPayment, CreateOrderRequest, VerifyPaymentRequest } from '../api/paymentService';
 import { getUserProfile, updateProfile, sendPhoneOtp, verifyPhoneOtp, addPhoneNumber, UserProfile } from '../api/userService';
+import AddOnsSelector from '../components/AddOnsSelector';
 
 // Declare Razorpay on the Window object
 declare global {
@@ -54,6 +55,8 @@ export default function BookingPage() {
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [otp, setOtp] = useState('');
+  const [selectedAddOns, setSelectedAddOns] = useState<any[]>([]);
+  const [addOnsTotal, setAddOnsTotal] = useState(0);
   const [formData, setFormData] = useState({
     phone: '',
     gender: 'Select Gender' as 'Male' | 'Female' | 'Other' | 'Select Gender',
@@ -62,6 +65,32 @@ export default function BookingPage() {
   });
 
   const bookingData = location.state as BookingData;
+
+  // Pricing State
+  const [pricing, setPricing] = useState({
+    platformCharges: bookingData?.platformCharges || 0,
+    gstAmount: bookingData?.gstAmount || 0,
+    totalUpfrontPayment: bookingData?.totalUpfrontPayment || 0,
+    remainingAmount: bookingData?.remainingAmount || 0
+  });
+
+  // dynamic recalculation of pricing when add-ons change
+  useEffect(() => {
+    if (bookingData?.price) {
+      const totalBookingVal = bookingData.price + addOnsTotal;
+      const platformCharges = Math.round(totalBookingVal * 0.10);
+      const gstAmount = Math.round(platformCharges * 0.05);
+      const totalUpfrontPayment = platformCharges + gstAmount;
+      const remainingAmount = totalBookingVal - platformCharges;
+
+      setPricing({
+        platformCharges,
+        gstAmount,
+        totalUpfrontPayment,
+        remainingAmount
+      });
+    }
+  }, [addOnsTotal, bookingData]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -258,8 +287,8 @@ export default function BookingPage() {
         drop_date: bookingData.dropDate,
         path: bookingData.path,
         distance: bookingData.distance_km,
-        amount: bookingData.price, // Send total booking price to backend
-        add_ons: bookingData.selectedAddOns?.map((addon: any) => ({
+        amount: bookingData.price + addOnsTotal, // Send total booking price including add-ons to backend
+        add_ons: selectedAddOns.map((addon: any) => ({
           id: addon.id,
           name: addon.name,
           price: addon.price,
@@ -294,7 +323,7 @@ export default function BookingPage() {
 
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use VITE_ for Vite projects
-      amount: orderData.amount * 100, // Use the calculated totalUpfrontPayment from backend
+      amount: Math.round(pricing.totalUpfrontPayment * 100), // Use the displayed Upfront Payment (in paise)
       currency: 'INR',
       name: 'Travel.io',
       description: `Booking for ${bookingData.cab_category_name}`,
@@ -656,6 +685,15 @@ export default function BookingPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Add-Ons Selector Card */}
+              <AddOnsSelector 
+                baseFare={bookingData.price}
+                onAddOnsChange={(addons, total) => {
+                  setSelectedAddOns(addons);
+                  setAddOnsTotal(total);
+                }}
+              />
             </div>
 
             {/* Booking Actions - 1/3 width */}
@@ -674,33 +712,40 @@ export default function BookingPage() {
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Total Estimated Price</span>
+                      <span className="text-gray-600">Base Trip Price</span>
                       <span className="font-semibold">₹{bookingData.price.toLocaleString()}</span>
                     </div>
-                    {bookingData.addOnsTotal ? (
+                    {addOnsTotal > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Add-Ons Total</span>
-                        <span className="font-semibold">₹{bookingData.addOnsTotal.toLocaleString()}</span>
+                        <span className="font-semibold text-green-600">+₹{addOnsTotal.toLocaleString()}</span>
                       </div>
-                    ) : null}
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Platform Charges (10%)</span>
-                      <span className="font-semibold">₹{bookingData.platformCharges.toLocaleString()}</span>
+                      <span className="font-semibold">₹{pricing.platformCharges.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">GST (5% on Platform Charges)</span>
-                      <span className="font-semibold">₹{bookingData.gstAmount.toLocaleString()}</span>
+                      <span className="text-gray-600">GST (5% on Platform)</span>
+                      <span className="font-semibold">₹{pricing.gstAmount.toLocaleString()}</span>
                     </div>
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-lg font-semibold text-gray-800">Total Upfront Payment</span>
-                        <span className="text-2xl font-bold text-green-700">
-                          ₹{bookingData.totalUpfrontPayment.toLocaleString()}
-                        </span>
+                    <div className="border-t pt-4 mt-2">
+                       <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-lg font-bold text-gray-800">Total Upfront Payment</span>
+                          <p className="text-xs text-gray-500">To pay now to confirm booking</p>
+                        </div>
+                        <span className="text-xl font-bold text-green-600">₹{pricing.totalUpfrontPayment.toLocaleString()}</span>
                       </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg mt-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Remaining Amount (to Vendor)</span>
-                        <span className="font-semibold">₹{bookingData.remainingAmount.toLocaleString()}</span>
+                        <div>
+                          <span className="font-medium text-gray-700">Remaining Amount</span>
+                          <p className="text-xs text-gray-500">To pay to driver later</p>
+                        </div>
+                        <span className="font-semibold text-gray-800">₹{pricing.remainingAmount.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

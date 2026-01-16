@@ -897,35 +897,33 @@ const applyVendorPenalty = async (req, res) => {
         const vendor = vendors[0];
 
         // Deduct penalty from vendor's amount
-        const newAmount = Math.max(0, (vendor.amount || 0) - parsedPenaltyAmount);
+        const newAmount = (vendor.amount || 0) - parsedPenaltyAmount;
 
-        // Update vendor with penalty details
+        // Update vendor with penalty details (without deducting balance yet)
         await db.execute(`
             UPDATE vendors 
             SET penalty_reason = ?,
                 penalty_amount = ?,
                 last_penalty_date = NOW(),
-                total_penalties = total_penalties + 1,
-                amount = ?
+                total_penalties = total_penalties + 1
             WHERE id = ?
-        `, [penalty_reason.trim(), parsedPenaltyAmount, newAmount, vendorId]);
+        `, [penalty_reason.trim(), parsedPenaltyAmount, vendorId]);
 
-        // Create penalty payment record
+        // Create penalty payment record as PENDING
         const paymentId = generatePaymentId();
         await db.execute(`
             INSERT INTO payments (
                 id, vendor_id, amount, status, type, description, created_at
-            ) VALUES (?, ?, ?, 'completed', 'penalty', ?, NOW())
+            ) VALUES (?, ?, ?, 'pending', 'penalty', ?, NOW())
         `, [paymentId, vendorId, parsedPenaltyAmount, penalty_reason.trim()]);
 
         res.status(200).json({
             success: true,
-            message: 'Penalty applied to vendor successfully',
+            message: 'Penalty applied as pending. It will be deducted after review or dispute resolution.',
             data: {
                 vendor_id: vendorId,
                 penalty_amount: parsedPenaltyAmount,
                 penalty_reason: penalty_reason.trim(),
-                remaining_amount: newAmount,
                 payment_id: paymentId
             }
         });
@@ -936,6 +934,107 @@ const applyVendorPenalty = async (req, res) => {
             message: 'Failed to apply penalty',
             error: error.message
         });
+    }
+};
+
+// Get all penalty disputes for admin
+const getPenaltyDisputes = async (req, res) => {
+    try {
+        const [disputes] = await db.execute(`
+            SELECT 
+                pd.id, 
+                pd.payment_id, 
+                pd.vendor_id, 
+                pd.reason, 
+                pd.status, 
+                pd.admin_comment, 
+                pd.created_at,
+                v.name as vendor_name, 
+                p.amount as penalty_amount,
+                p.description as penalty_description
+            FROM penalty_disputes pd
+            JOIN vendors v ON pd.vendor_id = v.id
+            JOIN payments p ON pd.payment_id = p.id
+            ORDER BY pd.created_at DESC
+        `);
+        
+        console.log(`Fetched ${disputes.length} disputes`);
+
+        res.status(200).json({
+            success: true,
+            disputes
+        });
+    } catch (error) {
+        console.error('Error fetching disputes:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+// Resolve or Reject a dispute
+const resolvePenaltyDispute = async (req, res) => {
+    try {
+        const { disputeId, action, adminComment } = req.body; // action: 'resolved' (cut money) or 'rejected' (cancel penalty)
+
+        if (!disputeId || !action) {
+            return res.status(400).json({ success: false, message: 'Dispute ID and action are required' });
+        }
+
+        // Get dispute details
+        const [disputes] = await db.execute(`
+            SELECT pd.*, p.amount as penalty_amount, p.description as penalty_description
+            FROM penalty_disputes pd
+            JOIN payments p ON pd.payment_id = p.id
+            WHERE pd.id = ?
+        `, [disputeId]);
+
+        if (disputes.length === 0) {
+            return res.status(404).json({ success: false, message: 'Dispute not found' });
+        }
+
+        const dispute = disputes[0];
+
+        if (dispute.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Dispute is already processed' });
+        }
+
+        if (action === 'resolved') {
+            // DEDUCT MONEY FROM VENDOR WALLET
+            const [vendors] = await db.execute('SELECT amount FROM vendors WHERE id = ?', [dispute.vendor_id]);
+            const currentAmount = vendors[0].amount || 0;
+            const newAmount = currentAmount - dispute.penalty_amount;
+
+            await db.execute('UPDATE vendors SET amount = ? WHERE id = ?', [newAmount, dispute.vendor_id]);
+
+            // Update payment status
+            await db.execute('UPDATE payments SET status = "completed" WHERE id = ?', [dispute.payment_id]);
+
+            // Log wallet transaction
+            const txId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
+            await db.execute(`
+                INSERT INTO vendor_wallet_transactions 
+                (id, vendor_id, amount, type, description, balance_after) 
+                VALUES (?, ?, ?, 'debit', ?, ?)
+            `, [txId, dispute.vendor_id, dispute.penalty_amount, `Penalty Resolved: ${dispute.penalty_description}`, newAmount]);
+
+        } else if (action === 'rejected') {
+            // CANCEL PENALTY
+            await db.execute('UPDATE payments SET status = "failed" WHERE id = ?', [dispute.payment_id]);
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid action' });
+        }
+
+        // Update dispute record
+        await db.execute(`
+            UPDATE penalty_disputes 
+            SET status = ?, admin_comment = ? 
+            WHERE id = ?
+        `, [action, adminComment || null, disputeId]);
+
+        res.status(200).json({ success: true, message: `Dispute ${action} successfully` });
+
+    } catch (error) {
+        console.error('Error resolving dispute:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
 
@@ -1076,6 +1175,15 @@ const getVendorBookings = async (req, res) => {
         query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
 
         const [bookings] = await db.execute(query, params);
+
+        // Parse add-ons details for each booking
+        bookings.forEach(booking => {
+            try {
+                booking.add_ons_details = JSON.parse(booking.add_ons_details || '[]');
+            } catch (e) {
+                booking.add_ons_details = [];
+            }
+        });
 
         // Count total bookings
         let countQuery = 'SELECT COUNT(*) as total FROM prevbookings WHERE vendor_id = ?';
@@ -1968,6 +2076,110 @@ const toggleVehicleStatus = async (req, res) => {
     }
 };
 
+// Get all bookings (active and history)
+const getAllBookings = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, status, search, date } = req.query;
+
+        let query = `
+            SELECT 
+                b.id, b.status, b.price, b.pickup_location, b.dropoff_location, b.pickup_date,
+                u.name as customer_name,
+                d.name as driver_name,
+                v.model as vehicle_model,
+                cc.segment as cab_category
+            FROM (
+                SELECT id, customer_id, driver_id, vehicle_id, cab_category_id, pickup_location, dropoff_location, pickup_date, price, status 
+                FROM bookings
+                UNION ALL
+                SELECT id, customer_id, driver_id, vehicle_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, price, status 
+                FROM prevbookings
+            ) AS b
+            LEFT JOIN users u ON b.customer_id = u.id
+            LEFT JOIN drivers d ON b.driver_id = d.id
+            LEFT JOIN vehicles v ON b.vehicle_id = v.id
+            LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+
+        if (status) {
+            query += ' AND b.status = ?';
+            params.push(status);
+        }
+
+        if (date) {
+            query += ' AND DATE(b.pickup_date) = ?';
+            params.push(date);
+        }
+
+        if (search) {
+            query += ' AND (u.name LIKE ? OR d.name LIKE ? OR b.pickup_location LIKE ? OR b.dropoff_location LIKE ? OR b.id LIKE ?)';
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        }
+
+        query += ' ORDER BY b.pickup_date DESC';
+
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const pageLimit = Math.max(1, parseInt(limit));
+        const offset = (pageNum - 1) * pageLimit;
+        query += ` LIMIT ${pageLimit} OFFSET ${offset}`;
+
+        const [bookings] = await db.execute(query, params);
+
+        // Count total
+        let countQuery = `
+            SELECT COUNT(*) as total
+            FROM (
+                SELECT id, customer_id, driver_id, pickup_location, dropoff_location, pickup_date, status FROM bookings
+                UNION ALL
+                SELECT id, customer_id, driver_id, pickup_location, dropoff_location, pickup_date, status FROM prevbookings
+            ) AS b
+            LEFT JOIN users u ON b.customer_id = u.id
+            LEFT JOIN drivers d ON b.driver_id = d.id
+            WHERE 1=1
+        `;
+        const countParams = [];
+
+        if (status) {
+            countQuery += ' AND b.status = ?';
+            countParams.push(status);
+        }
+        if (date) {
+            countQuery += ' AND DATE(b.pickup_date) = ?';
+            countParams.push(date);
+        }
+        if (search) {
+             countQuery += ' AND (u.name LIKE ? OR d.name LIKE ? OR b.pickup_location LIKE ? OR b.dropoff_location LIKE ? OR b.id LIKE ?)';
+            const searchPattern = `%${search}%`;
+            countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        }
+
+        const [countResult] = await db.execute(countQuery, countParams);
+        const total = countResult[0].total;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                bookings,
+                pagination: {
+                    current_page: pageNum,
+                    per_page: pageLimit,
+                    total,
+                    total_pages: Math.ceil(total / pageLimit)
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching all bookings:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch bookings', error: error.message });
+    }
+};
+
 module.exports = {
     getAdminDashboard,
     getPendingVendorPayments,
@@ -1981,6 +2193,8 @@ module.exports = {
     getVendorDetails,
     toggleVendorStatus,
     applyVendorPenalty,
+    getPenaltyDisputes,
+    resolvePenaltyDispute,
     suspendVendor,
     getVendorBookings,
     // Driver Management
@@ -1997,5 +2211,7 @@ module.exports = {
     // Statistics
     getAnnualBookingsStats,
     getWebsiteReachStats,
-    getAdminStats
+    getAdminStats,
+    // Bookings
+    getAllBookings
 };

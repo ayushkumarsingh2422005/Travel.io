@@ -1,7 +1,8 @@
 import  { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast';
 import { getVendorBookings, getVendorDrivers } from '../utils/bookingService';
+import api from '../api/axios';
 
 interface BookingSummary {
   total: number;
@@ -40,11 +41,25 @@ const Dashboard = () => {
     active: 0,
     onTrip: 0
   });
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [showLowBalanceModal, setShowLowBalanceModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // Fetch Vendor Profile for Balance
+        try {
+            const profileRes = await api.get('/profile');
+            const balance = profileRes.data.vendor.amount || 0;
+            setWalletBalance(balance);
+            if (balance < 500) {
+                setShowLowBalanceModal(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch profile', err);
+        }
 
         // Fetch bookings
         const bookingsResponse = await getVendorBookings({ limit: 1000 }); // Fetch all to process locally
@@ -71,7 +86,7 @@ const Dashboard = () => {
               status: b.status === 'completed' ? 'Completed' : b.status === 'cancelled' ? 'Cancelled' : 'In Progress',
             }));
           setRecentBookings(mappedRecentBookings);
-          toast.success('Bookings data loaded successfully!'); // Success toast
+          // toast.success('Bookings data loaded successfully!'); 
         } else {
           toast.error(bookingsResponse.message || 'Failed to fetch bookings.'); // Error toast
         }
@@ -88,7 +103,7 @@ const Dashboard = () => {
             active: allDrivers.length, // Placeholder: assuming all fetched drivers are active
             onTrip: 0 // Placeholder: no direct 'onTrip' status from current API
           });
-          toast.success('Drivers data loaded successfully!'); // Success toast
+          // toast.success('Drivers data loaded successfully!'); 
         } else {
           toast.error('Failed to fetch drivers.'); // Error toast
         }
@@ -104,6 +119,61 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  const handleRecharge = async () => {
+    try {
+        const amount = 500; // Fixed recharge amount for simplicity
+        const orderRes = await api.post('/wallet/recharge/create', { amount });
+        
+        if (orderRes.data.success) {
+            const options = {
+                key: orderRes.data.key_id,
+                amount: orderRes.data.amount,
+                currency: orderRes.data.currency,
+                name: "Travel.io",
+                description: "Vendor Wallet Recharge",
+                order_id: orderRes.data.order_id,
+                handler: async function (response: any) {
+                    try {
+                        const verifyRes = await api.post('/wallet/recharge/verify', {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            amount: amount
+                        });
+
+                        if (verifyRes.data.success) {
+                            toast.success('Wallet Recharged Successfully!');
+                            const newBalance = walletBalance + amount;
+                            setWalletBalance(newBalance);
+                            if (newBalance >= 500) {
+                                setShowLowBalanceModal(false);
+                            }
+                        } else {
+                            toast.error('Payment verification failed');
+                        }
+                    } catch (error) {
+                         toast.error('Payment verification error');
+                    }
+                },
+                prefill: {
+                    name: "Vendor",
+                    email: "vendor@example.com",
+                    contact: "9999999999"
+                },
+                theme: {
+                    color: "#3399cc"
+                }
+            };
+            
+            const rzp = new (window as any).Razorpay(options);
+            rzp.open();
+        }
+    } catch (error) {
+        console.error("Recharge Error", error);
+        toast.error("Failed to initiate recharge");
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8 max-w-7xl mx-auto">
@@ -117,7 +187,6 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-
           {/* Recent Bookings Skeleton */}
           <div className="bg-white rounded-xl p-6">
             <div className="h-6 bg-gray-200 rounded w-48 mb-6" />
@@ -133,8 +202,41 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8 text-gray-800">Vendor Dashboard</h1>
+    <div className="p-8 max-w-7xl mx-auto relative">
+      <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-800">Vendor Dashboard</h1>
+          <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+             <span className="text-gray-600 mr-2">Wallet Balance:</span>
+             <span className={`font-bold ${walletBalance < 500 ? 'text-red-500' : 'text-green-600'}`}>₹{walletBalance}</span>
+          </div>
+      </div>
+
+      {/* Low Balance Modal */}
+      {showLowBalanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 transform transition-all scale-100">
+                <div className="text-center">
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">Low Wallet Balance</h3>
+                    <p className="text-sm text-gray-500 mb-6">
+                        Your wallet balance is <strong>₹{walletBalance}</strong>, which is below the minimum required amount of <strong>₹500</strong>. 
+                        You cannot accept new bookings until you recharge.
+                    </p>
+                    <button
+                        onClick={handleRecharge}
+                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm transition-colors duration-200"
+                    >
+                        Recharge ₹500 Now
+                    </button>
+                    {/* Optional: Allow closing if you just want to warn, but request implies blocking. I'll add a 'Cancel' just in case for now, or keep it blocking if mandated. User said "show him a model... rechange now", implies blocking action. Keeping it strictly blocking as per "he will not be able to accept... infact when he leads on dashboard just show him". */}
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -229,6 +331,6 @@ const Dashboard = () => {
       </div>
     </div>
   );
-};
+}; // End of component
 
 export default Dashboard;

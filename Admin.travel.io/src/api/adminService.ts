@@ -445,3 +445,19 @@ export const toggleVehicleStatus = async (token: string, vehicleId: string, is_a
   }
 };
 
+// ==================== BOOKING MANAGEMENT ====================
+
+export const getAllBookings = async (token: string, page: number = 1, limit: number = 10, status?: string, search?: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/bookings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: { page, limit, status, search },
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching all bookings:', error);
+    throw error;
+  }
+};

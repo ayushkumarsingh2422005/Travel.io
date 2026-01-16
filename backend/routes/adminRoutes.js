@@ -13,6 +13,8 @@ const {
     getVendorDetails,
     toggleVendorStatus,
     applyVendorPenalty,
+    getPenaltyDisputes,
+    resolvePenaltyDispute,
     suspendVendor,
     getVendorBookings,
     // Driver Management
@@ -29,7 +31,8 @@ const {
     // Statistics
     getAnnualBookingsStats,
     getWebsiteReachStats,
-    getAdminStats
+    getAdminStats,
+    getAllBookings
 } = require('../controller/adminController');
 const {
     addCabCategory,
@@ -89,10 +92,11 @@ router.put('/cab-category/:id', upload.single('image'), updateCabCategory); // N
 router.delete('/cab-category/:id', deleteCabCategory);
 
 // Add-Ons Routes
-const { addAddOn, getAddOns } = require('../controller/addOnController');
+const { addAddOn, getAddOns, updateAddOn, deleteAddOn } = require('../controller/addOnController');
 router.post('/add-ons/add', addAddOn);
 router.get('/add-ons/all', getAddOns);
-// router.delete('/add-ons/:id', deleteAddOn); // If implemented
+router.put('/add-ons/:id', updateAddOn);
+router.delete('/add-ons/:id', deleteAddOn);
 
 // Penalty Routes
 const { addPenalty, getPenalties } = require('../controller/penaltyController');
@@ -108,6 +112,9 @@ router.get('/vendors/:vendorId', getVendorDetails);
 router.put('/vendors/:vendorId/status', toggleVendorStatus);
 // Apply penalty to vendor
 router.post('/vendors/:vendorId/penalty', applyVendorPenalty);
+// Penalty disputes
+router.get('/penalty-disputes', getPenaltyDisputes);
+router.post('/penalty-disputes/resolve', resolvePenaltyDispute);
 // Suspend/unsuspend vendor
 router.put('/vendors/:vendorId/suspend', suspendVendor);
 // Get vendor bookings
@@ -142,5 +149,9 @@ router.get('/stats/annual-bookings', getAnnualBookingsStats);
 router.get('/stats/website-reach', getWebsiteReachStats);
 // Get comprehensive admin statistics
 router.get('/stats', getAdminStats);
+
+// ==================== BOOKING MANAGEMENT ====================
+// Get all bookings (active & history)
+router.get('/bookings', getAllBookings);
 
 module.exports = router;
