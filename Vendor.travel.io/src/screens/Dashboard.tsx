@@ -78,7 +78,7 @@ const Dashboard = () => {
             .slice(0, 3) // Take top 3
             .map((b: any) => ({
               id: b.id,
-              customerName: b.customer_name,
+              customerName: b.customer_name || 'Guest Customer',
               pickup: b.pickup_location,
               dropoff: b.dropoff_location,
               date: new Date(b.pickup_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -330,41 +330,44 @@ const Dashboard = () => {
               key={booking.id}
               className="p-4 rounded-xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between group"
             >
-              <div className="mb-2 md:mb-0 flex items-center">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-4 text-gray-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors">
+              <div className="mb-4 md:mb-0 flex items-center">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center mr-4 text-gray-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 </div>
                 <div>
-                  <div className="flex items-center">
-                    <p className="font-bold text-gray-800 mr-2">{booking.customerName}</p>
-                    <span className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">#{booking.id.slice(0, 6)}</span>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <p className="font-bold text-gray-800">{booking.customerName}</p>
+                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 font-mono tracking-wide">#{booking.id.slice(0, 6)}</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-500 mt-1">
-                    <span className="font-medium text-gray-700">{booking.pickup}</span>
-                    <svg className="w-4 h-4 mx-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                    <span className="font-medium text-gray-700">{booking.dropoff}</span>
+                    <span className="font-medium text-gray-700 truncate max-w-[150px] sm:max-w-xs">{booking.pickup}</span>
+                    <svg className="w-4 h-4 mx-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    <span className="font-medium text-gray-700 truncate max-w-[150px] sm:max-w-xs">{booking.dropoff}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between md:space-x-8 mt-4 md:mt-0 pl-14 md:pl-0">
-                <div className="text-right mr-4 md:mr-0">
-                  <p className="text-xs text-gray-400 mb-0.5">Price</p>
+
+              <div className="flex items-center justify-between md:justify-end md:gap-8 pl-14 md:pl-0">
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 mb-0.5 font-medium uppercase tracking-wider">Price</p>
                   <p className="font-bold text-gray-900">₹{booking.amount.toLocaleString()}</p>
                 </div>
-                <div className="text-right mr-4 md:mr-0">
-                  <p className="text-xs text-gray-400 mb-0.5">Date</p>
-                  <p className="font-medium text-gray-700 text-sm">{booking.date}</p>
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs text-gray-400 mb-0.5 font-medium uppercase tracking-wider">Date</p>
+                  <p className="font-medium text-gray-700 text-sm whitespace-nowrap">{booking.date}</p>
                 </div>
-                <span
-                  className={`text-sm px-3 py-1 rounded-full font-medium ${booking.status === 'Completed'
+                <div className="min-w-[100px] flex justify-end">
+                  <span
+                    className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${booking.status === 'Completed'
                       ? 'bg-green-100 text-green-700'
                       : booking.status === 'Cancelled'
                         ? 'bg-red-100 text-red-700'
                         : 'bg-indigo-100 text-indigo-700'
-                    }`}
-                >
-                  {booking.status}
-                </span>
+                      }`}
+                  >
+                    {booking.status}
+                  </span>
+                </div>
               </div>
             </div>
           ))}

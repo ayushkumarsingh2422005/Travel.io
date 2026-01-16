@@ -43,6 +43,10 @@ const Booking: React.FC = () => {
   const [generatedTrackingLink, setGeneratedTrackingLink] = useState<string>('');
   const [notifiedDriverDetails, setNotifiedDriverDetails] = useState<{ name: string, phone: string } | null>(null);
 
+  // Add-ons Modal State
+  const [showAddonsModal, setShowAddonsModal] = useState<boolean>(false);
+  const [selectedBookingAddons, setSelectedBookingAddons] = useState<string[]>([]);
+
   const fetchBookings = async (
     statusFilter: BookingData['status'] | '' = '',
     page: number = currentPage,
@@ -301,6 +305,9 @@ const Booking: React.FC = () => {
           <div className="h-4 bg-gray-200 rounded w-32"></div>
         </td>
         <td className="p-3 border-b border-gray-100">
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </td>
+        <td className="p-3 border-b border-gray-100">
           <div className="h-4 bg-gray-200 rounded w-40"></div>
         </td>
         <td className="p-3 border-b border-gray-100">
@@ -438,6 +445,7 @@ const Booking: React.FC = () => {
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Dates</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[80px]">Price</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[120px]">Driver</th>
+                <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[150px]">Add-ons</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[100px]">Status</th>
                 <th className="p-3 text-left text-sm font-semibold text-gray-600 border-b w-[200px]">Actions</th>
               </tr>
@@ -472,6 +480,22 @@ const Booking: React.FC = () => {
                     <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
                       {booking.driver_name || 'N/A'}
                       {booking.driver_phone && ` (${booking.driver_phone})`}
+                    </td>
+                    <td className="p-3 text-sm text-gray-700 border-b border-gray-100">
+                      {booking.addons && booking.addons.length > 0 ? (
+                        <button
+                          onClick={() => {
+                            setSelectedBookingAddons(booking.addons || []);
+                            setShowAddonsModal(true);
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                        >
+                          <svg className="mr-1.5 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          View ({booking.addons.length})
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">None</span>
+                      )}
                     </td>
                     <td className="p-3 text-sm border-b border-gray-100">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
@@ -738,6 +762,50 @@ const Booking: React.FC = () => {
               <p className="text-xs text-gray-400">
                 (In a real app, an SMS with this link would be sent to {notifiedDriverDetails?.phone})
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Add-ons Modal */}
+      {showAddonsModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center p-4 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full transform transition-all scale-100">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+              <h3 className="text-lg font-bold text-gray-900">
+                Booking Add-ons
+              </h3>
+              <button
+                onClick={() => setShowAddonsModal(false)}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {selectedBookingAddons.length > 0 ? (
+                <ul className="space-y-2">
+                  {selectedBookingAddons.map((addon, index) => (
+                    <li key={index} className="flex items-center text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                      <svg className="w-4 h-4 text-indigo-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      {addon}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>No add-ons selected for this booking.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors duration-150 text-sm font-medium"
+                onClick={() => setShowAddonsModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

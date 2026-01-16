@@ -68,6 +68,7 @@ export interface BookingData {
   cab_category_image: string; // New field
   min_seats: number; // New field for cab category
   max_seats: number; // New field for cab category
+  addons?: string[]; // Added addons array
 }
 
 export interface Driver {
