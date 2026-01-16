@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../api/axios';
 import toast from 'react-hot-toast';
+import { getVendorVehicles } from '../utils/bookingService';
 
 interface VendorInfo {
   // Basic Information (from registration form)
@@ -64,16 +65,24 @@ const VendorProfile: React.FC = () => {
   const [showPhoneOtp, setShowPhoneOtp] = useState<boolean>(false);
   // const [showEmailOtp, setShowEmailOtp] = useState<boolean>(false);
 
+
   const fetchVendorData = async (silent: boolean = false) => {
     if (!silent) setLoading(true);
     try {
-      const response = await axios.get('/profile', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
-        },
-      });
+      const [response, vehiclesResponse] = await Promise.all([
+        axios.get('/profile', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("marcocabs_vendor_token")}`,
+          },
+        }),
+        getVendorVehicles().catch(err => {
+          console.error('Error fetching vehicle count:', err);
+          return { data: { vehicles: [] } };
+        })
+      ]);
 
       console.log(response.data);
+      const realCarCount = vehiclesResponse.data?.vehicles?.length || 0;
 
       if (response.data && response.data.vendor) {
         const vendorData = response.data.vendor;
@@ -83,7 +92,7 @@ const VendorProfile: React.FC = () => {
           email: vendorData.email,
           mobile: vendorData.phone,
           city: vendorData.city || '', // Assuming city might not be there
-          numberOfCars: vendorData.number_of_cars || 0,
+          numberOfCars: realCarCount, // Updated to use real count from vehicles API
           is_profile_completed: vendorData.is_profile_completed || false,
           panNumber: vendorData.pan_number || '',
           aadhar_number: vendorData.aadhar_number || '',

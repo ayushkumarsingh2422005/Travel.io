@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, kycCompleted }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar">
+      <nav className="flex-1 overflow-hidden px-4 pb-4">
         {!kycCompleted && (
           <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-indigo-100 rounded-full opacity-50 blur-xl"></div>
@@ -122,8 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuClick, kycCompleted }) => {
               key={item.id}
               to={item.path}
               className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${location.pathname === item.path
-                  ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               onClick={() => onMenuClick(item.id)}
             >

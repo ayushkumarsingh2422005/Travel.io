@@ -112,6 +112,24 @@ const Booking: React.FC = () => {
     setSearchLoading(false);
   };
 
+  // Helper to check if current time is within 3 hours of pickup
+  const isWithinThreeHours = (dateString: string) => {
+    const pickupDate = new Date(dateString).getTime();
+    const now = new Date().getTime();
+    const threeHoursInMillis = 3 * 60 * 60 * 1000;
+    return (pickupDate - now) <= threeHoursInMillis;
+  };
+
+  const showTrackingLinkForBooking = (booking: BookingData) => {
+    const trackingLink = `${window.location.origin}/driver-tracking/${booking.id}`;
+    setGeneratedTrackingLink(trackingLink);
+    setNotifiedDriverDetails({
+      name: booking.driver_name || 'Assigned Driver',
+      phone: booking.driver_phone || 'N/A'
+    });
+    setShowDriverTrackingModal(true);
+  };
+
   const handleUpdateStatus = async (bookingId: string, newStatus: BookingData['status'], driverId: string | null = null) => {
     setUpdateLoading(true);
     try {
@@ -140,25 +158,33 @@ const Booking: React.FC = () => {
     try {
       await acceptBookingRequest(selectedBookingForApproval.id, selectedDriver, selectedVehicle);
       setShowApproveModal(false);
+
+      const driver = drivers.find(d => d.id === selectedDriver);
+      const isTime = isWithinThreeHours(selectedBookingForApproval.pickup_date);
+
+      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`);
+
+      if (isTime) {
+        // Generate tracking link and show modal ONLY if within 3 hours
+        const trackingLink = `${window.location.origin}/driver-tracking/${selectedBookingForApproval.id}`;
+        setGeneratedTrackingLink(trackingLink);
+
+        if (driver) {
+          setNotifiedDriverDetails({
+            name: driver.name,
+            phone: driver.phone
+          });
+        }
+
+        setShowDriverTrackingModal(true);
+      } else {
+        toast.success("Driver assigned. Tracking link will be available 3 hours before pickup.");
+      }
+
       setSelectedBookingForApproval(null);
       setSelectedDriver('');
       setSelectedVehicle('');
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
-      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`); // Success toast
-
-      // Generate tracking link and show modal
-      const trackingLink = `${window.location.origin}/driver-tracking/${selectedBookingForApproval.id}`;
-      setGeneratedTrackingLink(trackingLink);
-
-      const driver = drivers.find(d => d.id === selectedDriver);
-      if (driver) {
-        setNotifiedDriverDetails({
-          name: driver.name,
-          phone: driver.phone
-        });
-      }
-
-      setShowDriverTrackingModal(true);
     } catch (err: any) {
       console.error('Error accepting booking request:', err);
       toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.'); // Error toast
@@ -467,6 +493,14 @@ const Booking: React.FC = () => {
                             disabled={updateLoading}
                           >
                             Approve
+                          </button>
+                        )}
+                        {['approved', 'preongoing', 'ongoing'].includes(booking.status) && isWithinThreeHours(booking.pickup_date) && (
+                          <button
+                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all duration-200"
+                            onClick={() => showTrackingLinkForBooking(booking)}
+                          >
+                            Link
                           </button>
                         )}
                         {booking.status === 'approved' && (

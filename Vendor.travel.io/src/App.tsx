@@ -27,17 +27,42 @@ function App() {
         position="top-right"
         reverseOrder={false}
         toastOptions={{
+          className: '',
           style: {
+            border: '1px solid #E0E7FF', // indigo-100
+            padding: '16px',
+            color: '#1F2937', // gray-800
+            background: '#FFFFFF',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // shadow-xl
+            borderRadius: '1rem', // rounded-2xl
             fontSize: '14px',
-            padding: '8px 12px',
-            maxWidth: '300px',
+            fontWeight: 500,
           },
           success: {
-            duration: 3000,
+            iconTheme: {
+              primary: '#4F46E5', // indigo-600
+              secondary: '#EEF2FF', // indigo-50
+            },
+            duration: 4000,
+            style: {
+              borderLeft: '4px solid #4F46E5', // indigo-600
+            },
           },
           error: {
-            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444', // red-500
+              secondary: '#FEF2F2', // red-50
+            },
+            duration: 5000,
+            style: {
+              borderLeft: '4px solid #EF4444', // red-500
+            },
           },
+          loading: {
+            style: {
+              borderLeft: '4px solid #6366F1', // indigo-500
+            },
+          }
         }}
       />
       <Routes>
