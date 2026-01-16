@@ -1,6 +1,12 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const Razorpay = require('razorpay');
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 // Get vendor profile information
 const getVendorProfile = async (req, res) => {
@@ -730,8 +736,8 @@ const getPendingBookingRequests = async (req, res) => {
                 cc.id as cab_category_id,
                 cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
-                cc.min_no_of_seats as min_seats,
-                cc.max_no_of_seats as max_seats,
+                cc.min_seats as min_seats,
+                cc.max_seats as max_seats,
                 cc.category_image as cab_category_image
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.id
@@ -785,6 +791,15 @@ const acceptBookingRequest = async (req, res) => {
         const vendorId = req.user.id;
         const { booking_id, driver_id, vehicle_id } = req.body;
 
+        // Check Vendor Wallet Balance
+        const [vendorData] = await db.execute('SELECT amount FROM vendors WHERE id = ?', [vendorId]);
+        if (vendorData.length === 0 || vendorData[0].amount < 500) {
+            return res.status(403).json({
+                success: false,
+                message: 'Insufficient wallet balance. Minimum ₹500 required to accept bookings. Please recharge.'
+            });
+        }
+
         // Validate required fields
         if (!booking_id || !driver_id || !vehicle_id) {
             return res.status(400).json({
@@ -795,7 +810,7 @@ const acceptBookingRequest = async (req, res) => {
 
         // Check if booking exists and vendor_id IS NULL (not yet accepted)
         const [bookings] = await db.execute(`
-            SELECT b.*, cc.min_no_of_seats, cc.max_no_of_seats
+            SELECT b.*, cc.min_seats, cc.max_seats
             FROM bookings b
             LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
             WHERE b.id = ? AND b.vendor_id IS NULL AND b.status = 'waiting'
@@ -839,10 +854,10 @@ const acceptBookingRequest = async (req, res) => {
         const vehicle = vehicles[0];
 
         // Verify vehicle matches cab category seat requirements
-        if (booking.min_no_of_seats && vehicle.no_of_seats < booking.min_no_of_seats) {
+        if (booking.min_seats && vehicle.no_of_seats < booking.min_seats) {
             return res.status(400).json({
                 success: false,
-                message: `Vehicle does not meet minimum seat requirement (${booking.min_no_of_seats} seats required)`
+                message: `Vehicle does not meet minimum seat requirement (${booking.min_seats} seats required)`
             });
         }
 
@@ -954,13 +969,17 @@ const getVendorPenalties = async (req, res) => {
 
         let query = `
             SELECT 
-                id,
-                amount,
-                description,
-                created_at
-            FROM payments 
-            WHERE vendor_id = ? AND type = 'penalty'
-            ORDER BY created_at DESC
+                p.id,
+                p.amount,
+                p.description,
+                p.status,
+                p.created_at,
+                pd.status as dispute_status,
+                pd.id as dispute_id
+            FROM payments p
+            LEFT JOIN penalty_disputes pd ON p.id = pd.payment_id
+            WHERE p.vendor_id = ? AND p.type = 'penalty'
+            ORDER BY p.created_at DESC
         `;
 
         // Pagination
@@ -1003,6 +1022,179 @@ const getVendorPenalties = async (req, res) => {
     }
 };
 
+// Vendor Wallet: Create Recharge Order
+const createRechargeOrder = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid amount' });
+        }
+
+        const options = {
+            amount: Math.round(amount * 100), // in paise
+            currency: "INR",
+            receipt: `recharge_${Date.now()}_${Math.random().toString(36).substring(7)}`
+        };
+
+        const order = await razorpay.orders.create(options);
+
+        res.status(200).json({
+            success: true,
+            order_id: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key_id: process.env.RAZORPAY_KEY_ID
+        });
+    } catch (error) {
+        console.error('Error creating recharge order:', error);
+        res.status(500).json({ success: false, message: 'Failed to create order', error: error.message });
+    }
+};
+
+// Vendor Wallet: Verify Recharge Payment
+const verifyRechargePayment = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
+
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body.toString())
+            .digest('hex');
+
+        if (expectedSignature === razorpay_signature) {
+             // Generate ID for transaction
+             const txId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
+
+            // Update Balance
+            await db.execute(`UPDATE vendors SET amount = amount + ? WHERE id = ?`, [amount, vendorId]);
+            
+            // Get new balance
+            const [vendors] = await db.execute(`SELECT amount FROM vendors WHERE id = ?`, [vendorId]);
+            const newBalance = vendors[0].amount;
+            
+            // Log Transaction (stored as credit)
+            await db.execute(`
+                INSERT INTO vendor_wallet_transactions 
+                (id, vendor_id, amount, type, description, razorpay_payment_id, balance_after) 
+                VALUES (?, ?, ?, 'credit', 'Wallet Recharge', ?, ?)
+            `, [txId, vendorId, amount, razorpay_payment_id, newBalance]);
+
+            res.status(200).json({ success: true, message: 'Wallet recharged successfully' });
+        } else {
+            res.status(400).json({ success: false, message: 'Invalid signature' });
+        }
+    } catch (error) {
+        console.error('Error verifying recharge:', error);
+        res.status(500).json({ success: false, message: 'Failed to verify payment', error: error.message });
+    }
+};
+
+// Vendor Wallet: Get History
+const getWalletHistory = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const [history] = await db.execute(`
+            SELECT * FROM vendor_wallet_transactions 
+            WHERE vendor_id = ? 
+            ORDER BY created_at DESC
+        `, [vendorId]);
+        res.status(200).json({ success: true, data: history });
+    } catch (error) {
+         res.status(500).json({ success: false, message: 'Failed to fetch history', error: error.message });
+    }
+};
+
+// Vendor Penalties: Submit a dispute
+const submitPenaltyDispute = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const paymentId = req.params.id; // From URL
+        const { reason } = req.body;
+
+        if (!paymentId || !reason) {
+            return res.status(400).json({ success: false, message: 'Payment ID and reason are required' });
+        }
+
+        // Verify the payment belongs to this vendor and is a penalty
+        const [payments] = await db.execute(`
+            SELECT * FROM payments 
+            WHERE id = ? AND vendor_id = ? AND type = 'penalty'
+        `, [paymentId, vendorId]);
+
+        if (payments.length === 0) {
+            return res.status(404).json({ success: false, message: 'Penalty record not found' });
+        }
+
+        // Check if a dispute already exists for this payment
+        const [existingDisputes] = await db.execute(`
+            SELECT * FROM penalty_disputes WHERE payment_id = ?
+        `, [paymentId]);
+
+        if (existingDisputes.length > 0) {
+            return res.status(400).json({ success: false, message: 'A dispute has already been submitted for this penalty' });
+        }
+
+        const disputeId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
+
+        await db.execute(`
+            INSERT INTO penalty_disputes (id, payment_id, vendor_id, reason, status)
+            VALUES (?, ?, ?, ?, 'pending')
+        `, [disputeId, paymentId, vendorId, reason]);
+
+        res.status(200).json({ success: true, message: 'Dispute submitted successfully' });
+
+    } catch (error) {
+        console.error('Error submitting penalty dispute:', error);
+        res.status(500).json({ success: false, message: 'Failed to submit dispute', error: error.message });
+    }
+};
+
+// Vendor Penalties: Accept a penalty (deduct immediately)
+const acceptPenalty = async (req, res) => {
+    try {
+        const vendorId = req.user.id;
+        const paymentId = req.params.id;
+
+        // Get penalty details
+        const [payments] = await db.execute(`
+            SELECT * FROM payments 
+            WHERE id = ? AND vendor_id = ? AND type = 'penalty' AND status = 'pending'
+        `, [paymentId, vendorId]);
+
+        if (payments.length === 0) {
+            return res.status(404).json({ success: false, message: 'Pending penalty not found' });
+        }
+
+        const penalty = payments[0];
+
+        // Deduct money from wallet
+        const [vendors] = await db.execute('SELECT amount FROM vendors WHERE id = ?', [vendorId]);
+        const currentAmount = vendors[0].amount || 0;
+        const newAmount = currentAmount - penalty.amount;
+
+        await db.execute('UPDATE vendors SET amount = ? WHERE id = ?', [newAmount, vendorId]);
+
+        // Update payment status
+        await db.execute('UPDATE payments SET status = "completed" WHERE id = ?', [paymentId]);
+
+        // Log wallet transaction
+        const txId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
+        await db.execute(`
+            INSERT INTO vendor_wallet_transactions 
+            (id, vendor_id, amount, type, description, balance_after) 
+            VALUES (?, ?, ?, 'debit', ?, ?)
+        `, [txId, vendorId, penalty.amount, `Penalty Accepted: ${penalty.description}`, newAmount]);
+
+        res.status(200).json({ success: true, message: 'Penalty accepted and paid successfully' });
+
+    } catch (error) {
+        console.error('Error accepting penalty:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
 module.exports = {
     getVendorProfile,
     updateVendorProfile,
@@ -1015,5 +1207,10 @@ module.exports = {
     getVendorEarnings,
     getPendingBookingRequests,
     acceptBookingRequest,
-    getVendorPenalties
+    getVendorPenalties,
+    createRechargeOrder,
+    verifyRechargePayment,
+    getWalletHistory,
+    submitPenaltyDispute,
+    acceptPenalty
 };

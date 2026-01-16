@@ -13,11 +13,16 @@ const {
     getVendorDetails,
     toggleVendorStatus,
     applyVendorPenalty,
+    getPenaltyDisputes,
+    resolvePenaltyDispute,
     suspendVendor,
     getVendorBookings,
     // Driver Management
     getAllDrivers,
     toggleDriverStatus,
+    // Vehicle Management
+    getAllVehicles,
+    toggleVehicleStatus,
     // User/Client Management
     getAllUsers,
     getUserDetails,
@@ -26,7 +31,8 @@ const {
     // Statistics
     getAnnualBookingsStats,
     getWebsiteReachStats,
-    getAdminStats
+    getAdminStats,
+    getAllBookings
 } = require('../controller/adminController');
 const {
     addCabCategory,
@@ -37,6 +43,8 @@ const {
 } = require('../controller/cabCategoryController');
 
 // Middleware to protect routes (admin only)
+const upload = require('../middleware/uploadMiddleware'); // Import Upload Middleware
+
 const adminAuthMiddleware = (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -77,17 +85,18 @@ router.post('/pay-partner', payPartner);
 
 // Cab Categories CRUD routes (ADMIN) - Matching Frontend Structure
 // Frontend calls: /api/admin/cab-category/all, /add, /update/:id, /delete/:id
-router.post('/cab-category/add', addCabCategory);
+router.post('/cab-category/add', upload.single('image'), addCabCategory);
 router.get('/cab-category/all', getCabCategories);
 router.get('/cab-category/:id', getCabCategory);
-router.put('/cab-category/:id', updateCabCategory); // Note: Frontend might use /update/:id, checking needed but standard REST is better
+router.put('/cab-category/:id', upload.single('image'), updateCabCategory); // Note: Frontend might use /update/:id, checking needed but standard REST is better
 router.delete('/cab-category/:id', deleteCabCategory);
 
 // Add-Ons Routes
-const { addAddOn, getAddOns } = require('../controller/addOnController');
+const { addAddOn, getAddOns, updateAddOn, deleteAddOn } = require('../controller/addOnController');
 router.post('/add-ons/add', addAddOn);
 router.get('/add-ons/all', getAddOns);
-// router.delete('/add-ons/:id', deleteAddOn); // If implemented
+router.put('/add-ons/:id', updateAddOn);
+router.delete('/add-ons/:id', deleteAddOn);
 
 // Penalty Routes
 const { addPenalty, getPenalties } = require('../controller/penaltyController');
@@ -103,6 +112,9 @@ router.get('/vendors/:vendorId', getVendorDetails);
 router.put('/vendors/:vendorId/status', toggleVendorStatus);
 // Apply penalty to vendor
 router.post('/vendors/:vendorId/penalty', applyVendorPenalty);
+// Penalty disputes
+router.get('/penalty-disputes', getPenaltyDisputes);
+router.post('/penalty-disputes/resolve', resolvePenaltyDispute);
 // Suspend/unsuspend vendor
 router.put('/vendors/:vendorId/suspend', suspendVendor);
 // Get vendor bookings
@@ -113,6 +125,12 @@ router.get('/vendors/:vendorId/bookings', getVendorBookings);
 router.get('/drivers', getAllDrivers);
 // Activate/deactivate driver
 router.put('/drivers/:driverId/status', toggleDriverStatus);
+
+// ==================== VEHICLE MANAGEMENT ====================
+// Get all vehicles with filtering and pagination
+router.get('/vehicles', getAllVehicles);
+// Activate/deactivate vehicle (and approve)
+router.put('/vehicles/:vehicleId/status', toggleVehicleStatus);
 
 // ==================== USER/CLIENT MANAGEMENT ====================
 // Get all users/clients with filtering and pagination
@@ -131,5 +149,9 @@ router.get('/stats/annual-bookings', getAnnualBookingsStats);
 router.get('/stats/website-reach', getWebsiteReachStats);
 // Get comprehensive admin statistics
 router.get('/stats', getAdminStats);
+
+// ==================== BOOKING MANAGEMENT ====================
+// Get all bookings (active & history)
+router.get('/bookings', getAllBookings);
 
 module.exports = router;

@@ -236,6 +236,16 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
             const bookingId = generatePaymentId(); // Reuse the function for booking ID
             const bookingOtp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate 6 digit OTP
 
+            // Convert ISO datetime to MySQL datetime format
+            const convertToMySQLDateTime = (isoDateString) => {
+                if (!isoDateString) return null;
+                const date = new Date(isoDateString);
+                return date.toISOString().slice(0, 19).replace('T', ' ');
+            };
+
+            const mysqlPickupDate = convertToMySQLDateTime(paymentData.pickup_date);
+            const mysqlDropDate = convertToMySQLDateTime(paymentData.drop_date);
+
             console.log('verifyPaymentAndCreateBooking: Creating booking with ID:', bookingId);
             await db.execute(`
                 INSERT INTO bookings (
@@ -253,8 +263,8 @@ const verifyPaymentAndCreateBooking = async (req, res) => {
                 paymentData.cab_category_id,
                 paymentData.pickup_location,
                 paymentData.dropoff_location,
-                paymentData.pickup_date,
-                paymentData.drop_date,
+                mysqlPickupDate,
+                mysqlDropDate,
                 paymentData.amount, // the remaining amount to be paid to vendor
                 paymentData.path,
                 paymentData.distance,

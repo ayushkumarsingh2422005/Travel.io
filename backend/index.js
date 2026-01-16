@@ -16,8 +16,11 @@ const BookingTrigger = require('./utils/BookingTrigger');
 const transactiontrigger = require('./utils/transactionTrigger');
 const createvendorbanktale = require('./models/vendorbankModel');
 const createCabCategoriesTable = require('./models/cabCategoryModel');
+const createVendorWalletTable = require('./models/vendorWalletModel');
+const { createPenaltyRulesTable, createPenaltyDisputesTable } = require('./models/penaltyModel');
 const createAddOnTable = require('./models/addOnModel');
-const createPenaltyTable = require('./models/penaltyModel');
+const addTripTypeToBookings = require('./migrate_bookings_add_trip_type');
+
 const makeid = require('./utils/createidtrigger')
 const { moveCompletedBooking } = require("./utils/BookingTransaction");
 const addResetFieldsToUsers = require('./migrate_users_add_reset_fields');
@@ -26,6 +29,9 @@ const addRcFieldsToVehicles = require('./migrate_vehicles_add_rc_fields');
 const addIsActiveToVendors = require('./migrate_vendors_add_is_active');
 const addBookingIdToPayments = require('./migrate_payments_add_booking_id');
 const addDescriptionToPayments = require('./migrate_payments_add_description');
+const addImageToDrivers = require('./migrate_drivers_add_image');
+const updateDriversSchema = require('./migrate_drivers_schema_update');
+const updateVehiclesSchema = require('./migrate_vehicles_schema_update');
 const userAuthRoutes = require('./routes/Auth/userAuth');
 const vendorAuthRoutes = require('./routes/Auth/vendorAuth');
 const adminAuthRoutes = require('./routes/Auth/adminAuth');
@@ -50,20 +56,24 @@ const db = require('./config/db');
 // Add body parser middleware
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
 
 // Mount auth routes
 
 const createTables = async () => {
   await createUsersTable();
-  await addResetFieldsToUsers(); // Add reset password fields to existing users table
+  await addResetFieldsToUsers();
   await createvendorbanktale();
   await createVendorsTable();
   await createVendorBankTable();
-  await addIsActiveToVendors(); // Add is_active and penalty fields to vendors table
+  await addIsActiveToVendors();
   await createVehiclesTable();
-  await addPerKmChargeToVehicles(); // Add per_km_charge field to existing vehicles table
-  await addRcFieldsToVehicles(); // Add RC fields to existing vehicles table
+  await addPerKmChargeToVehicles();
+  await addRcFieldsToVehicles();
   await createDriversTable();
+  await addImageToDrivers();
+  await updateDriversSchema();
+  await updateVehiclesSchema();
   await createPartnerTables();
   await createBookingsTable();
   await createPrevBookingsTable();
@@ -79,6 +89,11 @@ const createTables = async () => {
   await BookingTrigger();
   await makeid();
   await createCabCategoriesTable();
+  await createVendorWalletTable();
+  await createPenaltyRulesTable();
+  await createPenaltyDisputesTable();
+  await createAddOnTable();
+  await addTripTypeToBookings();
 };
 createTables();
 

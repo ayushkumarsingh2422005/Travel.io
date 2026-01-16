@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { getVendorPenaltiesService } from '../utils/bookingService';
+import { getVendorPenaltiesService, submitPenaltyDisputeService } from '../utils/bookingService';
 
 // Define TypeScript interfaces
 interface Penalty {
@@ -12,15 +12,10 @@ interface Penalty {
   penaltyAmount: string;
   penaltyDate: string;
   customerReview?: string; // Optional/N/A
+  status: string;
+  disputeStatus?: string;
+  disputeId?: string;
 }
-
-// Penalty type options for filtering
-const penaltyTypeOptions = [
-  { id: 1, name: "All Types", value: "" },
-  { id: 2, name: "Late Arrival", value: "late" },
-  { id: 3, name: "Unprofessional Behavior", value: "behavior" },
-  { id: 4, name: "Cancellation", value: "cancel" }
-];
 
 // Penalty description badge styling
 const penaltyDescriptionClasses = {
@@ -31,48 +26,104 @@ const Penalties: React.FC = () => {
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedPenaltyType, setSelectedPenaltyType] = useState<string>('');
+  
+  // Dispute Modal state
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [selectedPenaltyId, setSelectedPenaltyId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchPenalties = async () => {
-      setLoading(true);
-      try {
-        const response = await getVendorPenaltiesService();
-        if (response.success) {
-          const mappedPenalties = response.data.penalties.map((p: any) => ({
-            id: p.id,
-            bookingId: 'N/A', // Not stored in payments relation currently
-            driver: 'N/A',
-            car: 'N/A',
-            penaltyDescription: p.description || 'Penalty',
-            penaltyAmount: `₹${p.amount}`,
-            penaltyDate: new Date(p.created_at).toLocaleDateString(),
-            customerReview: ''
-          }));
-          setPenalties(mappedPenalties);
-          toast.success('Penalties loaded successfully!');
-        }
-      } catch (error: any) {
-        console.error('Error fetching penalties:', error);
-        setPenalties([]);
-        toast.error(error.message || 'Failed to load penalties.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPenalties();
   }, []);
+
+  const fetchPenalties = async () => {
+    setLoading(true);
+    try {
+      const response = await getVendorPenaltiesService();
+      if (response.success) {
+        const mappedPenalties = response.data.penalties.map((p: any) => ({
+          id: p.id,
+          bookingId: 'N/A', // Not stored in payments relation currently
+          driver: 'N/A',
+          car: 'N/A',
+          penaltyDescription: p.description || 'Penalty',
+          penaltyAmount: `₹${p.amount}`,
+          penaltyDate: new Date(p.created_at).toLocaleDateString(),
+          customerReview: '',
+          status: p.status,
+          disputeStatus: p.dispute_status,
+          disputeId: p.dispute_id
+        }));
+        setPenalties(mappedPenalties);
+      }
+    } catch (error: any) {
+      console.error('Error fetching penalties:', error);
+      setPenalties([]);
+      toast.error(error.message || 'Failed to load penalties.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenDisputeModal = (penaltyId: string) => {
+    setSelectedPenaltyId(penaltyId);
+    setDisputeReason('');
+    setIsDisputeModalOpen(true);
+  };
+
+  const handleSubmitDispute = async () => {
+    if (!selectedPenaltyId || !disputeReason.trim()) {
+      toast.error('Please provide a reason for the dispute.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await submitPenaltyDisputeService(selectedPenaltyId, disputeReason);
+      if (response.success) {
+        toast.success('Dispute submitted successfully!');
+        setIsDisputeModalOpen(false);
+      } else {
+        toast.error(response.message || 'Failed to submit dispute.');
+      }
+    } catch (error: any) {
+      console.error('Error submitting dispute:', error);
+      toast.error(error.response?.data?.message || 'Error occurred while submitting dispute.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAcceptPenalty = async (penaltyId: string) => {
+    if (!window.confirm('Are you sure you want to accept and pay this penalty? This will deduct the amount from your wallet.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { acceptPenaltyService } = await import('../utils/bookingService');
+      const response = await acceptPenaltyService(penaltyId);
+      if (response.success) {
+        toast.success('Penalty accepted and paid successfully!');
+        fetchPenalties();
+      } else {
+        toast.error(response.message || 'Failed to accept penalty.');
+      }
+    } catch (error: any) {
+      console.error('Error accepting penalty:', error);
+      toast.error(error.response?.data?.message || 'Error occurred while accepting penalty.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter penalties based on search term and selected penalty type
   const filteredPenalties = penalties.filter(penalty => {
     const matchesSearch =
       penalty.penaltyDescription.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesType = selectedPenaltyType === '' ||
-      penalty.penaltyDescription.toLowerCase().includes(selectedPenaltyType);
-
-    return matchesSearch && matchesType;
+    return matchesSearch;
   });
 
   // Calculate total penalty amount
@@ -81,32 +132,19 @@ const Penalties: React.FC = () => {
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-  // Calculate penalties from current month
-  const getCurrentMonthPenalties = () => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    return penalties.filter(penalty => {
-      // penaltyDate is locally formatted string "dd/mm/yyyy" or similar depending on locale.
-      // Safer to parse it if we want strict comparison, or just rely on the fact it's recent.
-      // For simplicity, let's strict parse based on standard locale or just date object.
-      // Re-parsing string date is risky.
-      // Let's assume the API returns sorted data and we just filter by checking if substring matches?
-      // Actually, let's just use "This Month" as count of items created in recent 30 days or matches month index.
-      const d = new Date(penalty.penaltyDate); // This might fail for dd/mm/yyyy.
-      // Better: store raw date in penalty object if needed.
-      // But for now, let's just return all for simplicity or fix logic.
-      return true;
-    });
-  };
-
-  // Handle penalty type filter change
-  const handlePenaltyTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedPenaltyType(e.target.value);
+  const getStatusBadge = (penalty: Penalty) => {
+    if (penalty.status === 'completed') return <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">Paid</span>;
+    if (penalty.status === 'failed') return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">Cancelled</span>;
+    
+    // If pending, check dispute status
+    if (penalty.disputeStatus === 'pending') return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">Disputed</span>;
+    if (penalty.disputeStatus === 'rejected') return <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">Dispute Rejected</span>;
+    
+    return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">Pending</span>;
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {[0, 1].map((idx) => (
@@ -158,7 +196,7 @@ const Penalties: React.FC = () => {
       </div>
 
       {/* Penalties Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden text-black">
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
@@ -166,6 +204,7 @@ const Penalties: React.FC = () => {
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Penalty Description</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Amount</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Status</th>
                 <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Actions</th>
               </tr>
             </thead>
@@ -173,7 +212,7 @@ const Penalties: React.FC = () => {
               {loading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
-                    {Array.from({ length: 4 }).map((_, colIdx) => (
+                    {Array.from({ length: 5 }).map((_, colIdx) => (
                       <td key={colIdx} className="p-4 border-b border-gray-100">
                         <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
                       </td>
@@ -182,7 +221,7 @@ const Penalties: React.FC = () => {
                 ))
               ) : filteredPenalties.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-4 text-center text-gray-500">
+                  <td colSpan={5} className="p-4 text-center text-gray-500">
                     No penalties found.
                   </td>
                 </tr>
@@ -201,10 +240,26 @@ const Penalties: React.FC = () => {
                       {penalty.penaltyAmount}
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
+                      {getStatusBadge(penalty)}
+                    </td>
+                    <td className="p-4 text-sm border-b border-gray-100">
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors">
-                          Dispute
-                        </button>
+                        {penalty.status === 'pending' && !penalty.disputeStatus && (
+                          <>
+                            <button 
+                              onClick={() => handleAcceptPenalty(penalty.id)}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                            >
+                              Resolve
+                            </button>
+                            <button 
+                              onClick={() => handleOpenDisputeModal(penalty.id)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                            >
+                              Dispute
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -214,52 +269,55 @@ const Penalties: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Dispute Modal */}
+      {isDisputeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-black">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Dispute Penalty</h3>
+              <button 
+                onClick={() => setIsDisputeModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Please explain why you are disputing this penalty. Our team will review your request.
+            </p>
+
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none h-32 resize-none mb-6"
+              placeholder="Enter your reason for dispute..."
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+            />
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setIsDisputeModalOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitDispute}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                disabled={isSubmitting || !disputeReason.trim()}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Dispute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-// JSON formatted penalty data - ready for API replacement
-const dummyPenalties = [
-  {
-    id: 1,
-    bookingId: "B001",
-    driver: "Rahul Singh",
-    car: "Swift Dzire",
-    penaltyDescription: "Late arrival",
-    penaltyAmount: "₹200",
-    penaltyDate: "12/03/2025",
-    customerReview: "Driver was 30 minutes late"
-  },
-  {
-    id: 2,
-    bookingId: "B002",
-    driver: "Amit Kumar",
-    car: "Ertiga",
-    penaltyDescription: "Unprofessional behavior",
-    penaltyAmount: "₹500",
-    penaltyDate: "15/03/2025",
-    customerReview: "Rude to passengers"
-  },
-  {
-    id: 3,
-    bookingId: "B003",
-    driver: "Priya Sharma",
-    car: "WagonR",
-    penaltyDescription: "Unclean vehicle",
-    penaltyAmount: "₹300",
-    penaltyDate: "18/03/2025",
-    customerReview: "Car interior was dirty"
-  },
-  {
-    id: 4,
-    bookingId: "B004",
-    driver: "Vikram Patel",
-    car: "Honda City",
-    penaltyDescription: "Cancellation",
-    penaltyAmount: "₹400",
-    penaltyDate: "20/03/2025",
-    customerReview: "Last minute cancellation"
-  }
-];
 
 export default Penalties;

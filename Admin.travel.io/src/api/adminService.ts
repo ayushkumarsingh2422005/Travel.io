@@ -413,3 +413,51 @@ export const deleteCabCategory = async (token: string, id: string) => {
     throw error;
   }
 };
+
+// ==================== VEHICLE MANAGEMENT ====================
+
+export const getAllVehicles = async (token: string, page: number = 1, limit: number = 10, status?: string, vendorId?: string, search?: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/vehicles`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: { page, limit, status, vendorId, search },
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching all vehicles:', error);
+    throw error;
+  }
+};
+
+export const toggleVehicleStatus = async (token: string, vehicleId: string, is_active: boolean) => {
+  try {
+    const response = await axios.put(`${API_URL}/vehicles/${vehicleId}/status`, { is_active }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling vehicle status:', error);
+    throw error;
+  }
+};
+
+// ==================== BOOKING MANAGEMENT ====================
+
+export const getAllBookings = async (token: string, page: number = 1, limit: number = 10, status?: string, search?: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/bookings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: { page, limit, status, search },
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching all bookings:', error);
+    throw error;
+  }
+};

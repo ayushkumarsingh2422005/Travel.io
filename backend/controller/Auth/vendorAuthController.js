@@ -295,6 +295,10 @@ const sendPhoneVerificationOTP = async (req, res) => {
         // Send OTP via SMS
         const sent = await sendOTP(phone, otp);
 
+        if (!sent) {
+             return res.status(500).json({ message: 'Failed to send OTP via SMS. Please try again later.' });
+        }
+
         res.status(200).json({ message: 'OTP sent successfully to your phone.' });
     } catch (err) {
         console.error(err);
@@ -443,15 +447,17 @@ const resetPassword = async (req, res) => {
 /**
  * Step 1: Create Digilocker Aadhaar Redirect URL
  */
+/**
+ * Step 1: Create Digilocker Aadhaar Redirect URL
+ */
 const initiateDigilockerVerification = async (req, res) => {
     let requestUrl = '';
     try {
         const vendorId = req.user.id;
-        // const { redirect_url } = req.body; // Frontend should provide this, or environment variable
-
-        // Using localhost.run URL provided by user (Updated)
-        // Reverted query param as it causes 403 Forbidden
-        const redirect_url = 'https://2be3a112d2b43f.lhr.life/profile';
+        
+        // Use CLIENT_URL from env or fallback to dynamic origin or localhost
+        const clientUrl = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5173';
+        const redirect_url = `${clientUrl}/profile`;
 
         console.log("Using Redirect URL:", redirect_url);
 
@@ -483,10 +489,7 @@ const initiateDigilockerVerification = async (req, res) => {
 
         console.log("Digilocker Initiate Response:", JSON.stringify(data, null, 2));
 
-        if (data.status === "Success") {
-            // Return the URL and IDs to frontend
-            // Frontend will redirect user to data.url
-            // Frontend should store verification_id and reference_id to use in Step 2
+        if (data.status === "Success" || data.status === 1) { // Handle both "Success" string or 1
             return res.json({
                 status: 1,
                 message: 'Digilocker URL created successfully',
@@ -504,21 +507,7 @@ const initiateDigilockerVerification = async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Digilocker Initiate Error Details:');
-        console.error('Requested URL:', requestUrl); // Log the exact URL
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            console.error('Error Status:', error.response.status);
-            console.error('Error Data:', JSON.stringify(error.response.data, null, 2));
-            console.error('Error Headers:', JSON.stringify(error.response.headers, null, 2));
-        } else if (error.request) {
-            // The request was made but no response was received
-            console.error('No response received:', error.request);
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            console.error('Error Message:', error.message);
-        }
+        console.error('Digilocker Initiate Error Details:', error.message);
         res.status(500).json({ status: 0, message: 'Server error during Digilocker initiation', error: error.message });
     }
 };
@@ -543,13 +532,21 @@ const fetchDigilockerDocument = async (req, res) => {
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
 
-        const aadhaarVerifyUrl = `${ekycHubUrl}/verification/aadhaar_verify?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&aadhaar_number=${encodeURIComponent(aadhar_number)}&ref_id=${encodeURIComponent(aadhar_ref_id)}&otp=${encodeURIComponent(otp)}&orderid=${encodeURIComponent(vendorId)}`;
+        // Correct Endpoint for fetching data after redirect flow
+        // Assuming /v3/digilocker/download_aadhaar_xml or similar based on initiate endpoint prefix
+        const digilockerFetchUrl = `${ekycHubUrl}/v3/digilocker/download_aadhaar_xml?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&verification_id=${encodeURIComponent(verification_id)}&reference_id=${encodeURIComponent(reference_id)}`;
 
-        // Call ekycHub API to verify Aadhaar OTP
-        const ekycResponse = await axios.get(aadhaarVerifyUrl);
+        console.log("Fetching Digilocker Data from:", digilockerFetchUrl);
 
-        if (ekycResponse.data.status) {
-            // if (ekycResponse.data.status === "Success") {
+        // Call ekycHub API
+        const ekycResponse = await axios.get(digilockerFetchUrl);
+        const data = ekycResponse.data;
+
+        console.log("Digilocker Fetch Response:", JSON.stringify(data, null, 2));
+
+        if (data.status === "Success" || data.status === 1) {
+            // Extract Aadhaar number if available, or use a placeholder if it's inside the XML/Data
+            const aadhar_number = data.data?.uid || data.aadhaar_number || 'XXXXXXXXXXXX'; 
 
             // Refetch vendor to get latest status for profile completion check
             const [latestVendorResult] = await db.execute('SELECT * FROM vendors WHERE id = ?', [vendorId]);
@@ -563,12 +560,12 @@ const fetchDigilockerDocument = async (req, res) => {
                 // is_aadhaar_verified becoming 1
             ) ? 1 : 0;
 
-            // Save Aadhaar data and mark as verified (Redundant update of number to ensure persistence)
+            // Save Aadhaar data and mark as verified
             await db.execute(
                 'UPDATE vendors SET is_aadhaar_verified = 1, is_profile_completed = ?, aadhar_data = ?, aadhar_number = ? WHERE id = ?',
-                [isProfileCompleted, JSON.stringify(ekycResponse.data), aadhar_number, vendorId]
+                [isProfileCompleted, JSON.stringify(data), aadhar_number, vendorId]
             );
-            return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: ekycResponse.data });
+            return res.json({ status: 1, message: 'Aadhaar verified successfully', aadhaar_data: data });
         } else {
             console.warn("Digilocker Fetch Failed:", data);
             return res.status(400).json({
@@ -608,11 +605,16 @@ const fetchPanData = async (req, res) => {
         }
 
         // Prepare ekycHub API params
-        const ekycHubUrl = process.env.EKYC_HUB_URL;
+        let ekycHubUrl = process.env.EKYC_HUB_URL;
+        // Normalize URL: remove trailing / to ensure consistent path construction
+        if (ekycHubUrl.endsWith('/')) ekycHubUrl = ekycHubUrl.slice(0, -1);
+
         const ekycHubUser = process.env.EKYC_USER_NAME;
         const ekycHubToken = process.env.EKYC_HUB_API;
 
         const panVerifyUrl = `${ekycHubUrl}/verification/pan_verification?username=${encodeURIComponent(ekycHubUser)}&token=${encodeURIComponent(ekycHubToken)}&pan=${encodeURIComponent(panNumber)}&orderid=${encodeURIComponent(vendorId)}`;
+        
+        console.log("Verifying PAN at URL:", panVerifyUrl);
 
         // Call ekycHub API to verify PAN
         const ekycResponse = await axios.get(panVerifyUrl);

@@ -129,7 +129,7 @@ const sendVerificationEmail = async (email, token, type) => {
   try {
     console.log(`Sending verification email to ${email} (user type: ${type})`);
     
-    const verificationUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/${type}/auth/verify-email?token=${token}`;
+    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/${type}/verify-email?token=${token}`;
     console.log('Verification URL:', verificationUrl);
     
     const htmlContent = `

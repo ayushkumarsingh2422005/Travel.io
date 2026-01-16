@@ -162,13 +162,37 @@ const BookingDetails = () => {
                       <img src={bookingDetails.cab_category_image} alt={bookingDetails.cab_category_name} className="h-12 w-12 object-contain rounded-md" />
                     </div>
                   )}
-                  <DetailItem label="Price per KM" value={`₹${bookingDetails.cab_category_price_per_km.toFixed(2)}`} />
-                  <DetailItem label="Min Seats" value={bookingDetails.min_seats.toString()} />
-                  <DetailItem label="Max Seats" value={bookingDetails.max_seats.toString()} />
+                  <DetailItem label="Price per KM" value={`₹${parseFloat(bookingDetails.cab_category_price_per_km as any).toFixed(2)}`} />
+                  {bookingDetails.min_seats !== undefined && <DetailItem label="Min Seats" value={bookingDetails.min_seats.toString()} />}
+                  {bookingDetails.max_seats !== undefined && <DetailItem label="Max Seats" value={bookingDetails.max_seats.toString()} />}
                   {bookingDetails.per_km_charge !== null && (
                     <DetailItem label="Vehicle Per KM Charge" value={`₹${typeof bookingDetails.per_km_charge === 'number' ? bookingDetails.per_km_charge.toFixed(2) : parseFloat(bookingDetails.per_km_charge as any).toFixed(2)}`} />
                   )}
                 </div>
+                
+                {/* OTP Display for Approved Bookings */}
+                {bookingDetails.booking_otp && ['approved', 'preongoing'].includes(bookingDetails.status) && (
+                  <div className="p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg mx-6 mb-6">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-yellow-800 mb-2">📱 Share this OTP with your driver to start the trip</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <p className="text-3xl font-bold text-yellow-900 tracking-widest">{bookingDetails.booking_otp}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(bookingDetails.booking_otp || '');
+                            toast.success('OTP copied to clipboard!');
+                          }}
+                          className="p-2 hover:bg-yellow-100 rounded-md transition-colors"
+                          title="Copy OTP"
+                        >
+                          <svg className="w-5 h-5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

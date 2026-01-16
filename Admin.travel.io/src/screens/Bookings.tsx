@@ -2,84 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Table from '../components/Table';
 import { useSearch } from '../context/SearchContext';
 import { toast } from 'react-toastify';
-import { getAdminStats } from '../api/adminService'; // Import getAdminStats
+import { getAdminStats, getAllBookings } from '../api/adminService'; // Import getAllBookings
 
 interface Booking {
   id: string;
-  userId: string;
   userName: string;
   pickupLocation: string;
   dropLocation: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: string;
   amount: number;
   date: string;
   driverName: string;
   vehicleType: string;
 }
-
-// Dummy data for the table, as backend changes are not allowed for a generic "all bookings" endpoint
-const dummyBookings: Booking[] = [
-  {
-    id: 'b1',
-    userId: 'u1',
-    userName: 'Satyam Tiwari',
-    pickupLocation: 'NIT Jamshedpur',
-    dropLocation: 'Tatanagar Junction',
-    status: 'confirmed',
-    amount: 250,
-    date: '2025-07-05T10:00:00Z',
-    driverName: 'Raj Verma',
-    vehicleType: 'Sedan',
-  },
-  {
-    id: 'b2',
-    userId: 'u2',
-    userName: 'Aman Gupta',
-    pickupLocation: 'Adityapur Colony',
-    dropLocation: 'Sonari Airport',
-    status: 'completed',
-    amount: 450,
-    date: '2025-07-01T08:30:00Z',
-    driverName: 'Sunil Kumar',
-    vehicleType: 'SUV',
-  },
-  {
-    id: 'b3',
-    userId: 'u3',
-    userName: 'Priya Sharma',
-    pickupLocation: 'Bistupur',
-    dropLocation: 'Kadma',
-    status: 'cancelled',
-    amount: 0,
-    date: '2025-06-28T15:45:00Z',
-    driverName: 'Deepak Singh',
-    vehicleType: 'Auto',
-  },
-  {
-    id: 'b4',
-    userId: 'u4',
-    userName: 'Ravi Patel',
-    pickupLocation: 'Telco',
-    dropLocation: 'Sakchi',
-    status: 'pending',
-    amount: 180,
-    date: '2025-07-10T19:20:00Z',
-    driverName: 'Manoj Yadav',
-    vehicleType: 'Mini',
-  },
-  {
-    id: 'b5',
-    userId: 'u5',
-    userName: 'Kavita Joshi',
-    pickupLocation: 'Jugsalai',
-    dropLocation: 'Mango',
-    status: 'completed',
-    amount: 300,
-    date: '2025-07-03T09:10:00Z',
-    driverName: 'Anil Das',
-    vehicleType: 'Sedan',
-  },
-];
 
 interface Column {
   id: string;
@@ -90,7 +25,6 @@ interface Column {
 
 const Bookings: React.FC = () => {
   const { query } = useSearch();
-  const [bookingsData] = useState<Booking[]>(dummyBookings);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -102,12 +36,7 @@ const Bookings: React.FC = () => {
   const token = localStorage.getItem('marcocabs_admin_token');
 
   const fetchBookingStats = useCallback(async () => {
-    if (!token) {
-      toast.error('No authentication token found');
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
+    if (!token) return;
     try {
       const adminStats = await getAdminStats(token);
       setStats({
@@ -116,34 +45,45 @@ const Bookings: React.FC = () => {
         cancelled_bookings: adminStats.overall.cancelled_bookings,
       });
     } catch (err: any) {
-      toast.error(err.message || 'Failed to fetch booking statistics');
+      console.error('Error fetching stats:', err);
+    }
+  }, [token]);
+
+  const fetchBookings = useCallback(async () => {
+    if (!token) {
+      toast.error('No authentication token found');
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await getAllBookings(token, 1, 100, undefined, query); // Pass query to backend
+
+      const mappedBookings = response.bookings.map((b: any) => ({
+        id: b.id,
+        userName: b.customer_name || 'N/A',
+        pickupLocation: b.pickup_location,
+        dropLocation: b.dropoff_location,
+        status: b.status,
+        amount: typeof b.price === 'string' ? parseFloat(b.price) : b.price,
+        date: b.pickup_date,
+        driverName: b.driver_name || 'Unassigned',
+        vehicleType: b.vehicle_model || b.cab_category || 'N/A',
+      }));
+
+      setFilteredBookings(mappedBookings); 
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to fetch bookings');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, query]);
 
   useEffect(() => {
     fetchBookingStats();
-  }, [fetchBookingStats]);
-
-  useEffect(() => {
-    if (!bookingsData) return;
-    const lower = query.toLowerCase();
-    setFilteredBookings(
-      bookingsData.filter(
-        (b) =>
-          b.driverName.toLowerCase().includes(lower) ||
-          b.dropLocation.toLowerCase().includes(lower) ||
-          b.pickupLocation.toLowerCase().includes(lower) ||
-          b.vehicleType.toLowerCase().includes(lower) ||
-          b.status.toLowerCase().includes(lower) ||
-          b.amount.toString().includes(lower) ||
-          b.date.toLowerCase().includes(lower) ||
-          b.userName.toLowerCase().includes(lower)
-      )
-    );
-  }, [query, bookingsData]);
+    fetchBookings();
+  }, [fetchBookingStats, fetchBookings]);
 
   const columns: Column[] = [
     { id: 'id', label: 'Booking ID', minWidth: 130 },

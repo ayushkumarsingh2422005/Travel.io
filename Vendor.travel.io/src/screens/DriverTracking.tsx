@@ -146,13 +146,47 @@ const DriverTracking: React.FC = () => {
                         )}
 
                         <div className="mt-8">
-                            {tripStarted || (bookingDetails?.status === 'ongoing') ? (
+                            {bookingDetails?.status === 'completed' ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                    <svg className="mx-auto h-12 w-12 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <h3 className="text-lg font-bold text-blue-800">Trip Completed</h3>
+                                    <p className="text-blue-600">This trip has been successfully completed.</p>
+                                </div>
+                            ) : tripStarted || (bookingDetails?.status === 'ongoing') ? (
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                                     <svg className="mx-auto h-12 w-12 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <h3 className="text-lg font-bold text-green-800">Trip Started</h3>
-                                    <p className="text-green-600">Drive safely!</p>
+                                    <p className="text-green-600 mb-4">Drive safely!</p>
+                                    
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('Are you sure you want to complete this trip?')) return;
+                                            setLoading(true);
+                                            try {
+                                                const response = await api.post(`/booking/driver/complete-trip`, {
+                                                    booking_id: bookingId
+                                                });
+                                                if (response.data.success) {
+                                                    toast.success('Trip Completed Successfully!');
+                                                    setBookingDetails(prev => prev ? { ...prev, status: 'completed' } : null);
+                                                    setTripStarted(false); 
+                                                }
+                                            } catch (err: any) {
+                                                console.error('Error completing trip:', err);
+                                                toast.error(err.response?.data?.message || 'Failed to complete trip');
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        disabled={loading}
+                                        className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        {loading ? 'Processing...' : 'Complete Trip'}
+                                    </button>
                                 </div>
                             ) : (
                                 <form onSubmit={handleVerifyOtp} className="space-y-4">

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import api from '../api/axios';
 
-interface Transaction {
-  bookingId: string;
-  tripType: string;
-  tripItinerary: string;
-  amountEarned: number;
-  penalty?: number;
-  customerReview?: string;
-  paymentStatus: string;
+interface WalletTransaction {
+  id: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  description: string;
+  created_at: string;
+  balance_after: number;
 }
 
 interface WalletStats {
@@ -16,95 +16,107 @@ interface WalletStats {
   lifetimeEarnings: number;
 }
 
-// Trip type classification data
-const tripTypeClasses = [
-  { type: "airport", class: "bg-blue-100 text-blue-700" },
-  { type: "outstation", class: "bg-purple-100 text-purple-700" },
-  { type: "local", class: "bg-yellow-100 text-yellow-700" },
-  { type: "default", class: "bg-gray-100 text-gray-700" }
-];
-
-// Payment status classification data
-const paymentStatusClasses = [
-  { status: "completed", class: "bg-green-100 text-green-800" },
-  { status: "pending", class: "bg-yellow-100 text-yellow-800" },
-  { status: "failed", class: "bg-red-100 text-red-800" },
-  { status: "default", class: "bg-gray-100 text-gray-700" }
-];
-
-// Filter options data
-const filterOptions = [
-  { id: 1, name: "Lifetime earning", value: "lifetime" },
-  { id: 2, name: "Last month", value: "month" },
-  { id: 3, name: "Last week", value: "week" }
-];
-
 const WalletComponent: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [walletStats, setWalletStats] = useState<WalletStats>({
-    currentBalance: 2000,
-    lifetimeEarnings: 36000
+    currentBalance: 0,
+    lifetimeEarnings: 0
   });
   const [loading, setLoading] = useState<boolean>(true);
-  const [filterType, setFilterType] = useState<string>('Lifetime earning');
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState<number>(500);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    // Simulate API call to fetch wallet data
-    const fetchWalletData = async () => {
-      setLoading(true);
-      try {
-        // Replace with your actual API call
-        // const response = await fetch('/api/wallet');
-        // const data = await response.json();
-        // setTransactions(data.transactions);
-        // setWalletStats(data.stats);
-        
-        // Using mock data for demonstration
-        setTimeout(() => {
-          setTransactions(mockTransactions);
-          setWalletStats(mockWalletStatsData);
-          setLoading(false);
-          toast.success('Wallet data loaded successfully!'); // Success toast
-        }, 500);
-      } catch (error) {
-        console.error('Error fetching wallet data:', error);
-        setTransactions([]);
-        setLoading(false);
-        toast.error('Failed to load wallet data.'); // Error toast
-      }
-    };
-
     fetchWalletData();
-  }, [filterType]);
+  }, []);
 
-  const handleTopUp = () => {
-    // Simulate top-up functionality
-    const success = Math.random() > 0.5; // Simulate success or failure
-    if (success) {
-      toast.success('Top-up initiated successfully!');
-      // Further logic for successful top-up
-    } else {
-      toast.error('Top-up failed. Please try again.');
-      // Further logic for failed top-up
+  const fetchWalletData = async () => {
+    setLoading(true);
+    try {
+      // Fetch Profile for Stats
+      const profileRes = await api.get('/profile');
+      if (profileRes.data.success) {
+        setWalletStats({
+          currentBalance: profileRes.data.vendor.amount || 0,
+          lifetimeEarnings: profileRes.data.vendor.total_earnings || 0
+        });
+      }
+
+      // Fetch Transaction History
+      const historyRes = await api.get('/wallet/history');
+      if (historyRes.data.success) {
+        setTransactions(historyRes.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+      toast.error('Failed to load wallet data.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilterType(e.target.value);
-  };
+  const handleRecharge = async () => {
+    if (rechargeAmount < 100) {
+      toast.error('Minimum recharge amount is ₹100');
+      return;
+    }
 
-  const getTripTypeClass = (type: string) => {
-    const found = tripTypeClasses.find(item => item.type.toLowerCase() === type.toLowerCase());
-    return found ? found.class : tripTypeClasses.find(item => item.type === "default")?.class;
-  };
+    setProcessing(true);
+    try {
+      const orderRes = await api.post('/wallet/recharge/create', { amount: rechargeAmount });
+      
+      if (orderRes.data.success) {
+        const options = {
+          key: orderRes.data.key_id,
+          amount: orderRes.data.amount,
+          currency: orderRes.data.currency,
+          name: "Travel.io",
+          description: "Vendor Wallet Recharge",
+          order_id: orderRes.data.order_id,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await api.post('/wallet/recharge/verify', {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: rechargeAmount
+              });
 
-  const getPaymentStatusClass = (status: string) => {
-    const found = paymentStatusClasses.find(item => item.status.toLowerCase() === status.toLowerCase());
-    return found ? found.class : paymentStatusClasses.find(item => item.status === "default")?.class;
+              if (verifyRes.data.success) {
+                toast.success('Wallet Recharged Successfully!');
+                setShowRechargeModal(false);
+                fetchWalletData(); // Refresh data
+              } else {
+                toast.error('Payment verification failed');
+              }
+            } catch (error) {
+              toast.error('Payment verification error');
+            }
+          },
+          prefill: {
+            name: "Vendor",
+            email: "vendor@example.com", 
+            contact: ""
+          },
+          theme: {
+            color: "#3399cc"
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      }
+    } catch (error) {
+      console.error("Recharge Error", error);
+      toast.error("Failed to initiate recharge");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* Wallet Balance and Top-up Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-6 flex flex-col col-span-2">
@@ -113,19 +125,24 @@ const WalletComponent: React.FC = () => {
             {loading ? (
               <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
             ) : (
-              <span className="text-3xl font-bold text-gray-800">
-                {walletStats.currentBalance.toLocaleString()}
-              </span>
+              <div className="flex flex-col">
+                 <span className={`text-4xl font-bold ${walletStats.currentBalance < 500 ? 'text-red-500' : 'text-gray-800'}`}>
+                    ₹{walletStats.currentBalance.toLocaleString()}
+                  </span>
+                  {walletStats.currentBalance < 500 && (
+                      <span className="text-sm text-red-500 font-medium mt-1">Low Balance! Min ₹500 required to accept bookings.</span>
+                  )}
+              </div>
             )}
             <button 
-              onClick={handleTopUp}
-              className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center"
+              onClick={() => setShowRechargeModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center shadow-sm"
               disabled={loading}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
-              Top-up
+              Add Money
             </button>
           </div>
         </div>
@@ -136,49 +153,34 @@ const WalletComponent: React.FC = () => {
             <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
           ) : (
             <span className="text-3xl font-bold text-gray-800">
-              {walletStats.lifetimeEarnings.toLocaleString()}
+              ₹{walletStats.lifetimeEarnings.toLocaleString()}
             </span>
           )}
         </div>
       </div>
 
-      {/* Filter Section */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h2 className="text-lg font-semibold text-gray-800">Transaction History</h2>
-          <select 
-            value={filterType}
-            onChange={handleFilterChange}
-            className="border border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-200 rounded-lg px-4 py-2 text-gray-700 bg-white transition-all"
-            disabled={loading}
-          >
-            {filterOptions.map(option => (
-              <option key={option.id} value={option.name}>{option.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Transactions Table */}
+      {/* Transaction History */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+             <h2 className="text-lg font-semibold text-gray-800">Wallet Transactions</h2>
+        </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full min-w-max">
             <thead>
               <tr className="bg-gray-50">
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Booking ID</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Trip Type</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Trip Itinerary</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Amount Earned</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Penalty</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Review</th>
-                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Status</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Date</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Description</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Type</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Amount</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600 border-b">Balance After</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx}>
-                    {Array.from({ length: 7 }).map((_, colIdx) => (
+                    {Array.from({ length: 5 }).map((_, colIdx) => (
                       <td key={colIdx} className="p-4 border-b border-gray-100">
                         <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
                       </td>
@@ -187,42 +189,32 @@ const WalletComponent: React.FC = () => {
                 ))
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-gray-500">
+                  <td colSpan={5} className="p-8 text-center text-gray-500">
                     No transactions found
                   </td>
                 </tr>
               ) : (
-                transactions.map((transaction) => (
-                  <tr key={transaction.bookingId} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{transaction.bookingId}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTripTypeClass(transaction.tripType)}`}>
-                        {transaction.tripType}
-                      </span>
+                transactions.map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm text-gray-600 border-b border-gray-100">
+                      {new Date(t.created_at).toLocaleString('en-IN', { 
+                          day: 'numeric', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute:'2-digit' 
+                      })}
                     </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">{transaction.tripItinerary}</td>
-                    <td className="p-4 text-sm font-medium text-gray-900 border-b border-gray-100">₹{transaction.amountEarned}</td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      {transaction.penalty ? (
-                        <span className="text-red-600 font-medium">₹{transaction.penalty}</span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
-                      {transaction.customerReview ? (
-                        <div className="flex items-center">
-                          <span className="text-amber-500 mr-1">★</span>
-                          <span>{transaction.customerReview}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">N/A</span>
-                      )}
+                    <td className="p-4 text-sm text-gray-800 border-b border-gray-100 font-medium">
+                      {t.description || 'Transaction'}
                     </td>
                     <td className="p-4 text-sm border-b border-gray-100">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusClass(transaction.paymentStatus)}`}>
-                        {transaction.paymentStatus}
-                      </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${t.type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {t.type.toUpperCase()}
+                        </span>
+                    </td>
+                    <td className={`p-4 text-sm font-bold border-b border-gray-100 ${t.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                      {t.type === 'credit' ? '+' : '-'}₹{t.amount}
+                    </td>
+                    <td className="p-4 text-sm text-gray-700 border-b border-gray-100">
+                      ₹{t.balance_after}
                     </td>
                   </tr>
                 ))
@@ -231,46 +223,56 @@ const WalletComponent: React.FC = () => {
           </table>
         </div>
       </div>
+
+        {/* Recharge Modal */}
+        {showRechargeModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 transform transition-all scale-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-900">Add Money</h3>
+                        <button onClick={() => setShowRechargeModal(false)} className="text-gray-400 hover:text-gray-500">
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Enter Amount (₹)</label>
+                        <input 
+                            type="number"
+                            value={rechargeAmount}
+                            onChange={(e) => setRechargeAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-2xl font-bold text-center"
+                            placeholder="500"
+                        />
+                         <div className="flex justify-between gap-2 mt-3">
+                            {[500, 1000, 2000].map(amt => (
+                                <button 
+                                    key={amt}
+                                    onClick={() => setRechargeAmount(amt)}
+                                    className={`flex-1 py-1 rounded-md text-sm font-medium border ${rechargeAmount === amt ? 'bg-green-50 border-green-500 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                                >
+                                    ₹{amt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleRecharge}
+                        disabled={processing || rechargeAmount <= 0}
+                        className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all
+                            ${processing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'}
+                        `}
+                    >
+                        {processing ? 'Processing...' : `Proceed to Pay ₹${rechargeAmount}`}
+                    </button>
+                </div>
+            </div>
+        )}
     </div>
   );
-};
-
-// JSON formatted mock transaction data - ready for API replacement
-const mockTransactions = [
-  {
-    id: 1,
-    bookingId: 'BK-1001',
-    tripType: 'Airport',
-    tripItinerary: 'City Center → Airport',
-    amountEarned: 350,
-    customerReview: '4.8',
-    paymentStatus: 'Completed'
-  },
-  {
-    id: 2,
-    bookingId: 'BK-1002',
-    tripType: 'Outstation',
-    tripItinerary: 'City → Hill Station',
-    amountEarned: 1200,
-    penalty: 50,
-    customerReview: '4.2',
-    paymentStatus: 'Completed'
-  },
-  {
-    id: 3,
-    bookingId: 'BK-1003',
-    tripType: 'Local',
-    tripItinerary: 'Home → Shopping Mall',
-    amountEarned: 220,
-    customerReview: '5.0',
-    paymentStatus: 'Pending'
-  }
-];
-
-// Mock wallet stats data that can be replaced with API data
-const mockWalletStatsData = {
-  currentBalance: 2000,
-  lifetimeEarnings: 36000
 };
 
 export default WalletComponent;

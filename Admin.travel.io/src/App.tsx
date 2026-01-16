@@ -13,6 +13,7 @@ import AddOns from './screens/AddOns';
 import Penalties from './screens/Penalties';
 import Vehicles from './screens/Vehicles';
 import Categories from './screens/Categories';
+import PenaltyDisputes from './screens/PenaltyDisputes';
 import { checkAuth } from './utils/verifytoken';
 import { SearchProvider } from './context/SearchContext';
 import { ToastContainer } from 'react-toastify';
@@ -261,6 +262,44 @@ const App: React.FC = () => {
                       </svg>
                       Ratings
                     </Link>
+                    <Link
+                      to="/add-ons"
+                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
+                    >
+                      <svg
+                        className="w-5 h-5 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Add-Ons
+                    </Link>
+                    <Link
+                      to="/penalty-disputes"
+                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
+                    >
+                      <svg
+                        className="w-5 h-5 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                      Penalty Disputes
+                    </Link>
                   </nav>
 
                   {/* User Profile */}
@@ -310,6 +349,7 @@ const App: React.FC = () => {
                     <Route path="/ratings" element={<Ratings />} />
                     <Route path="/add-ons" element={<AddOns />} />
                     <Route path="/penalties" element={<Penalties />} />
+                    <Route path="/penalty-disputes" element={<PenaltyDisputes />} />
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </main>

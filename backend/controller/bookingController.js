@@ -16,10 +16,49 @@ const createBooking = async (req, res) => {
 };
 
 // Get user's bookings
+// Get user's bookings
 const getUserBookings = async (req, res) => {
     try {
         const userId = req.user.id;
         const { status, page = 1, limit = 10 } = req.query;
+
+        // Base subquery for bookings - include add_ons_details and pricing fields
+        let bookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, 
+                   pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, booking_otp,
+                   add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges,
+                   driver_night_charges, admin_commission, driver_payout, trip_type, micro_category
+            FROM bookings
+            WHERE customer_id = ?
+        `;
+        let bookingParams = [userId];
+
+        // Base subquery for prevbookings
+        let prevBookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, 
+                   pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, NULL as booking_otp,
+                   add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges,
+                   driver_night_charges, admin_commission, driver_payout, trip_type, micro_category
+            FROM prevbookings
+            WHERE customer_id = ?
+        `;
+        let prevBookingParams = [userId];
+
+        // Filter by status if provided
+        if (status) {
+            if (['waiting', 'approved', 'preongoing', 'ongoing'].includes(status)) {
+                bookingSubQuery += ' AND status = ?';
+                bookingParams.push(status);
+                prevBookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, NULL as booking_otp, add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges, driver_night_charges, admin_commission, driver_payout, trip_type, micro_category FROM prevbookings WHERE 1=0`;
+                prevBookingParams = [];
+            } 
+            else if (['completed', 'cancelled'].includes(status)) {
+                 prevBookingSubQuery += ' AND status = ?';
+                 prevBookingParams.push(status);
+                 bookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, booking_otp, add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges, driver_night_charges, admin_commission, driver_payout, trip_type, micro_category FROM bookings WHERE 1=0`;
+                 bookingParams = [];
+            }
+        }
 
         let query = `
             SELECT 
@@ -36,21 +75,20 @@ const getUserBookings = async (req, res) => {
                 cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
-            FROM bookings b
+            FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) AS b
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
             LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
-            WHERE b.customer_id = ?
+            WHERE 1=1
         `;
 
-        const params = [userId];
-
-        if (status) {
-            query += ' AND b.status = ?';
-            params.push(status);
-        }
+        const params = [...bookingParams, ...prevBookingParams];
 
         query += ' ORDER BY b.created_at DESC';
 
@@ -62,14 +100,48 @@ const getUserBookings = async (req, res) => {
 
         const [bookings] = await db.execute(query, params);
 
+        // Parse add-ons and apply 5-hour visibility rule
+        const now = new Date();
+        bookings.forEach(booking => {
+            // Parse add-ons details
+            try {
+                booking.add_ons_details = JSON.parse(booking.add_ons_details || '[]');
+            } catch (e) {
+                booking.add_ons_details = [];
+            }
+
+            // Apply 5-hour visibility rule for upcoming bookings
+            if (booking.status !== 'completed' && booking.status !== 'cancelled') {
+                const pickupTime = new Date(booking.pickup_date);
+                const hoursDiff = (pickupTime - now) / (1000 * 60 * 60);
+
+                if (hoursDiff > 5) {
+                    // Hide driver and vehicle details
+                    booking.driver_name = null;
+                    booking.driver_phone = null;
+                    booking.vehicle_model = null;
+                    booking.vehicle_registration = null;
+                    booking.vehicle_image = null;
+                    booking.driver_details_hidden = true;
+                    
+                    // Calculate when details will be available
+                    const detailsAvailableAt = new Date(pickupTime.getTime() - (5 * 60 * 60 * 1000));
+                    booking.driver_details_available_at = detailsAvailableAt.toISOString();
+                } else {
+                    booking.driver_details_hidden = false;
+                }
+            }
+        });
+
         // Count total bookings for pagination
-        let countQuery = 'SELECT COUNT(*) as total FROM bookings WHERE customer_id = ?';
-        const countParams = [userId];
-        if (status) {
-            countQuery += ' AND status = ?';
-            countParams.push(status);
-        }
-        const [countResult] = await db.execute(countQuery, countParams);
+        let countQuery = `
+             SELECT COUNT(*) as total FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) as count_table
+        `;
+        const [countResult] = await db.execute(countQuery, params);
         const total = countResult[0].total;
 
         res.status(200).json({
@@ -97,10 +169,56 @@ const getUserBookings = async (req, res) => {
 };
 
 // Get vendor's bookings
+// Get vendor's bookings
 const getVendorBookings = async (req, res) => {
     try {
         const vendorId = req.user.id;
         const { status, page = 1, limit = 10 } = req.query;
+
+        // Base subquery for bookings - include add_ons_details and pricing fields
+        let bookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, 
+                   pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at,
+                   add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges,
+                   driver_night_charges, admin_commission, driver_payout, trip_type, micro_category
+            FROM bookings
+            WHERE vendor_id = ?
+        `;
+        let bookingParams = [vendorId];
+
+        // Base subquery for prevbookings
+        let prevBookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, 
+                   pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at,
+                   add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges,
+                   driver_night_charges, admin_commission, driver_payout, trip_type, micro_category
+            FROM prevbookings
+            WHERE vendor_id = ?
+        `;
+        let prevBookingParams = [vendorId];
+
+        // Filter by status if provided
+        if (status) {
+            // Check if status applies to active bookings (waiting, approved, preongoing, ongoing)
+            if (['waiting', 'approved', 'preongoing', 'ongoing'].includes(status)) {
+                bookingSubQuery += ' AND status = ?';
+                bookingParams.push(status);
+                // prevbookings only has completed/cancelled, so return nothing if searching for active statuses
+                prevBookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges, driver_night_charges, admin_commission, driver_payout, trip_type, micro_category FROM prevbookings WHERE 1=0`;
+                prevBookingParams = [];
+            } 
+            // Check if status applies to history (completed, cancelled)
+            else if (['completed', 'cancelled'].includes(status)) {
+                 prevBookingSubQuery += ' AND status = ?';
+                 prevBookingParams.push(status);
+                 // bookings table shouldn't typically have completed (moved) but might have cancelled? 
+                 // Actually bookings does have status enum 'completed'/'cancelled' before they are moved trigger-wise? 
+                 // The utils/bookingTransaction moveCompletedBooking deletes it from bookings. 
+                 // So we can assume they are in prevbookings.
+                 bookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, add_ons_details, addon_charges, base_fare, toll_charges, state_tax, parking_charges, driver_night_charges, admin_commission, driver_payout, trip_type, micro_category FROM bookings WHERE 1=0`;
+                 bookingParams = [];
+            }
+        }
 
         let query = `
             SELECT 
@@ -117,21 +235,20 @@ const getVendorBookings = async (req, res) => {
                 cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
-            FROM bookings b
+            FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) AS b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
             LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
-            WHERE b.vendor_id = ?
+            WHERE 1=1
         `;
 
-        const params = [vendorId];
-
-        if (status) {
-            query += ' AND b.status = ?';
-            params.push(status);
-        }
+        const params = [...bookingParams, ...prevBookingParams];
 
         query += ' ORDER BY b.created_at DESC';
 
@@ -143,14 +260,26 @@ const getVendorBookings = async (req, res) => {
 
         const [bookings] = await db.execute(query, params);
 
-        // Count total bookings for pagination
-        let countQuery = 'SELECT COUNT(*) as total FROM bookings WHERE vendor_id = ?';
-        const countParams = [vendorId];
-        if (status) {
-            countQuery += ' AND status = ?';
-            countParams.push(status);
-        }
-        const [countResult] = await db.execute(countQuery, countParams);
+        // Parse add-ons details for each booking
+        bookings.forEach(booking => {
+            try {
+                booking.add_ons_details = JSON.parse(booking.add_ons_details || '[]');
+            } catch (e) {
+                booking.add_ons_details = [];
+            }
+        });
+
+        // Count total for pagination
+        // Using simplified count queries
+        let countQuery = `
+            SELECT COUNT(*) as total FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) as count_table
+        `;
+        
+        const [countResult] = await db.execute(countQuery, params);
         const total = countResult[0].total;
 
         res.status(200).json({
@@ -184,6 +313,22 @@ const getBookingDetails = async (req, res) => {
         const userId = req.user.id;
         const userType = req.user.type; // 'user' or 'vendor'
 
+        let bookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, booking_otp, is_otp_verified, add_ons_details
+            FROM bookings
+            WHERE id = ?
+        `;
+        let prevBookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, NULL as booking_otp, 0 as is_otp_verified, NULL as add_ons_details
+            FROM prevbookings
+            WHERE id = ?
+        `;
+        
+        let subQueryParams = [bookingId];
+
+        // Add authorization check inside subqueries is redundant if we check outside, but safer if keys collide. 
+        // For simplicity, we can filter in the main query.
+        
         let query = `
             SELECT 
                 b.*,
@@ -204,17 +349,21 @@ const getBookingDetails = async (req, res) => {
                 cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
-            FROM bookings b
+            FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) AS b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
             LEFT JOIN drivers d ON b.driver_id = d.id
             LEFT JOIN users p ON b.partner_id = p.id
             LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
-            WHERE b.id = ?
+            WHERE 1=1 
         `;
 
-        const params = [bookingId];
+        const params = [bookingId, bookingId];
 
         // Add authorization check
         if (userType === 'user') {
@@ -223,6 +372,9 @@ const getBookingDetails = async (req, res) => {
         } else if (userType === 'vendor') {
             query += ' AND b.vendor_id = ?';
             params.push(userId);
+        } else if (userType === 'driver') { // Add driver check if needed, though usually implicit via route or different endpoint
+             // query += ' AND b.driver_id = ?';
+             // params.push(userId);
         }
 
         const [bookings] = await db.execute(query, params);
@@ -411,10 +563,43 @@ const cancelUserBooking = async (req, res) => {
 };
 
 // Get driver's bookings
+// Get driver's bookings
 const getDriverBookings = async (req, res) => {
     try {
         const driverId = req.user.id;
         const { status, page = 1, limit = 10 } = req.query;
+
+        // Base subquery for bookings
+        let bookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, booking_otp
+            FROM bookings
+            WHERE driver_id = ?
+        `;
+        let bookingParams = [driverId];
+
+        // Base subquery for prevbookings
+        let prevBookingSubQuery = `
+            SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, NULL as booking_otp
+            FROM prevbookings
+            WHERE driver_id = ?
+        `;
+        let prevBookingParams = [driverId];
+
+        // Filter by status if provided
+        if (status) {
+            if (['waiting', 'approved', 'preongoing', 'ongoing'].includes(status)) {
+                bookingSubQuery += ' AND status = ?';
+                bookingParams.push(status);
+                prevBookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, NULL as cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, NULL as booking_otp FROM prevbookings WHERE 1=0`;
+                prevBookingParams = [];
+            } 
+            else if (['completed', 'cancelled'].includes(status)) {
+                 prevBookingSubQuery += ' AND status = ?';
+                 prevBookingParams.push(status);
+                 bookingSubQuery = `SELECT id, vendor_id, customer_id, vehicle_id, driver_id, partner_id, cab_category_id, pickup_location, dropoff_location, pickup_date, drop_date, price, status, created_at, booking_otp FROM bookings WHERE 1=0`;
+                 bookingParams = [];
+            }
+        }
 
         let query = `
             SELECT 
@@ -429,20 +614,19 @@ const getDriverBookings = async (req, res) => {
                 cc.segment as cab_category_name,
                 cc.price_per_km as cab_category_price_per_km,
                 cc.category_image as cab_category_image
-            FROM bookings b
+            FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) AS b
             LEFT JOIN users u ON b.customer_id = u.id
             LEFT JOIN vehicles v ON b.vehicle_id = v.id
             LEFT JOIN vendors ven ON b.vendor_id = ven.id
             LEFT JOIN cab_categories cc ON b.cab_category_id = cc.id
-            WHERE b.driver_id = ?
+            WHERE 1=1
         `;
 
-        const params = [driverId];
-
-        if (status) {
-            query += ' AND b.status = ?';
-            params.push(status);
-        }
+        const params = [...bookingParams, ...prevBookingParams];
 
         query += ' ORDER BY b.created_at DESC';
 
@@ -455,13 +639,14 @@ const getDriverBookings = async (req, res) => {
         const [bookings] = await db.execute(query, params);
 
         // Count total bookings for pagination
-        let countQuery = 'SELECT COUNT(*) as total FROM bookings WHERE driver_id = ?';
-        const countParams = [driverId];
-        if (status) {
-            countQuery += ' AND status = ?';
-            countParams.push(status);
-        }
-        const [countResult] = await db.execute(countQuery, countParams);
+        let countQuery = `
+             SELECT COUNT(*) as total FROM (
+                ${bookingSubQuery}
+                UNION ALL
+                ${prevBookingSubQuery}
+            ) as count_table
+        `;
+        const [countResult] = await db.execute(countQuery, params);
         const total = countResult[0].total;
 
         res.status(200).json({
@@ -546,7 +731,7 @@ const updateBookingStatusByDriver = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
             // OTP matches
-            updateQuery += `, is_otp_verified = 1, start_time = CURRENT_TIMESTAMP`;
+            updateQuery += `, is_otp_verified = 1`;
         }
 
         updateQuery += ` WHERE id = ?`;
@@ -621,7 +806,7 @@ const verifyOtpAndStartTrip = async (req, res) => {
         // Update status to ongoing
         await db.execute(`
             UPDATE bookings 
-            SET status = 'ongoing', is_otp_verified = 1, start_time = CURRENT_TIMESTAMP 
+            SET status = 'ongoing', is_otp_verified = 1 
             WHERE id = ?
         `, [booking_id]);
 
@@ -683,6 +868,59 @@ const getPublicBookingDetails = async (req, res) => {
     }
 };
 
+// Complete Trip (Public/Driver Link)
+const completeTripPublic = async (req, res) => {
+    try {
+        const { booking_id } = req.body;
+
+        if (!booking_id) {
+            return res.status(400).json({ success: false, message: 'Booking ID is required' });
+        }
+
+        // Check booking
+        const [bookings] = await db.execute(`
+            SELECT * FROM bookings WHERE id = ?
+        `, [booking_id]);
+
+        if (bookings.length === 0) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        const booking = bookings[0];
+
+        if (booking.status !== 'ongoing') {
+            return res.status(400).json({ success: false, message: 'Trip must be ongoing to complete' });
+        }
+
+        // Update status to completed first
+        await db.execute(`
+            UPDATE bookings 
+            SET status = 'completed', drop_date = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `, [booking_id]);
+
+        // Move to prevbookings handling
+        await moveCompletedBooking(booking_id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Trip Completed Successfully',
+            data: {
+                booking_id: booking.id,
+                status: 'completed'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error completing trip:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to complete trip',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createBooking,
     getUserBookings,
@@ -693,5 +931,6 @@ module.exports = {
     getDriverBookings,
     updateBookingStatusByDriver,
     verifyOtpAndStartTrip,
-    getPublicBookingDetails
+    getPublicBookingDetails,
+    completeTripPublic
 };

@@ -473,10 +473,25 @@ const verifyVehicleRC = async (req, res) => {
 // Create vehicle with RC data storage
 const createVehicleWithRC = async (req, res) => {
     try {
-        const { model, registration_no, no_of_seats, image, per_km_charge, rc_data, rc_vehicle_category } = req.body;
+        let { model, registration_no, no_of_seats, per_km_charge, rc_data, rc_vehicle_category } = req.body;
         const vendor_id = req.user.id; // From auth middleware
 
-        // console.log(req.body);
+        // Handle Image Upload
+        let image = req.body.image;
+        if (req.file) {
+            image = `/uploads/${req.file.filename}`;
+        }
+        
+        // Parse rc_data if it's a string (from FormData)
+        if (typeof rc_data === 'string') {
+            try {
+                rc_data = JSON.parse(rc_data);
+            } catch (e) {
+                console.error('Failed to parse rc_data:', e);
+                return res.status(400).json({ success: false, message: 'Invalid RC Data format' });
+            }
+        }
+
         // Validate required fields
         if (!model || !registration_no || !no_of_seats || !rc_vehicle_category) {
             return res.status(400).json({
@@ -500,7 +515,7 @@ const createVehicleWithRC = async (req, res) => {
 
         // Fetch base_per_km_price from cab_categories
         const [categoryResult] = await db.execute(
-            'SELECT price_per_km FROM cab_categories WHERE category = ?',
+            'SELECT price_per_km FROM cab_categories WHERE segment = ?',
             [rc_vehicle_category]
         );
 

@@ -12,6 +12,9 @@ const {
 const { getCabCategories } = require('../controller/cabCategoryController');
 
 // Middleware to protect routes
+// Import Upload Middleware
+const upload = require('../middleware/uploadMiddleware');
+
 const authMiddleware = (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -33,8 +36,8 @@ const authMiddleware = (req, res, next) => {
 router.use(authMiddleware);
 
 // Vehicle CRUD routes
-router.post('/', addVehicle);
-router.post('/with-rc', createVehicleWithRC); // Create vehicle with RC verification
+router.post('/', upload.single('image'), addVehicle);
+router.post('/with-rc', upload.single('image'), createVehicleWithRC); // Create vehicle with RC verification
 router.get('/', getVehicles);
 router.get('/cab-categories', getCabCategories);
 router.get('/:id', getVehicle);

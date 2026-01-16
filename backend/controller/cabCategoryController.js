@@ -7,18 +7,42 @@ const generateUniqueId = () => crypto.randomBytes(32).toString('hex');
 // Add a new Cab Category (Pricing Rule)
 const addCabCategory = async (req, res) => {
     try {
-        const {
-            service_type, sub_category, micro_category, segment,
+        console.log('Add Category Body:', req.body);
+        console.log('Add Category File:', req.file);
+
+        let {
+            service_type, sub_category, micro_category, segment, category, // Frontend sends 'category' sometimes
             base_price, price_per_km, min_km_per_day,
-            min_seats, max_seats,
+            min_seats, max_seats, min_no_of_seats, max_no_of_seats, // Frontend sends no_of_seats
             package_hours, package_km,
-            extra_hour_rate, extra_km_rate, driver_allowance,
-            category_image, description, is_active
+            extra_hour_rate, extra_km_rate, driver_allowance, driver_charges, // Frontend sends driver_charges
+            description, notes, is_active // Frontend sends notes
         } = req.body;
+
+        // Map Frontend Fields to Backend Schema
+        if (service_type === 'hourly') service_type = 'hourly_rental';
+        if (!segment && category) segment = category;
+        if (!min_seats && min_no_of_seats) min_seats = min_no_of_seats;
+        if (!max_seats && max_no_of_seats) max_seats = max_no_of_seats;
+        if (!driver_allowance && driver_charges) driver_allowance = driver_charges;
+        
+        // Map notes to description if description is empty
+        if (!description && notes) description = notes;
+        
+        // Append Category Name to description if it differs from segment
+        if (category && segment && category !== segment) {
+             description = (description ? description + '. ' : '') + 'Category Name: ' + category;
+        }
+
+        // Handle Image Upload
+        let category_image = null;
+        if (req.file) {
+            category_image = `/uploads/${req.file.filename}`;
+        }
 
         // Basic validation
         if (!service_type || !segment) {
-            return res.status(400).json({ success: false, message: 'Service type and segment are required' });
+            return res.status(400).json({ success: false, message: 'Service type and segment/category are required' });
         }
 
         const id = generateUniqueId();

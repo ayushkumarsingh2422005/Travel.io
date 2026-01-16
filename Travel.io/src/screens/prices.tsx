@@ -41,6 +41,7 @@ interface AddOn {
   name: string;
   price: number;
   price_type: 'fixed' | 'percentage';
+  percentage_value?: number;
 }
 
 interface RouteData {
@@ -117,9 +118,17 @@ export default function Prices() {
   useEffect(() => {
     const fetchAddOns = async () => {
       try {
-        const response = await axios.get('/admin/add-ons/all');
+        const response = await axios.get('http://localhost:5000/user/add-ons');
         if (response.data.success) {
-          setAvailableAddOns(response.data.data);
+          // Transform backend data to match our interface and ensure numbers
+          const mappedAddOns: AddOn[] = response.data.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: parseFloat(item.price || '0'), // Parse string decimal
+            price_type: item.pricing_type, // Map pricing_type to price_type
+            percentage_value: parseFloat(item.percentage_value || '0') // Parse percentage
+          }));
+          setAvailableAddOns(mappedAddOns);
         }
       } catch (error) {
         console.error('Error fetching add-ons:', error);
@@ -165,23 +174,23 @@ export default function Prices() {
   // Calculate Add-ons Total
   useEffect(() => {
     let total = 0;
-    // Base price for percentage calculation
-    // Note: Usually percentage is on base fare? or total? Let's assume on calculatedBaseFare
-    // If calculatedBaseFare is 0 (loading), then 0.
-    const baseVal = calculatedBaseFare;
+    const baseVal = calculatedBaseFare; // Use base fare for percentage calculation
 
     selectedAddOns.forEach(id => {
       const addon = availableAddOns.find(a => a.id === id);
       if (addon) {
         if (addon.price_type === 'fixed') {
           total += addon.price;
-        } else {
-          total += (baseVal * addon.price) / 100;
+        } else if (addon.price_type === 'percentage') {
+          // Calculate percentage based on base fare
+          // Ensure percentage_value exists, otherwise use price or 0
+          const pct = addon.percentage_value || 0;
+          total += (baseVal * pct) / 100;
         }
       }
     });
     setAddOnsTotal(Math.round(total));
-  }, [selectedAddOns, calculatedBaseFare, availableAddOns]);
+  }, [selectedAddOns, availableAddOns, calculatedBaseFare]);
 
   useEffect(() => {
     const initMap = async () => {
@@ -259,7 +268,7 @@ export default function Prices() {
 
         const request = {
           origin: routeData.pickup,
-          destination: routeData.destination,
+          destination: routeData?.destination,
           waypoints: waypoints,
           travelMode: google.maps.TravelMode.DRIVING
         };
@@ -267,7 +276,7 @@ export default function Prices() {
         // For Hourly Rental, if destination is missing/same-as-pickup, we still want to show map ?
         // Maybe just show pickup point marker if no destination?
         // But DirectionsService needs origin/dest.
-        if (routeData.tripType === 'Hourly Rental' && !routeData.destination) {
+        if (routeData?.tripType === 'Hourly Rental' && !routeData?.destination) {
           request.destination = routeData.pickup;
         }
 
@@ -304,7 +313,7 @@ export default function Prices() {
             const oneWayDuration = totalDuration; // Store one-way duration
 
             // Adjust for round trip if needed
-            if (routeData.tripType === 'Round Trip') {
+            if (routeData?.tripType === 'Round Trip') {
               totalDistance *= 2;
               totalDuration *= 2;
             }
@@ -313,21 +322,21 @@ export default function Prices() {
             let baseFare = 0;
             let distanceInKm = totalDistance / 1000;
 
-            if (routeData.tripType === 'Hourly Rental') {
-              baseFare = routeData.cabCategory.base_price || 0;
+            if (routeData?.tripType === 'Hourly Rental') {
+              baseFare = routeData?.cabCategory.base_price || 0;
             } else {
-              baseFare = distanceInKm * routeData.cabCategory.price_per_km;
+              baseFare = distanceInKm * routeData?.cabCategory.price_per_km;
             }
 
             setCalculatedBaseFare(Math.round(baseFare)); // Set calculated base fare
 
             let currentCalculatedPrice = baseFare;
 
-            if (routeData.cabCategory.fuel_charges) {
-              currentCalculatedPrice += parseFloat(routeData.cabCategory.fuel_charges.toString());
+            if (routeData?.cabCategory.fuel_charges) {
+              currentCalculatedPrice += parseFloat(routeData?.cabCategory.fuel_charges.toString());
             }
-            if (routeData.cabCategory.driver_charges) {
-              currentCalculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
+            if (routeData?.cabCategory.driver_charges) {
+              currentCalculatedPrice += parseFloat(routeData?.cabCategory.driver_charges.toString());
             }
 
             // Add night charges if applicable (for every night in the trip)
@@ -374,8 +383,8 @@ export default function Prices() {
             console.log('Night Charges Applicable:', nightChargesApplicable);
 
             let nightChargeValue = 0;
-            if (nightChargesApplicable && routeData.cabCategory.night_charges) {
-              const perNightCharge = parseFloat(routeData.cabCategory.night_charges.toString());
+            if (nightChargesApplicable && routeData?.cabCategory.night_charges) {
+              const perNightCharge = parseFloat(routeData?.cabCategory.night_charges.toString());
               console.log('Per Night Charge:', perNightCharge);
               nightChargeValue = perNightCharge * numberOfNights;
               console.log('Total Night Charge Value:', nightChargeValue);
@@ -386,8 +395,8 @@ export default function Prices() {
             console.log('Final Calculated Night Charges:', nightChargeValue); // Set the calculated night charges
 
             let discountAmount = 0;
-            if (routeData.cabCategory.base_discount) {
-              discountAmount = (currentCalculatedPrice * parseFloat(routeData.cabCategory.base_discount.toString())) / 100;
+            if (routeData?.cabCategory.base_discount) {
+              discountAmount = (currentCalculatedPrice * parseFloat(routeData?.cabCategory.base_discount.toString())) / 100;
               currentCalculatedPrice -= discountAmount;
             }
             setCalculatedDiscountAmount(Math.round(discountAmount)); // Set calculated discount amount
@@ -451,22 +460,22 @@ export default function Prices() {
     };
 
     if (routeData) {
-      if (routeData.tripType === 'Hourly Rental') {
+      if (routeData?.tripType === 'Hourly Rental') {
         // Initialize logic for Hourly Rental
-        const baseFare = routeData.cabCategory.base_price || 0;
+        const baseFare = routeData?.cabCategory.base_price || 0;
         setCalculatedBaseFare(Math.round(baseFare));
 
         let currentCalculatedPrice = baseFare;
-        if (routeData.cabCategory.fuel_charges) {
-          currentCalculatedPrice += parseFloat(routeData.cabCategory.fuel_charges.toString());
+        if (routeData?.cabCategory.fuel_charges) {
+          currentCalculatedPrice += parseFloat(routeData?.cabCategory.fuel_charges.toString());
         }
-        if (routeData.cabCategory.driver_charges) {
-          currentCalculatedPrice += parseFloat(routeData.cabCategory.driver_charges.toString());
+        if (routeData?.cabCategory.driver_charges) {
+          currentCalculatedPrice += parseFloat(routeData?.cabCategory.driver_charges.toString());
         }
 
         let discountAmount = 0;
-        if (routeData.cabCategory.base_discount) {
-          discountAmount = (currentCalculatedPrice * parseFloat(routeData.cabCategory.base_discount.toString())) / 100;
+        if (routeData?.cabCategory.base_discount) {
+          discountAmount = (currentCalculatedPrice * parseFloat(routeData?.cabCategory.base_discount.toString())) / 100;
           currentCalculatedPrice -= discountAmount;
         }
         setCalculatedDiscountAmount(Math.round(discountAmount));
@@ -475,13 +484,13 @@ export default function Prices() {
 
         // Set route details with dummy valid data for backend
         setRouteDetails({
-          distance: `${routeData.cabCategory.package_km || 0} km`,
-          duration: `${routeData.cabCategory.package_hours || 0} hr`,
+          distance: `${routeData?.cabCategory.package_km || 0} km`,
+          duration: `${routeData?.cabCategory.package_hours || 0} hr`,
           price: estimatedPrice,
           path: 'HOURLY_RENTAL_PATH', // Dummy path for backend validation
           oneWayDistance: '',
           oneWayDuration: '',
-          distance_km: routeData.cabCategory.package_km || 0
+          distance_km: routeData?.cabCategory.package_km || 0
         });
 
         // Calculate charges
@@ -503,6 +512,31 @@ export default function Prices() {
       navigate('/');
     }
   }, [routeData, navigate]);
+
+  // Recalculate payment totals when add-ons change
+  useEffect(() => {
+    if (routeDetails.price > 0) {
+      // Total booking amount = base price + add-ons
+      const totalBookingAmount = routeDetails.price + addOnsTotal;
+      
+      // Platform charges: 10% of total booking amount
+      const calculatedPlatformCharges = totalBookingAmount * 0.10;
+      
+      // GST: 5% on platform charges
+      const calculatedGstAmount = calculatedPlatformCharges * 0.05;
+      
+      // Total upfront payment: platform charges + GST
+      const calculatedTotalUpfrontPayment = calculatedPlatformCharges + calculatedGstAmount;
+      
+      // Remaining amount: total booking - platform charges
+      const calculatedRemainingAmount = totalBookingAmount - calculatedPlatformCharges;
+
+      setPlatformCharges(Math.round(calculatedPlatformCharges));
+      setGstAmount(Math.round(calculatedGstAmount));
+      setTotalUpfrontPayment(Math.round(calculatedTotalUpfrontPayment));
+      setRemainingAmount(Math.round(calculatedRemainingAmount));
+    }
+  }, [addOnsTotal, routeDetails.price]);
 
   // Format duration from seconds to hours and minutes
   const formatDuration = (seconds: number): string => {
@@ -617,17 +651,17 @@ export default function Prices() {
 
     // Ensure we have a numeric distance. If routeDetails.distance_km is not set (e.g. hourly rental might not have it), handle it.
     // For Hourly Rental, distance_km might be 0 or package distance.
-    const distanceVal = routeDetails.distance_km || (routeData.tripType === 'Hourly Rental' ? (routeData.cabCategory.package_km || 0) : 0);
-    const pathVal = routeDetails.path || (routeData.tripType === 'Hourly Rental' ? 'HOURLY_RENTAL_PATH' : '');
+    const distanceVal = routeDetails.distance_km || (routeData?.tripType === 'Hourly Rental' ? (routeData?.cabCategory.package_km || 0) : 0);
+    const pathVal = routeDetails.path || (routeData?.tripType === 'Hourly Rental' ? 'HOURLY_RENTAL_PATH' : '');
 
     try {
       const orderRequest: CreateOrderRequest = {
-        cab_category_id: routeData.cabCategory.id,
+        cab_category_id: routeData?.cabCategory.id,
         partner_id: partnerId || undefined,
         pickup_location: routeData.pickup,
-        dropoff_location: routeData.destination || routeData.pickup || 'Hourly Rental Area', // Fallback for hourly
+        dropoff_location: routeData?.destination || routeData.pickup || 'Hourly Rental Area', // Fallback for hourly
         pickup_date: routeData.pickupDate,
-        drop_date: routeData.dropDate || new Date(new Date(routeData.pickupDate).getTime() + (routeData.cabCategory.package_hours || 1) * 60 * 60 * 1000).toISOString(), // Fallback drop date
+        drop_date: routeData.dropDate || new Date(new Date(routeData.pickupDate).getTime() + (routeData?.cabCategory.package_hours || 1) * 60 * 60 * 1000).toISOString(), // Fallback drop date
         path: pathVal,
         distance: distanceVal,
         amount: totalUpfrontPayment, // Use totalUpfrontPayment
@@ -661,7 +695,7 @@ export default function Prices() {
       amount: orderData.amount * 100,
       currency: 'INR',
       name: 'Travel.io',
-      description: `Booking for ${routeData.cabCategory.category}`,
+      description: `Booking for ${routeData?.cabCategory.category}`,
       order_id: orderData.order_id,
       handler: async function (response: any) {
         const paymentVerificationRequest: VerifyPaymentRequest = {
@@ -737,10 +771,10 @@ export default function Prices() {
             <p className="text-gray-600 mt-2">Review your route details and estimated costs</p>
           </div>
 
-          <div className={`grid grid-cols-1 ${routeData.tripType === 'Hourly Rental' ? 'justify-center' : 'lg:grid-cols-5'} gap-8`}>
+          <div className={`grid grid-cols-1 ${routeData?.tripType === 'Hourly Rental' ? 'justify-center' : 'lg:grid-cols-5'} gap-8`}>
             {/* Map Section - 3/5 width on large screens */}
             {/* Map Section - Only show for non-Hourly Rental */}
-            {routeData.tripType !== 'Hourly Rental' && (
+            {routeData?.tripType !== 'Hourly Rental' && (
               <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative">
                 <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
@@ -761,7 +795,7 @@ export default function Prices() {
 
             {/* Trip Details Section - 2/5 width on large screens */}
             {/* Trip Details Section */}
-            <div className={`${routeData.tripType === 'Hourly Rental' ? 'w-full max-w-2xl mx-auto' : 'lg:col-span-2'} space-y-6`}>
+            <div className={`${routeData?.tripType === 'Hourly Rental' ? 'w-full max-w-2xl mx-auto' : 'lg:col-span-2'} space-y-6`}>
               {/* Trip Summary Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="p-5 bg-gradient-to-r from-green-700 to-green-600 text-white">
@@ -777,7 +811,7 @@ export default function Prices() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-4 bg-green-100 rounded-lg border border-green-200">
                       <div className="flex items-center">
-                        {routeData.tripType === 'Round Trip' ? (
+                        {routeData?.tripType === 'Round Trip' ? (
                           <svg className="w-6 h-6 text-green-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
                           </svg>
@@ -790,12 +824,12 @@ export default function Prices() {
                         <span className="font-bold text-green-800 text-lg">Trip Type</span>
                       </div>
                       <span className="text-green-900 text-lg font-semibold">
-                        {routeData.tripType}
+                        {routeData?.tripType}
                       </span>
                     </div>
 
 
-                    {routeData.tripType !== 'Hourly Rental' && (
+                    {routeData?.tripType !== 'Hourly Rental' && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -807,7 +841,7 @@ export default function Prices() {
                       </div>
                     )}
 
-                    {routeData.tripType === 'Hourly Rental' && (
+                    {routeData?.tripType === 'Hourly Rental' && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -816,12 +850,12 @@ export default function Prices() {
                           <span className="font-medium text-gray-700">Package</span>
                         </div>
                         <span className="font-semibold text-gray-800">
-                          {routeData.cabCategory.package_hours ? `${routeData.cabCategory.package_hours} Hr / ${routeData.cabCategory.package_km} Km` : 'Hourly Package'}
+                          {routeData?.cabCategory.package_hours ? `${routeData?.cabCategory.package_hours} Hr / ${routeData?.cabCategory.package_km} Km` : 'Hourly Package'}
                         </span>
                       </div>
                     )}
 
-                    {routeData.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
+                    {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -833,7 +867,7 @@ export default function Prices() {
                       </div>
                     )}
 
-                    {routeData.tripType !== 'Hourly Rental' && (
+                    {routeData?.tripType !== 'Hourly Rental' && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -845,7 +879,7 @@ export default function Prices() {
                       </div>
                     )}
 
-                    {routeData.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
+                    {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
                       <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -861,24 +895,24 @@ export default function Prices() {
                     {/* New card for Cab Category Details */}
                     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
                       <div className="p-4 bg-green-100 border-b border-gray-100">
-                        <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData.cabCategory.category}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData?.cabCategory.category}</h3>
                       </div>
                       <div className="p-4 text-sm text-gray-700 space-y-2">
                         <div className="flex justify-between">
-                          <span>{routeData.tripType === 'Hourly Rental' ? 'Base Package Price:' : 'Price (dist*perkm):'}</span>
+                          <span>{routeData?.tripType === 'Hourly Rental' ? 'Base Package Price:' : 'Price (dist*perkm):'}</span>
                           <span className="font-medium">₹{calculatedBaseFare}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Seats:</span>
-                          <span className="font-medium">{routeData.cabCategory.min_no_of_seats}-{routeData.cabCategory.max_no_of_seats}</span>
+                          <span className="font-medium">{routeData?.cabCategory.min_no_of_seats}-{routeData?.cabCategory.max_no_of_seats}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Fuel Charges:</span>
-                          <span className="font-medium">{routeData.cabCategory.fuel_charges > 0 ? `₹${routeData.cabCategory.fuel_charges}` : 'Included'}</span>
+                          <span className="font-medium">{routeData?.cabCategory.fuel_charges > 0 ? `₹${routeData?.cabCategory.fuel_charges}` : 'Included'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Driver Charges:</span>
-                          <span className="font-medium">{routeData.cabCategory.driver_charges > 0 ? `₹${routeData.cabCategory.driver_charges}` : 'Included'}</span>
+                          <span className="font-medium">{routeData?.cabCategory.driver_charges > 0 ? `₹${routeData?.cabCategory.driver_charges}` : 'Included'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Night Charges:</span>
@@ -888,10 +922,10 @@ export default function Prices() {
                           <span>Add-Ons:</span>
                           <span className="font-medium">{addOnsTotal > 0 ? `₹${addOnsTotal}` : '₹0'}</span>
                         </div>
-                        {routeData.cabCategory.base_discount > 0 && (
+                        {routeData?.cabCategory.base_discount > 0 && (
                           <div className="flex justify-between text-red-600 font-semibold">
                             <span>Discount:</span>
-                            <span>{routeData.cabCategory.base_discount}% OFF</span>
+                            <span>{routeData?.cabCategory.base_discount}% OFF</span>
                             <span className="font-medium">-₹{calculatedDiscountAmount.toLocaleString()}</span>
                           </div>
                         )}
@@ -942,25 +976,40 @@ export default function Prices() {
                       <p className="text-gray-500">No add-ons available.</p>
                     ) : (
                       <div className="space-y-3">
-                        {availableAddOns.map(addon => (
-                          <div key={addon.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => toggleAddOn(addon.id)}>
-                            <div className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={selectedAddOns.includes(addon.id)}
-                                onChange={() => toggleAddOn(addon.id)}
-                                className="h-5 w-5 text-green-600 rounded focus:ring-green-500"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <div className="ml-3">
-                                <div className="font-medium text-gray-900">{addon.name}</div>
+                        {availableAddOns.map(addon => {
+                          // Calculate display price
+                          let displayPrice = 0;
+                          if (addon.price_type === 'fixed') {
+                            displayPrice = addon.price;
+                          } else {
+                             // Percentage
+                             const pct = addon.percentage_value || 0;
+                             displayPrice = Math.round((calculatedBaseFare * pct) / 100);
+                          }
+
+                          return (
+                            <div key={addon.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => toggleAddOn(addon.id)}>
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedAddOns.includes(addon.id)}
+                                  onChange={() => toggleAddOn(addon.id)}
+                                  className="h-5 w-5 text-green-600 rounded focus:ring-green-500"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <div className="ml-3">
+                                  <div className="font-medium text-gray-900">{addon.name}</div>
+                                  {addon.price_type === 'percentage' && (
+                                    <div className="text-xs text-gray-500">{addon.percentage_value}% of base fare</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="font-semibold text-gray-700">
+                                ₹{displayPrice}
                               </div>
                             </div>
-                            <div className="font-semibold text-gray-700">
-                              {addon.price_type === 'fixed' ? `₹${addon.price}` : `${addon.price}%`}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1007,7 +1056,7 @@ export default function Prices() {
                         </div>
                       ))}
 
-                      {routeData.tripType !== 'Hourly Rental' && (
+                      {routeData?.tripType !== 'Hourly Rental' && (
                         <div className="relative pl-8">
                           <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-green-200"></div>
                           <div className="flex items-center mb-2">
@@ -1018,7 +1067,7 @@ export default function Prices() {
                             </div>
                             <span className="ml-10 font-medium text-gray-800">Destination</span>
                           </div>
-                          <p className="ml-10 text-gray-600 break-words">{routeData.destination}</p>
+                          <p className="ml-10 text-gray-600 break-words">{routeData?.destination}</p>
                         </div>
                       )}
                     </div>

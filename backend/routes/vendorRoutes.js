@@ -12,8 +12,14 @@ const {
     getVendorEarnings,
     getPendingBookingRequests,
     acceptBookingRequest,
-    getVendorPenalties
+    getVendorPenalties,
+    createRechargeOrder,
+    verifyRechargePayment,
+    getWalletHistory,
+    submitPenaltyDispute,
+    acceptPenalty
 } = require('../controller/vendorController');
+
 
 // Middleware to protect routes
 const authMiddleware = (req, res, next) => {
@@ -48,9 +54,16 @@ router.get('/ongoing-bookings', getVendorOngoingBookings);
 router.get('/completed-rides', getVendorCompletedRides);
 router.get('/earnings', getVendorEarnings);
 router.get('/penalties', getVendorPenalties);
+router.post('/penalty/:id/dispute', submitPenaltyDispute);
+router.post('/penalty/:id/accept', acceptPenalty);
 
 // Booking request routes
 router.get('/pending-requests', getPendingBookingRequests);
 router.post('/accept-booking', acceptBookingRequest);
+
+// Vendor Wallet Routes
+router.post('/wallet/recharge/create', createRechargeOrder);
+router.post('/wallet/recharge/verify', verifyRechargePayment);
+router.get('/wallet/history', getWalletHistory);
 
 module.exports = router;

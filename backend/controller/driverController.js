@@ -9,9 +9,15 @@ const generateUniqueId = () => crypto.randomBytes(32).toString('hex');
 const addDriver = async (req, res) => {
     try {
         console.log(req.body);
-        const { name, phone, address, dl_number, dl_data } = req.body;
+        const { name, phone, address, dl_number, dl_data, languages } = req.body;
         const vendor_id = req.user.id; // From auth middleware
         
+        // Handle Image Upload
+        let image = null;
+        if (req.file) {
+            image = `/uploads/${req.file.filename}`;
+        }
+
         // Validate required fields
         if (!name || !phone || !address || !dl_number) {
             return res.status(400).json({ 
@@ -30,7 +36,7 @@ const addDriver = async (req, res) => {
             const field = existingDrivers[0].phone === phone ? 'phone' : 'dl_number';
             return res.status(409).json({ 
                 success: false, 
-                message: `Driver with this ${field} already exists` 
+                message: 'Driver with this phone or DL number already exists' 
             });
         }
         
@@ -39,15 +45,26 @@ const addDriver = async (req, res) => {
         
         // Parse DL data if provided as string
         let dlDataToStore = dl_data;
-        if (typeof dl_data === 'object') {
+        if (typeof dl_data === 'string') {
+             try {
+                dlDataToStore = JSON.parse(dl_data); // Ensure it is valid JSON first
+             } catch(e) { /* Ignore if not JSON string */ }
+             dlDataToStore = dl_data; // Store as string anyway as TEXT column
+        } else if (typeof dl_data === 'object'){
             dlDataToStore = JSON.stringify(dl_data);
+        }
+
+        // Handle languages
+        let languagesToStore = null;
+        if (languages) {
+            languagesToStore = typeof languages === 'string' ? languages : JSON.stringify(languages);
         }
         
         // Insert new driver with required fields
         await db.execute(
-            `INSERT INTO drivers (id, vendor_id, name, phone, address, dl_number, dl_data, is_active) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, vendor_id, name, phone, address, dl_number, dlDataToStore || null, 0]
+            `INSERT INTO drivers (id, vendor_id, name, phone, address, dl_number, dl_data, is_active, image, languages, approval_status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [id, vendor_id, name, phone, address, dl_number, dlDataToStore || null, 0, image, languagesToStore]
         );
         
         res.status(201).json({
@@ -60,7 +77,10 @@ const addDriver = async (req, res) => {
                 address, 
                 dl_number, 
                 is_active: 0,
-                dl_data: dlDataToStore
+                dl_data: dlDataToStore,
+                image,
+                languages: languagesToStore ? JSON.parse(languagesToStore) : [],
+                approval_status: 'pending'
             }
         });
     } catch (error) {
@@ -77,8 +97,14 @@ const addDriver = async (req, res) => {
 const updateDriver = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, address, dl_number, is_active, dl_data } = req.body;
+        const { name, phone, address, dl_number, is_active, dl_data, languages, approval_status } = req.body;
         const vendor_id = req.user.id; // From auth middleware
+
+        // Handle Image Upload
+        let image = null;
+        if (req.file) {
+            image = `/uploads/${req.file.filename}`;
+        }
         
         // Check if driver exists and belongs to this vendor
         const [drivers] = await db.execute(
@@ -102,6 +128,11 @@ const updateDriver = async (req, res) => {
             queryParams.push(name);
         }
         
+        if (image) {
+            updateFields.push('image = ?');
+            queryParams.push(image);
+        }
+
         if (phone) {
             // Check if phone is already used by another driver
             if (phone !== drivers[0].phone) {
@@ -151,10 +182,25 @@ const updateDriver = async (req, res) => {
             updateFields.push('is_active = ?');
             queryParams.push(is_active);
         }
+
+        if (approval_status) {
+            updateFields.push('approval_status = ?');
+            queryParams.push(approval_status);
+        }
         
         if (dl_data) {
+             let dlDataToStore = dl_data;
+             if (typeof dl_data === 'object'){
+                dlDataToStore = JSON.stringify(dl_data);
+             }
             updateFields.push('dl_data = ?');
-            queryParams.push(dl_data);
+            queryParams.push(dlDataToStore);
+        }
+
+        if (languages) {
+            let langsToStore = typeof languages === 'string' ? languages : JSON.stringify(languages);
+            updateFields.push('languages = ?');
+            queryParams.push(langsToStore);
         }
         
         // If no fields to update
@@ -255,15 +301,29 @@ const getDrivers = async (req, res) => {
             [vendor_id]
         );
         
-        // Parse DL data JSON strings
+        // Parse DL data JSON strings and map fields
         const driversWithParsedData = drivers.map(driver => {
             if (driver.dl_data) {
                 try {
-                    driver.dl_data = JSON.parse(driver.dl_data);
+                    const parsedData = JSON.parse(driver.dl_data);
+                    driver.dl_data = parsedData;
+                    // Flatten key fields for frontend
+                    driver.dl_issue_date = parsedData.date_of_issue || null;
+                    driver.dob = parsedData.dob || null;
+                    driver.dl_expiry_date = parsedData.non_transport_to || parsedData.transport_to || null;
                 } catch (error) {
                     console.error('Error parsing DL data for driver:', driver.id, error);
-                    // Keep as string if parsing fails
+                    // Set to null if parsing fails to avoid sending corrupted data
+                    driver.dl_data = null;
+                    driver.dl_issue_date = null;
+                    driver.dob = null;
+                    driver.dl_expiry_date = null;
                 }
+            }
+            if (driver.languages) {
+                try {
+                    driver.languages = JSON.parse(driver.languages);
+                } catch(e) { /* ignore */ }
             }
             return driver;
         });
@@ -306,11 +366,20 @@ const getDriver = async (req, res) => {
         const driver = drivers[0];
         if (driver.dl_data) {
             try {
-                driver.dl_data = JSON.parse(driver.dl_data);
+                const parsedData = JSON.parse(driver.dl_data);
+                driver.dl_data = parsedData;
+                driver.dl_issue_date = parsedData.date_of_issue || null;
+                driver.dob = parsedData.dob || null;
+                driver.dl_expiry_date = parsedData.non_transport_to || parsedData.transport_to || null;
             } catch (error) {
                 console.error('Error parsing DL data for driver:', driver.id, error);
                 // Keep as string if parsing fails
             }
+        }
+        if (driver.languages) {
+             try {
+                 driver.languages = JSON.parse(driver.languages);
+             } catch(e) { /* ignore */ }
         }
         
         res.status(200).json({
