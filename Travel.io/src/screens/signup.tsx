@@ -3,7 +3,7 @@ import axios from '../api/axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import Footer from '../components/Footer';
+
 
 const carouselImages = [
   '/dummy/customer-1.jpg',
@@ -183,7 +183,7 @@ export default function Signup() {
           </div>
         </div>
       </div>
-      <Footer />
+
     </div>
   );
 }
