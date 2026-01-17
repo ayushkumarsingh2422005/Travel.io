@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import Table from '../components/Table';
+import Modal from '../components/Modal';
 
 interface Penalty {
     id: string;
@@ -52,89 +54,97 @@ const Penalties = () => {
         }
     };
 
+    const columns = [
+        { id: 'offense_name', label: 'Offense Name', minWidth: 200 },
+        {
+            id: 'amount',
+            label: 'Amount',
+            minWidth: 150,
+            format: (value: number) => <span className="text-red-600 font-medium">₹{value}</span>
+        },
+    ];
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Manage Penalties</h1>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                    Add Penalty Rule
-                </button>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Offense Name</th>
-                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {loading ? (
-                                <tr><td colSpan={2} className="px-6 py-4 text-center">Loading...</td></tr>
-                            ) : penalties.length === 0 ? (
-                                <tr><td colSpan={2} className="px-6 py-4 text-center">No penalty rules found</td></tr>
-                            ) : (
-                                penalties.map((penalty) => (
-                                    <tr key={penalty.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{penalty.offense_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">₹{penalty.amount}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-md w-full p-6">
-                        <h2 className="text-xl font-bold mb-4">Add New Penalty Rule</h2>
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Offense Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500"
-                                    value={formData.offense_name}
-                                    onChange={(e) => setFormData({ ...formData, offense_name: e.target.value })}
-                                />
-                            </div>
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                                <input
-                                    type="number"
-                                    required
-                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500"
-                                    value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
-                                >
-                                    Create Rule
-                                </button>
-                            </div>
-                        </form>
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Manage Penalties</h1>
+                        <p className="mt-1 text-sm text-gray-600">
+                            Configure penalty rules and amounts
+                        </p>
                     </div>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span>Add Penalty Rule</span>
+                    </button>
                 </div>
-            )}
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm">
+                <Table
+                    columns={columns}
+                    data={penalties}
+                    isLoading={loading}
+                    title="Penalties List"
+                    pagination={{
+                        current_page: 1,
+                        per_page: penalties.length > 0 ? penalties.length : 10,
+                        total: penalties.length,
+                        total_pages: 1
+                    }}
+                />
+            </div>
+
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Add New Penalty Rule"
+                size="md"
+            >
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Offense Name</label>
+                        <input
+                            type="text"
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                            value={formData.offense_name}
+                            onChange={(e) => setFormData({ ...formData, offense_name: e.target.value })}
+                        />
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                        <input
+                            type="number"
+                            required
+                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                            value={formData.amount}
+                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(false)}
+                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                            Create Rule
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

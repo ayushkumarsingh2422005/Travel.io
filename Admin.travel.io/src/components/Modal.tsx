@@ -51,12 +51,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-2xl shadow-xl transform transition-all sm:w-full ${modalWidthClass}`}
+        className={`bg-white rounded-2xl shadow-xl transform transition-all sm:w-full ${modalWidthClass} max-h-[90vh] flex flex-col`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white rounded-t-2xl flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
             {title}
           </h3>
@@ -71,7 +71,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             </svg>
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto">
           {children}
         </div>
       </div>
