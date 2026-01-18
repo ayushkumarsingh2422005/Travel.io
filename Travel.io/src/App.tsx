@@ -12,7 +12,6 @@ import Profile from './screens/Profile';
 import CancellationPolicy from './screens/CancellationPolicy';
 import TermsOfUse from './screens/TermsOfUse';
 import PrivacyPolicy from './screens/PrivacyPolicy';
-import BookingPage from './screens/BookingPage';
 import BookingDetails from './screens/BookingDetails'; // Import the new component
 
 import { Toaster } from 'react-hot-toast';
@@ -74,7 +73,6 @@ function App() {
         <Route path="/booking-details/:bookingId" element={<BookingDetails />} /> {/* Add new route */}
         <Route path="/prices" element={<Prices />} />
         <Route path="/cabs" element={<Cabs />} />
-        <Route path="/booking" element={<BookingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />

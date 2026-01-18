@@ -5,7 +5,16 @@ import UserAvatar from '../components/UserAvatar';
 import toast from 'react-hot-toast';
 import axios from '../api/axios';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
+import { checkAuth, getUserDetailsFromToken } from '../utils/verifytoken';
+import { getUserProfile, updateProfile, sendPhoneOtp, verifyPhoneOtp, addPhoneNumber, UserProfile } from '../api/userService';
 import Footer from '../components/Footer';
+
+interface UserDetails {
+  id: string;
+  name?: string;
+  email: string;
+  phone?: string;
+}
 
 const faqs = [
   {
@@ -94,8 +103,158 @@ export default function Cabs() {
   // const routeData = location.state || {};
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cabCategories, setCabCategories] = useState<any[]>([]); // New state for cab categories
-  const [selectedCabCategory, setSelectedCabCategory] = useState<string | null>(null); // To store selected category ID
+  const [cabCategories, setCabCategories] = useState<any[]>([]);
+  const [selectedCabCategory, setSelectedCabCategory] = useState<string | null>(null);
+
+  // Auth & Profile State
+  const [userToken, setUserToken] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [profileFormData, setProfileFormData] = useState({
+    phone: '',
+    gender: 'Select Gender' as 'Male' | 'Female' | 'Other' | 'Select Gender',
+    age: '',
+    current_address: '',
+  });
+
+  // Check Auth on Mount (Strict)
+  useEffect(() => {
+    const checkAndFetchProfile = async () => {
+      setProfileLoading(true);
+      const token = localStorage.getItem('marcocabs_customer_token');
+      const type = 'customer';
+
+      if (!token) {
+        toast.error('Please login to continue.');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      const isAuthenticated = await checkAuth(type, token);
+      if (!isAuthenticated) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      setUserToken(token);
+      const details = await getUserDetailsFromToken(token);
+      if (details) {
+        setUserDetails(details);
+      } else {
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      try {
+        const profileResponse = await getUserProfile();
+        setUserProfile(profileResponse.user);
+        setProfileFormData({
+          phone: profileResponse.user.phone || '',
+          gender: profileResponse.user.gender || 'Select Gender',
+          age: profileResponse.user.age > 0 ? profileResponse.user.age.toString() : '',
+          current_address: profileResponse.user.current_address || '',
+        });
+
+        if (!profileResponse.user.is_profile_completed || !profileResponse.user.is_phone_verified) {
+          setShowProfileForm(true);
+          toast.error('Please complete your profile to continue.');
+        } else {
+          setShowProfileForm(false);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile.');
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    checkAndFetchProfile();
+  }, [navigate, location.pathname]);
+
+  // Handle Profile Form Change
+  const handleProfileFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setProfileFormData({
+      ...profileFormData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // Profile Submit
+  const handleProfileFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (profileFormData.phone && profileFormData.phone !== userProfile?.phone) {
+        await addPhoneNumber(profileFormData.phone);
+        toast('Phone number updated. Please verify it.');
+      }
+
+      const updatedProfileData = {
+        phone: profileFormData.phone,
+        gender: profileFormData.gender,
+        age: parseInt(profileFormData.age),
+        current_address: profileFormData.current_address,
+        is_profile_completed: true,
+      };
+
+      const response = await updateProfile(updatedProfileData);
+      setUserProfile(response.user);
+      toast.success('Profile updated successfully!');
+
+      if (!response.user.is_phone_verified) {
+        toast.error('Please verify your phone number.');
+        setIsOtpModalOpen(true);
+      } else {
+        setShowProfileForm(false);
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send OTP
+  const handleSendOtp = async () => {
+    setLoading(true);
+    try {
+      await sendPhoneOtp();
+      toast.success('OTP sent to your phone!');
+      setIsOtpModalOpen(true);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await verifyPhoneOtp(otp);
+      toast.success('Phone verified successfully!');
+      setIsOtpModalOpen(false);
+      const profileResponse = await getUserProfile();
+      setUserProfile(profileResponse.user);
+      if (profileResponse.user.is_profile_completed && profileResponse.user.is_phone_verified) {
+        setShowProfileForm(false);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Invalid or expired OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Form states
   const [bookingForm, setBookingForm] = useState({
@@ -110,9 +269,16 @@ export default function Cabs() {
   // Implicitly using the new fields from backend
   const filterCategories = (categories: any[]) => {
     if (bookingForm?.tripType === 'Hourly Rental') {
-      return categories.filter(cat => cat.service_type === 'hourly_rental');
+      return categories.filter(cat => cat.service_type === 'hourly_rental' || cat.service_type === 'hourly'); // Support legacy 'hourly'
+    } else if (bookingForm?.tripType === 'One Way') {
+      return categories.filter(cat => cat.service_type === 'one_way');
+    } else if (bookingForm?.tripType === 'Round Trip') {
+      // Default to round_trip strings, but might fall back if service_type is missing or 'outstation' (legacy)
+      // Strict request: "only be showing that cab categories whose service_type is round_trip"
+      // We will also include 'outstation' as legacy support for existing data to prevent empty screens during migration
+      return categories.filter(cat => cat.service_type === 'round_trip' || cat.service_type === 'outstation');
     }
-    return categories.filter(cat => cat.service_type !== 'hourly_rental');
+    return categories;
   };
 
   const displayedCategories = filterCategories(cabCategories);
@@ -387,21 +553,51 @@ export default function Cabs() {
   // issue here : on selecting cab, state not updated in time for form submit
 
   const handleSelectCab = (categoryId: string | null) => {
-    // 1️⃣ Update selected cab state immediately
-    setSelectedCabCategory(categoryId);
+    if (!categoryId) return;
 
-    // 2️⃣ Wait for React to update state, then trigger the submit logic
-    // Using a small timeout ensures state update is reflected
-    setTimeout(() => {
-      const form = document.querySelector("form");
+    // Strict Auth Check before proceeding
+    if (!userToken) {
+      toast.error('Please login to continue.');
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
 
+    if (!userProfile?.is_profile_completed || !userProfile?.is_phone_verified) {
+      toast.error('Please complete your profile first.');
+      setShowProfileForm(true);
+      return;
+    }
 
-      if (form) {
-        // Create a synthetic submit event and pass it to handleBookingSubmit
-        const event = new Event("submit", { cancelable: true, bubbles: true });
-        handleBookingSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    // Find the selected category object
+    const selectedCategory = cabCategories.find(cat => cat.id === categoryId);
+
+    if (!selectedCategory) {
+      toast.error("Selected cab category not found.");
+      return;
+    }
+
+    // Validate Check before navigating
+    // (Re-using validation logic from handleBookingSubmit briefly or simplified)
+    if (!bookingForm.pickupLocation || !bookingForm.pickupDate) {
+      toast.error("Please fill in pickup details.");
+      return;
+    }
+
+    // Construct stops
+    const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+
+    // Direct Navigation
+    navigate('/prices', {
+      state: {
+        pickup: bookingForm.pickupLocation,
+        destination: bookingForm.destination,
+        tripType: bookingForm.tripType,
+        pickupDate: bookingForm.pickupDate,
+        dropDate: bookingForm.dropDate,
+        stops: currentStops,
+        cabCategory: selectedCategory, // Pass the full object
       }
-    }, 10);
+    });
   };
 
 
@@ -769,9 +965,9 @@ export default function Cabs() {
                 </div>
               </div>
               <div className="p-4">
-                <h4 className="text-xl font-bold text-gray-800 mb-1">{category.category}</h4>
+                <h4 className="text-xl font-bold text-gray-800 mb-1">{category.segment || category.category}</h4>
                 <p className="text-gray-600 text-sm mb-3">
-                  {category.min_no_of_seats}-{category.max_no_of_seats} Seater
+                  {category.min_seats || category.min_no_of_seats || 4}-{category.max_seats || category.max_no_of_seats || 4} Seater
                 </p>
 
                 {bookingForm.tripType === 'Hourly Rental' ? (
@@ -794,7 +990,7 @@ export default function Cabs() {
                       <span className="text-2xl font-bold text-indigo-600">₹{category.price_per_km}/km</span>
                     </div>
                     <ul className="text-sm text-gray-700 space-y-1 mb-4">
-                      <li>Extra fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
+                      <li>Fare/Km: <span className="font-medium">₹{category.price_per_km}/Km</span></li>
                       <li>Fuel Charges: <span className="font-medium">{category.fuel_charges > 0 ? `₹${category.fuel_charges}` : 'Included'}</span></li>
                       <li>Driver Charges: <span className="font-medium">{category.driver_charges > 0 ? `₹${category.driver_charges}` : 'Included'}</span></li>
                       <li>Night Charges: <span className="font-medium">{category.night_charges > 0 ? `₹${category.night_charges}` : 'Included'}</span></li>
@@ -854,6 +1050,128 @@ export default function Cabs() {
           })}
         </div>
       </div>
+      {/* Profile Completion Modal */}
+      {showProfileForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Complete Your Profile</h2>
+            <p className="text-gray-600 text-center mb-6">
+              Please provide your phone number, gender, age, and address to proceed.
+            </p>
+            <form onSubmit={handleProfileFormSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={profileFormData.phone}
+                  onChange={handleProfileFormChange}
+                  placeholder="e.g., 9876543210"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  required
+                />
+                {!userProfile?.is_phone_verified && profileFormData.phone && (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={loading}
+                    className="mt-2 w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+                  >
+                    {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
+                  </button>
+                )}
+              </div>
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select
+                  name="gender"
+                  value={profileFormData.gender}
+                  onChange={handleProfileFormChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  required
+                >
+                  <option value="Select Gender">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                <input
+                  type="number"
+                  name="age"
+                  value={profileFormData.age}
+                  onChange={handleProfileFormChange}
+                  placeholder="Your age"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="current_address" className="block text-sm font-medium text-gray-700 mb-1">Current Address</label>
+                <textarea
+                  name="current_address"
+                  value={profileFormData.current_address}
+                  onChange={handleProfileFormChange}
+                  placeholder="Your current address"
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  required
+                ></textarea>
+              </div>
+              <button
+                type="submit"
+                disabled={loading || (profileFormData.gender === 'Select Gender' || !profileFormData.age || !profileFormData.current_address || !profileFormData.phone)}
+                className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+              >
+                {loading ? 'Saving Profile...' : 'Save Profile and Continue'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* OTP Verification Modal */}
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Verify Phone OTP</h3>
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="XXXXXX"
+                  maxLength={6}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 text-center tracking-widest"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsOtpModalOpen(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+                >
+                  {loading ? 'Verifying...' : 'Verify OTP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
       <Footer />
     </div>
   );

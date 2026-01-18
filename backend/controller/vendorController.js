@@ -793,10 +793,10 @@ const acceptBookingRequest = async (req, res) => {
 
         // Check Vendor Wallet Balance
         const [vendorData] = await db.execute('SELECT amount FROM vendors WHERE id = ?', [vendorId]);
-        if (vendorData.length === 0 || vendorData[0].amount < 500) {
+        if (vendorData.length === 0 || vendorData[0].amount < 1000) {
             return res.status(403).json({
                 success: false,
-                message: 'Insufficient wallet balance. Minimum ₹500 required to accept bookings. Please recharge.'
+                message: 'Insufficient wallet balance. Minimum ₹1000 required to accept bookings. Please recharge.'
             });
         }
 
@@ -1064,16 +1064,16 @@ const verifyRechargePayment = async (req, res) => {
             .digest('hex');
 
         if (expectedSignature === razorpay_signature) {
-             // Generate ID for transaction
-             const txId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
+            // Generate ID for transaction
+            const txId = crypto.createHash('sha256').update(Date.now().toString() + Math.random().toString()).digest('hex');
 
             // Update Balance
             await db.execute(`UPDATE vendors SET amount = amount + ? WHERE id = ?`, [amount, vendorId]);
-            
+
             // Get new balance
             const [vendors] = await db.execute(`SELECT amount FROM vendors WHERE id = ?`, [vendorId]);
             const newBalance = vendors[0].amount;
-            
+
             // Log Transaction (stored as credit)
             await db.execute(`
                 INSERT INTO vendor_wallet_transactions 
@@ -1102,7 +1102,7 @@ const getWalletHistory = async (req, res) => {
         `, [vendorId]);
         res.status(200).json({ success: true, data: history });
     } catch (error) {
-         res.status(500).json({ success: false, message: 'Failed to fetch history', error: error.message });
+        res.status(500).json({ success: false, message: 'Failed to fetch history', error: error.message });
     }
 };
 

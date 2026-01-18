@@ -19,7 +19,7 @@ interface CabCategory {
     notes: string | null;
     is_active: number;
     // New Fields
-    service_type: 'outstation' | 'hourly';
+    service_type: 'one_way' | 'round_trip' | 'hourly_rental';
     sub_category?: string;
     micro_category?: string;
     segment?: string;
@@ -29,6 +29,7 @@ interface CabCategory {
     extra_hour_rate?: number;
     extra_km_rate?: number;
     driver_allowance?: number;
+    min_km_per_day?: number;
 }
 
 const Categories = () => {
@@ -50,7 +51,7 @@ const Categories = () => {
         base_discount: '',
         notes: '',
         image: null as File | null,
-        service_type: 'outstation',
+        service_type: 'round_trip', // Default to Round Trip
         sub_category: '',
         micro_category: '',
         segment: '',
@@ -60,6 +61,7 @@ const Categories = () => {
         extra_hour_rate: '',
         extra_km_rate: '',
         driver_allowance: '',
+        min_km_per_day: '',
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -123,6 +125,7 @@ const Categories = () => {
             extra_hour_rate: category.extra_hour_rate?.toString() || '',
             extra_km_rate: category.extra_km_rate?.toString() || '',
             driver_allowance: category.driver_allowance?.toString() || '',
+            min_km_per_day: category.min_km_per_day?.toString() || '',
         });
         setShowModal(true);
     };
@@ -216,7 +219,7 @@ const Categories = () => {
             minWidth: 200,
             format: (_: any, row: CabCategory) => (
                 <div className="text-sm text-gray-500">
-                    {row.service_type === 'hourly' ? (
+                    {row.service_type === 'hourly_rental' ? (
                         <div>
                             <div>₹{row.base_price} ({row.package_hours}h / {row.package_km}km)</div>
                             <div className='text-xs'>+₹{row.extra_km_rate}/km, +₹{row.extra_hour_rate}/hr</div>
@@ -317,8 +320,9 @@ const Categories = () => {
                             value={formData.service_type}
                             onChange={handleInputChange}
                         >
-                            <option value="outstation">Outstation Ride</option>
-                            <option value="hourly">Hourly Rental</option>
+                            <option value="one_way">One Way Trip</option>
+                            <option value="round_trip">Round Trip</option>
+                            <option value="hourly_rental">Hourly Rental</option>
                         </select>
                     </div>
 
@@ -338,7 +342,7 @@ const Categories = () => {
                         </select>
                     </div>
 
-                    {formData.service_type === 'hourly' ? (
+                    {formData.service_type === 'hourly_rental' || formData.service_type === 'hourly' ? (
                         <>
                             <div className="md:col-span-1">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Base Price (₹)</label>
@@ -380,6 +384,10 @@ const Categories = () => {
                             <div className="md:col-span-1">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Price per KM (₹)</label>
                                 <input type="number" name="price_per_km" required className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" value={formData.price_per_km} onChange={handleInputChange} />
+                            </div>
+                            <div className="md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Min KM per Day</label>
+                                <input type="number" name="min_km_per_day" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" value={formData.min_km_per_day} onChange={handleInputChange} placeholder="e.g. 250 or 300" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Driver Charges (₹)</label>

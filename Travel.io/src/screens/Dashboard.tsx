@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getUserBookings, cancelBooking, BookingResponse } from '../api/bookingService';
 import toast from 'react-hot-toast';
 

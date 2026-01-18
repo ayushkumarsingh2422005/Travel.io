@@ -18,13 +18,16 @@ declare global {
 interface CabCategory {
   id: string;
   category: string;
+  segment?: string; // Added from backend schema
   price_per_km: number;
-  min_no_of_seats: number;
-  max_no_of_seats: number;
+  min_no_of_seats?: number; // Legacy
+  max_no_of_seats?: number; // Legacy
+  min_seats?: number; // Correct backend field
+  max_seats?: number; // Correct backend field
   fuel_charges: number;
   driver_charges: number;
   night_charges: number;
-  included_vehicle_types: any; // Adjust type if schema is known
+  included_vehicle_types: any;
   base_discount: number;
   category_image: string;
   notes: string;
@@ -35,7 +38,10 @@ interface CabCategory {
   extra_hour_rate?: number;
   extra_km_rate?: number;
   driver_allowance?: number;
+  min_km_per_day?: number;
 }
+
+
 
 interface AddOn {
   id: string;
@@ -316,20 +322,87 @@ export default function Prices() {
             const oneWayDistance = totalDistance; // Store one-way distance
             const oneWayDuration = totalDuration; // Store one-way duration
 
-            // Adjust for round trip if needed
+            // Adjust for round trip if needed for physical distance calculation
             if (routeData?.tripType === 'Round Trip') {
               totalDistance *= 2;
               totalDuration *= 2;
             }
 
-            // Calculate estimated price using cab category details
+            // --- DATE & TIME VALIDATION LOGIC ---
+            const pickupDateTime = new Date(routeData.pickupDate);
+            let dropDateTime = new Date(routeData.dropDate);
+
+            // One-Way duration is the baseline travel time
+            const oneWayDurationInMs = oneWayDuration * 1000;
+
+            // For Round Trip, minimum duration is 2 * One Way Duration
+            // For One Way, minimum duration is 1 * One Way Duration
+            const minDurationMultiplier = routeData.tripType === 'Round Trip' ? 2 : 1;
+            const minDurationInMs = oneWayDurationInMs * minDurationMultiplier;
+
+            const minDropTime = new Date(pickupDateTime.getTime() + minDurationInMs);
+
+            // Enforce Drop Date Logic
+            if (routeData.stops?.length === 0 && routeData.tripType !== 'Round Trip') {
+              // If 0 stops (One Way), destination date/time IS strictly pickup + duration
+              dropDateTime = minDropTime;
+            } else {
+              // If stops > 0 OR Round Trip, destination provided by user MUST be >= minimum duration
+              if (dropDateTime.getTime() < minDropTime.getTime()) {
+                dropDateTime = minDropTime; // Auto-correct to minimum valid time
+                console.warn('Drop date adjusted to meet minimum travel duration.');
+                // In a real app, might want to notify user, but auto-adjust works for calculation
+              }
+            }
+
+            // --- PRICING LOGIC ---
             let baseFare = 0;
             let distanceInKm = totalDistance / 1000;
+            let chargeableDistance = distanceInKm; // Variable to hold final distance for billing
 
             if (routeData?.tripType === 'Hourly Rental') {
               baseFare = routeData?.cabCategory.base_price || 0;
             } else {
-              baseFare = distanceInKm * routeData?.cabCategory.price_per_km;
+              // Calculate Calendar Days for Multi-Day Logic
+              // We reset hours to 0 to count calendar days (e.g., Today 10pm to Tmrw 2am = 2 days)
+              const pDate = new Date(pickupDateTime);
+              pDate.setHours(0, 0, 0, 0);
+              const dDate = new Date(dropDateTime);
+              dDate.setHours(0, 0, 0, 0);
+
+              const diffTime = Math.abs(dDate.getTime() - pDate.getTime());
+              const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+              console.log('Calendar Days:', calendarDays);
+
+              if (calendarDays === 1) {
+                // Same Day: Charge actual distance (One-Way or Round-Trip actuals)
+                chargeableDistance = distanceInKm;
+              } else if (calendarDays > 1) {
+                // Multi-Day Trip (One-Way or Round Trip)
+                // Rule: Charged on Daily minimum km (e.g., 250 km/day) or Actuals, whichever is higher.
+
+                // Determine Daily Minimum:
+                // 1. Prefer backend value 'min_km_per_day' if available.
+                // 2. Fallback: 250 km/day for One-Way, 300 km/day for Round Trip (based on common standards).
+
+                let minDailyKm = 250; // Default for One-Way
+
+                if (routeData?.cabCategory.min_km_per_day && routeData?.cabCategory.min_km_per_day > 0) {
+                  minDailyKm = routeData.cabCategory.min_km_per_day;
+                } else if (routeData.tripType === 'Round Trip') {
+                  minDailyKm = 300; // Legacy default for Round Trip if DB value missing
+                }
+
+                const minChargeableKm = calendarDays * minDailyKm;
+
+                if (distanceInKm < minChargeableKm) {
+                  chargeableDistance = minChargeableKm;
+                  console.log(`Multi-Day Minimum Applied: ${minChargeableKm} km charged (Actual: ${distanceInKm} km)`);
+                }
+              }
+
+              baseFare = chargeableDistance * routeData?.cabCategory.price_per_km;
             }
 
             setCalculatedBaseFare(Math.round(baseFare)); // Set calculated base fare
@@ -344,79 +417,74 @@ export default function Prices() {
             }
 
             // Add night charges if applicable (for every night in the trip)
-            const pickupDateTime = new Date(routeData.pickupDate);
-            const dropDateTime = new Date(routeData.dropDate);
-
-            console.log('Pickup DateTime:', pickupDateTime);
-            console.log('Drop DateTime:', dropDateTime);
-
+            // Logic: Check if travel happens between 9 PM (21:00) and 6 AM (06:00)
             const nightChargeStartTime = 21; // 9 PM
             const nightChargeEndTime = 6; // 6 AM
 
             let nightChargesApplicable = false;
             let numberOfNights = 0;
 
-            // Calculate the number of calendar days the trip spans
-            const pickupDate = new Date(pickupDateTime.getFullYear(), pickupDateTime.getMonth(), pickupDateTime.getDate());
-            const dropDate = new Date(dropDateTime.getFullYear(), dropDateTime.getMonth(), dropDateTime.getDate());
+            // Re-calculate days simply for iteration
+            const daysDifference = Math.floor((dropDateTime.getTime() - pickupDateTime.getTime()) / (1000 * 60 * 60 * 24));
 
-            console.log('Pickup Date (normalized):', pickupDate);
-            console.log('Drop Date (normalized):', dropDate);
-
-            const daysDifference = Math.floor((dropDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
-
-            console.log('Days Difference:', daysDifference);
+            // Logic: "Driver night charges 200 if he drives post 9 PM"
+            // We interpret this as:
+            // 1. Same Day: If trip involves hours > 21:00 or < 06:00 => 1 Night Charge.
+            // 2. Multi Day: Usually implies a flat allowance per night. 
+            //    But strictly following "if he drives post 9 PM", a multi-day trip is assumed to have potential night driving or holding.
+            //    Standard practice: Charge per night halo.
 
             if (daysDifference === 0) {
-              // Same day trip - check if it crosses night hours
+              // Same Day
               const pickupHour = pickupDateTime.getHours();
               const dropHour = dropDateTime.getHours();
 
+              // Check overlap with 9PM - 6AM
+              // Scenarios:
+              // Start 5PM, End 10PM -> Yes (10 > 9)
+              // Start 10PM, End 11PM -> Yes
+              // Start 4AM, End 7AM -> Yes (4 < 6)
+              // Start 10AM, End 5PM -> No
+
               if (pickupHour >= nightChargeStartTime || pickupHour < nightChargeEndTime ||
-                dropHour >= nightChargeStartTime || dropHour < nightChargeEndTime) {
-                numberOfNights = 1;
+                dropHour > nightChargeStartTime || dropHour < nightChargeEndTime || // Note: dropHour > startTime (e.g. 22:00)
+                (pickupHour < nightChargeStartTime && dropHour > nightChargeStartTime && dropHour < 24) || // Spans across 9PM?
+                // Easier check: Does the interval [Start, End] intersect [21, 24] U [0, 6]?
+                // Since it's same day, just check endpoints basically.
+                // Actually, if you start at 8PM and end at 9:30PM, you drove post 9PM.
+                (dropHour > nightChargeStartTime)
+              ) {
                 nightChargesApplicable = true;
+                numberOfNights = 1;
               }
             } else {
-              // Multi-day trip
-              numberOfNights = daysDifference;
+              // Multi-Day
+              // Just apply charge for each night.
+              numberOfNights = daysDifference > 0 ? daysDifference : 1;
               nightChargesApplicable = true;
             }
 
             console.log('Number of Nights:', numberOfNights);
-            console.log('Night Charges Applicable:', nightChargesApplicable);
 
             let nightChargeValue = 0;
             if (nightChargesApplicable && routeData?.cabCategory.night_charges) {
-              const perNightCharge = parseFloat(routeData?.cabCategory.night_charges.toString());
-              console.log('Per Night Charge:', perNightCharge);
+              // Hardcoded 200 fallback based on user prompt, or use DB value
+              const perNightCharge = parseFloat(routeData?.cabCategory.night_charges.toString()) || 200;
               nightChargeValue = perNightCharge * numberOfNights;
-              console.log('Total Night Charge Value:', nightChargeValue);
               currentCalculatedPrice += nightChargeValue;
             }
 
             setCalculatedNightCharges(nightChargeValue);
-            console.log('Final Calculated Night Charges:', nightChargeValue); // Set the calculated night charges
+            console.log('Final Calculated Night Charges:', nightChargeValue);
 
             let discountAmount = 0;
             if (routeData?.cabCategory.base_discount) {
               discountAmount = (currentCalculatedPrice * parseFloat(routeData?.cabCategory.base_discount.toString())) / 100;
               currentCalculatedPrice -= discountAmount;
             }
-            setCalculatedDiscountAmount(Math.round(discountAmount)); // Set calculated discount amount
+            setCalculatedDiscountAmount(Math.round(discountAmount));
 
             const estimatedPrice = Math.round(currentCalculatedPrice);
-
-            // Adjust drop-off date if less than minimum duration
-            const minDurationInMs = oneWayDuration * 1000; // Convert seconds to milliseconds
-            const actualDurationInMs = dropDateTime.getTime() - pickupDateTime.getTime();
-
-            if (actualDurationInMs < minDurationInMs) {
-              const newDropOffDate = new Date(pickupDateTime.getTime() + minDurationInMs);
-              toast.error(`Drop-off date adjusted to ${newDropOffDate.toLocaleString()} to meet minimum trip duration.`);
-              // You might want to update routeData.dropDate here or pass it to the booking page
-              // For now, we'll just show a toast.
-            }
 
             // Extract encoded polyline from the route
             const encodedPolyline = result.routes[0].overview_polyline || '';
@@ -520,27 +588,53 @@ export default function Prices() {
   // Recalculate payment totals when add-ons change
   useEffect(() => {
     if (routeDetails.price > 0) {
-      // Total booking amount = base price + add-ons
-      const totalBookingAmount = routeDetails.price + addOnsTotal;
+      // 1. Separate Cancellation Add-ons from Regular Add-ons
+      // We identify cancellation add-ons by checking if their name contains "cancel" (case-insensitive)
+      let cancellationAddonsTotal = 0;
+      let regularAddonsTotal = 0;
+      const baseVal = calculatedBaseFare;
 
-      // Platform charges: 10% of total booking amount
-      const calculatedPlatformCharges = totalBookingAmount * 0.10;
+      selectedAddOns.forEach(id => {
+        const addon = availableAddOns.find(a => a.id === id);
+        if (addon) {
+          let price = 0;
+          if (addon.price_type === 'fixed') {
+            price = addon.price;
+          } else if (addon.price_type === 'percentage') {
+            const pct = addon.percentage_value || 0;
+            price = (baseVal * pct) / 100;
+          }
+
+          if (addon.name.toLowerCase().includes('cancel')) {
+            cancellationAddonsTotal += price;
+          } else {
+            regularAddonsTotal += price;
+          }
+        }
+      });
+
+      // 2. Calculate Totals
+      // Total booking amount for platform fee calculation (excludes cancellation addons which are paid 100% upfront)
+      const totalBookingBase = routeDetails.price + regularAddonsTotal;
+
+      // Platform charges: 10% of total booking base (trip + regular addons)
+      const calculatedPlatformCharges = totalBookingBase * 0.10;
 
       // GST: 5% on platform charges
       const calculatedGstAmount = calculatedPlatformCharges * 0.05;
 
-      // Total upfront payment: platform charges + GST
-      const calculatedTotalUpfrontPayment = calculatedPlatformCharges + calculatedGstAmount;
+      // Total upfront payment: Platform Fees + GST + 100% of Cancellation Addons
+      const calculatedTotalUpfrontPayment = calculatedPlatformCharges + calculatedGstAmount + cancellationAddonsTotal;
 
-      // Remaining amount: total booking - platform charges
-      const calculatedRemainingAmount = totalBookingAmount - calculatedPlatformCharges;
+      // Remaining amount: Total Booking Base - Platform Charges (to be paid to driver)
+      const calculatedRemainingAmount = totalBookingBase - calculatedPlatformCharges;
 
       setPlatformCharges(Math.round(calculatedPlatformCharges));
       setGstAmount(Math.round(calculatedGstAmount));
       setTotalUpfrontPayment(Math.round(calculatedTotalUpfrontPayment));
       setRemainingAmount(Math.round(calculatedRemainingAmount));
     }
-  }, [addOnsTotal, routeDetails.price]);
+  }, [selectedAddOns, availableAddOns, routeDetails.price, calculatedBaseFare]);
 
   // Format duration from seconds to hours and minutes
   const formatDuration = (seconds: number): string => {
@@ -979,7 +1073,9 @@ export default function Prices() {
                     {/* New card for Cab Category Details */}
                     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
                       <div className="p-4 bg-indigo-100 border-b border-gray-100">
-                        <h3 className="text-lg font-semibold text-gray-800">Selected Cab: {routeData?.cabCategory.category}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Selected Cab: {routeData?.cabCategory.segment || routeData?.cabCategory.category}
+                        </h3>
                       </div>
                       <div className="p-4 text-sm text-gray-700 space-y-2">
                         <div className="flex justify-between">
@@ -988,7 +1084,9 @@ export default function Prices() {
                         </div>
                         <div className="flex justify-between">
                           <span>Seats:</span>
-                          <span className="font-medium">{routeData?.cabCategory.min_no_of_seats}-{routeData?.cabCategory.max_no_of_seats}</span>
+                          <span className="font-medium">
+                            {routeData?.cabCategory.min_seats || routeData?.cabCategory.min_no_of_seats || 4}-{routeData?.cabCategory.max_seats || routeData?.cabCategory.max_no_of_seats || 4}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Fuel Charges:</span>
