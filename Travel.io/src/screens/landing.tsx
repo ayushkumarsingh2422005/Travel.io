@@ -627,12 +627,12 @@ export default function MarcoCabService() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <div className="text-2xl font-bold text-white">MARCO</div>
-            <div className="hidden md:flex ml-10 space-x-6">
+            {/* <div className="hidden md:flex ml-10 space-x-6">
               <a href="#services" className="text-white hover:text-indigo-100 transition-colors">Services</a>
               <a href="#reviews" className="text-white hover:text-indigo-100 transition-colors">Reviews</a>
               <a href="#contact" className="text-white hover:text-indigo-100 transition-colors">Contact</a>
               <a href="#partner" className="text-white hover:text-indigo-100 transition-colors">Partner with us</a>
-            </div>
+            </div> */}
           </div>
           {/* <button className="md:hidden bg-white/20 rounded-lg p-2 text-white hover:bg-white/30 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
