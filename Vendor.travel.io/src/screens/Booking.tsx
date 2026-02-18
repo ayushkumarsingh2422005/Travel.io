@@ -71,10 +71,10 @@ const Booking: React.FC = () => {
       setBookings(response.data.bookings);
       setTotalPages(response.data.pagination.total_pages);
       setTotalBookingsCount(response.data.pagination.total);
-      toast.success('Bookings loaded successfully!');
+      toast.success('Bookings loaded successfully!', { id: 'bookings-loaded' });
     } catch (err: any) {
       console.error('Error fetching vendor bookings:', err);
-      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to fetch bookings. Please try again.', { id: 'bookings-fetch-error' });
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ const Booking: React.FC = () => {
       // toast.success('Drivers loaded successfully!');
     } catch (err) {
       console.error('Error fetching drivers:', err);
-      toast.error('Failed to fetch drivers.');
+      toast.error('Failed to fetch drivers.', { id: 'drivers-fetch-error' });
     }
   };
 
@@ -99,7 +99,7 @@ const Booking: React.FC = () => {
       // toast.success('Vehicles loaded successfully!');
     } catch (err) {
       console.error('Error fetching vehicles:', err);
-      toast.error('Failed to fetch vehicles.');
+      toast.error('Failed to fetch vehicles.', { id: 'vehicles-fetch-error' });
     }
   };
 
@@ -143,10 +143,10 @@ const Booking: React.FC = () => {
       setSelectedDriver('');
       setSelectedVehicle(''); // Reset vehicle selection
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
-      toast.success(`Booking ${bookingId} status updated to ${newStatus} successfully!`); // Success toast
+      toast.success(`Booking ${bookingId} status updated to ${newStatus} successfully!`, { id: `booking-status-update-${bookingId}` }); // Success toast
     } catch (err: any) {
       console.error('Error updating booking status:', err);
-      toast.error(err.response?.data?.message || 'Failed to update booking status. Please try again.'); // Error toast
+      toast.error(err.response?.data?.message || 'Failed to update booking status. Please try again.', { id: 'booking-status-update-error' }); // Error toast
     } finally {
       setUpdateLoading(false);
     }
@@ -154,7 +154,7 @@ const Booking: React.FC = () => {
 
   const handleAcceptBooking = async () => {
     if (!selectedBookingForApproval || !selectedDriver || !selectedVehicle) {
-      toast.error('Please select a driver and a vehicle to approve the booking.'); // Error toast
+      toast.error('Please select a driver and a vehicle to approve the booking.', { id: 'approve-booking-selection-error' }); // Error toast
       return;
     }
 
@@ -166,7 +166,7 @@ const Booking: React.FC = () => {
       const driver = drivers.find(d => d.id === selectedDriver);
       const isTime = isWithinThreeHours(selectedBookingForApproval.pickup_date);
 
-      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`);
+      toast.success(`Booking ${selectedBookingForApproval.id} accepted successfully!`, { id: `booking-approve-success-${selectedBookingForApproval.id}` });
 
       if (isTime) {
         // Generate tracking link and show modal ONLY if within 3 hours
@@ -182,7 +182,7 @@ const Booking: React.FC = () => {
 
         setShowDriverTrackingModal(true);
       } else {
-        toast.success("Driver assigned. Tracking link will be available 3 hours before pickup.");
+        toast.success("Driver assigned. Tracking link will be available 3 hours before pickup.", { id: 'driver-assigned-success' });
       }
 
       setSelectedBookingForApproval(null);
@@ -191,7 +191,7 @@ const Booking: React.FC = () => {
       fetchBookings(selectedStatus); // Re-fetch bookings to update the list
     } catch (err: any) {
       console.error('Error accepting booking request:', err);
-      toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.'); // Error toast
+      toast.error(err.response?.data?.message || 'Failed to accept booking. Please try again.', { id: 'booking-accept-error' }); // Error toast
     } finally {
       setUpdateLoading(false);
     }
@@ -225,7 +225,7 @@ const Booking: React.FC = () => {
 
   const handleConfirmCancel = async () => {
     if (!selectedBookingForCancellation) {
-      toast.error('No booking selected for cancellation.');
+      toast.error('No booking selected for cancellation.', { id: 'no-booking-cancel-selection' });
       return;
     }
     setUpdateLoading(true);
@@ -233,10 +233,10 @@ const Booking: React.FC = () => {
       await updateBookingStatus(selectedBookingForCancellation.id, 'cancelled');
       closeCancelModal();
       fetchBookings(selectedStatus);
-      toast.success(`Booking ${selectedBookingForCancellation.id} cancelled successfully!`);
+      toast.success(`Booking ${selectedBookingForCancellation.id} cancelled successfully!`, { id: `booking-cancel-success-${selectedBookingForCancellation.id}` });
     } catch (err: any) {
       console.error('Error cancelling booking:', err);
-      toast.error(err.response?.data?.message || 'Failed to cancel booking. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to cancel booking. Please try again.', { id: 'booking-cancel-error' });
     } finally {
       setUpdateLoading(false);
     }
@@ -734,7 +734,7 @@ const Booking: React.FC = () => {
             <div className="bg-gray-50 p-4 rounded-lg mb-6 break-all border border-gray-200">
               <p className="text-sm font-mono text-indigo-600 text-center select-all cursor-pointer hover:text-indigo-800" onClick={() => {
                 navigator.clipboard.writeText(generatedTrackingLink);
-                toast.success('Link copied to clipboard!');
+                toast.success('Link copied to clipboard!', { id: 'link-copied-success' });
               }}>
                 {generatedTrackingLink}
               </p>
@@ -745,7 +745,7 @@ const Booking: React.FC = () => {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-colors duration-150 font-medium"
                 onClick={() => {
                   navigator.clipboard.writeText(generatedTrackingLink);
-                  toast.success('Link copied to clipboard!');
+                  toast.success('Link copied to clipboard!', { id: 'link-copied-success-btn' });
                 }}
               >
                 Copy Link

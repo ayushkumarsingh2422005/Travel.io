@@ -139,7 +139,7 @@ export default function BookingPage() {
       if (details) {
         setUserDetails(details);
       } else {
-        toast.error('Failed to retrieve user details. Please log in again.');
+        toast.error('Failed to retrieve user details. Please log in again.', { id: 'booking-user-details-error' });
         navigate('/login', {
           state: {
             from: location.pathname,
@@ -161,13 +161,13 @@ export default function BookingPage() {
 
         if (!profileResponse.user.is_profile_completed || !profileResponse.user.is_phone_verified) {
           setShowProfileForm(true);
-          toast.error('Please complete your profile and verify your phone number to proceed with booking.');
+          toast.error('Please complete your profile and verify your phone number to proceed with booking.', { id: 'booking-profile-incomplete' });
         } else {
           setShowProfileForm(false);
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
-        toast.error('Failed to fetch profile data. Please try again.');
+        toast.error('Failed to fetch profile data. Please try again.', { id: 'booking-profile-fetch-error' });
         // Optionally redirect to login or profile page if profile fetch fails critically
       } finally {
         setProfileLoading(false);
@@ -198,7 +198,7 @@ export default function BookingPage() {
       // Check if phone number changed and needs to be added/verified
       if (formData.phone && formData.phone !== userProfile?.phone) {
         await addPhoneNumber(formData.phone);
-        toast('Phone number updated. Please verify it.');
+        toast('Phone number updated. Please verify it.', { id: 'booking-phone-updated' });
         // After adding phone, we might need to re-fetch profile to update is_phone_verified status
         // or trigger OTP flow directly. For now, let's assume updateProfile handles it.
       }
@@ -213,17 +213,17 @@ export default function BookingPage() {
 
       const response = await updateProfile(updatedProfileData);
       setUserProfile(response.user);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: 'booking-profile-update-success' });
 
       if (!response.user.is_phone_verified) {
-        toast.error('Please verify your phone number.');
+        toast.error('Please verify your phone number.', { id: 'booking-verify-phone-request' });
         setIsOtpModalOpen(true); // Open OTP modal if phone is not verified
       } else {
         setShowProfileForm(false); // Hide form if profile and phone are verified
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || 'Failed to update profile', { id: 'booking-profile-update-error' });
     } finally {
       setLoading(false);
     }
@@ -233,11 +233,11 @@ export default function BookingPage() {
     setLoading(true);
     try {
       await sendPhoneOtp();
-      toast.success('OTP sent to your phone!');
+      toast.success('OTP sent to your phone!', { id: 'booking-otp-sent' });
       setIsOtpModalOpen(true);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
+      toast.error(error.response?.data?.message || 'Failed to send OTP', { id: 'booking-otp-send-error' });
     } finally {
       setLoading(false);
     }
@@ -248,7 +248,7 @@ export default function BookingPage() {
     setLoading(true);
     try {
       await verifyPhoneOtp(otp);
-      toast.success('Phone verified successfully!');
+      toast.success('Phone verified successfully!', { id: 'booking-phone-verified' });
       setIsOtpModalOpen(false);
       // Re-fetch profile to update the is_phone_verified status
       const profileResponse = await getUserProfile();
@@ -258,7 +258,7 @@ export default function BookingPage() {
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
-      toast.error(error.response?.data?.message || 'Invalid or expired OTP');
+      toast.error(error.response?.data?.message || 'Invalid or expired OTP', { id: 'booking-otp-verify-error' });
     } finally {
       setLoading(false);
     }
@@ -266,13 +266,13 @@ export default function BookingPage() {
 
   const handleCreateBooking = async () => {
     if (!bookingData || !userToken || !userProfile) {
-      toast.error('Booking data, user token, or profile not available');
+      toast.error('Booking data, user token, or profile not available', { id: 'booking-data-missing' });
       return;
     }
 
     // Final check before creating booking
     if (!userProfile.is_profile_completed || !userProfile.is_phone_verified) {
-      toast.error('Please complete your profile and verify your phone number before booking.');
+      toast.error('Please complete your profile and verify your phone number before booking.', { id: 'booking-prereq-missing' });
       setShowProfileForm(true); // Show profile form again if somehow missed
       return;
     }
@@ -304,11 +304,11 @@ export default function BookingPage() {
       if (orderResponse.success) {
         initializeRazorpay(orderResponse.data);
       } else {
-        toast.error(orderResponse.message || 'Failed to create payment order');
+        toast.error(orderResponse.message || 'Failed to create payment order', { id: 'booking-order-create-failed' });
       }
     } catch (error: any) {
       console.error('Error creating booking:', error);
-      toast.error(error.response?.data?.message || 'Failed to create booking');
+      toast.error(error.response?.data?.message || 'Failed to create booking', { id: 'booking-create-error' });
     } finally {
       setLoading(false);
     }
@@ -316,7 +316,7 @@ export default function BookingPage() {
 
   const initializeRazorpay = (orderData: any) => {
     if (!userDetails || !userToken) {
-      toast.error('User details or token not available for payment. Please log in again.');
+      toast.error('User details or token not available for payment. Please log in again.', { id: 'booking-payment-auth-error' });
       return;
     }
 
@@ -339,7 +339,7 @@ export default function BookingPage() {
         const verificationResponse = await verifyPayment(paymentVerificationRequest, userToken);
 
         if (verificationResponse.success) {
-          toast.success('Booking confirmed! Booking ID: ' + verificationResponse.data.booking.id);
+          toast.success('Booking confirmed! Booking ID: ' + verificationResponse.data.booking.id, { id: 'booking-confirmed-success' });
           navigate('/dashboard', {
             state: {
               message: 'Your booking has been created successfully. You will receive driver details shortly.',
@@ -347,7 +347,7 @@ export default function BookingPage() {
             },
           });
         } else {
-          toast.error(verificationResponse.message || 'Payment verification failed. Please try again.');
+          toast.error(verificationResponse.message || 'Payment verification failed. Please try again.', { id: 'booking-payment-verify-failed' });
         }
       },
       prefill: {
@@ -360,7 +360,7 @@ export default function BookingPage() {
       },
       modal: {
         ondismiss: function () {
-          toast.error('Payment cancelled by user');
+          toast.error('Payment cancelled by user', { id: 'booking-payment-cancelled' });
         },
       },
     };

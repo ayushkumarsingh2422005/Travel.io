@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import axios from '../api/axios';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { API_ENDPOINTS } from '../api/apiEndpoints';
 import Footer from '../components/Footer';
 
 // Initial JSON data that would normally come from API
@@ -72,28 +77,28 @@ const initialData = {
       name: "Customer 1",
       rating: 5,
       comment: "It was a really great journey from Manali to Delhi and the driver was very polite and cooperative.",
-      avatarUrl: "/api/placeholder/64/64"
+      avatarUrl: "/dummy/customer-1.jpg"
     },
     {
       id: 2,
       name: "Customer 2",
       rating: 4,
       comment: "It was a really great journey from Manali to Delhi and the driver was very polite and cooperative.",
-      avatarUrl: "/api/placeholder/64/64"
+      avatarUrl: "/dummy/customer-2.jpg"
     },
     {
       id: 3,
       name: "Customer 3",
       rating: 5,
       comment: "It was a really great journey from Manali to Delhi and the driver was very polite and cooperative.",
-      avatarUrl: "/api/placeholder/64/64"
+      avatarUrl: "/dummy/customer-3.jpg"
     },
     {
       id: 4,
       name: "Customer 4",
       rating: 4,
       comment: "It was a really great journey from Manali to Delhi and the driver was very polite and cooperative.",
-      avatarUrl: "/api/placeholder/64/64"
+      avatarUrl: "/dummy/customer-1.jpg"
     }
   ],
   serviceTypes: [
@@ -117,6 +122,18 @@ interface AutocompleteService {
     predictions: Array<{ description: string }>;
   }>;
 }
+
+interface Geocoder {
+  geocode: (request: {
+    location?: { lat: number; lng: number };
+  }) => Promise<{ results: { formatted_address: string }[] }>;
+}
+
+const safeDate = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 export default function MarcoCabService() {
   const navigate = useNavigate();
@@ -152,7 +169,9 @@ export default function MarcoCabService() {
   const [destinationSuggestions, setDestinationSuggestions] = useState<string[]>([]);
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
+  const [geocoder, setGeocoder] = useState<Geocoder | null>(null);
 
   const pickupRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
@@ -196,6 +215,7 @@ export default function MarcoCabService() {
 
     loader.load().then((google) => {
       setAutocompleteService(new google.maps.places.AutocompleteService());
+      setGeocoder(new google.maps.Geocoder());
     });
   }, []);
 
@@ -216,18 +236,45 @@ export default function MarcoCabService() {
     handleInputChange(e, setBookingForm);
   };
 
+  // Date picker handler
+  const handleDateChange = (date: Date | null, field: string) => {
+    if (date) {
+      // Adjust for timezone offset to keep local time
+      const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      setBookingForm(prev => ({ ...prev, [field]: offsetDate.toISOString().slice(0, 16) }));
+    } else {
+      setBookingForm(prev => ({ ...prev, [field]: "" }));
+    }
+  };
+
   // Contact form handler
   const handleContactChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    handleInputChange(e, setContactForm);
+    const { name, value } = e.target;
+    if (name === "mobile") {
+      // Only allow numeric input and max 10 digits
+      if (!/^\d*$/.test(value) || value.length > 10) return;
+    }
+    if (name === "name" && value.length > 50) return;
+    if (name === "message" && value.length > 500) return;
+
+    setContactForm(prev => ({ ...prev, [name]: value }));
   };
 
   // Partner form handler
   const handlePartnerChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    handleInputChange(e, setPartnerForm);
+    const { name, value } = e.target;
+    if (name === "mobile") {
+      // Only allow numeric input and max 10 digits
+      if (!/^\d*$/.test(value) || value.length > 10) return;
+    }
+    if (name === "name" && value.length > 50) return;
+    if (name === "message" && value.length > 500) return;
+
+    setPartnerForm(prev => ({ ...prev, [name]: value }));
   };
 
   // Trip type selector
@@ -237,35 +284,110 @@ export default function MarcoCabService() {
 
   // Click handler: Book now
   const handleBookNow = () => {
-    console.log("Book Now clicked");
-    // Implement book now functionality
+    navigate("/cabs");
   };
 
   // Form submission: Contact
-  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Contact form submitted:", contactForm);
 
-    // Submit to API...
+    // Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactForm.email)) {
+      toast.error("Please enter a valid email address.", { id: 'contact-email-error' });
+      return;
+    }
+    if (contactForm.mobile.length !== 10) {
+      toast.error("Mobile number must be exactly 10 digits.", { id: 'contact-mobile-error' });
+      return;
+    }
 
-    // Reset form
-    setContactForm({ name: "", email: "", mobile: "", message: "" });
+    const token = localStorage.getItem('marcocabs_customer_token')
+
+    if (token == null) {
+      toast.error("Please login to contact us.", { id: 'contact-login-error' });
+      return;
+    }
+
+    try {
+      const response = await axios.post(API_ENDPOINTS.CONTACT, contactForm, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (response.data.success) {
+        toast.success(response.data.message || "Message sent successfully!", { id: 'contact-success' });
+        setContactForm({ name: "", email: "", mobile: "", message: "" });
+      } else {
+        toast.error(response.data.message || "Failed to send message.", { id: 'contact-failure' });
+      }
+    } catch (error: any) {
+      console.error("Contact form error:", error);
+      toast.error(error.response?.data?.message || "An error occurred. Please try again.", { id: 'contact-error' });
+    }
   };
 
   // Form submission: Partner
-  const handlePartnerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePartnerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Partner form submitted:", partnerForm);
 
-    // Submit to API...
+    // Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(partnerForm.email)) {
+      toast.error("Please enter a valid email address.", { id: 'partner-email-error' });
+      return;
+    }
+    if (partnerForm.mobile.length !== 10) {
+      toast.error("Mobile number must be exactly 10 digits.", { id: 'partner-mobile-error' });
+      return;
+    }
+    const token = localStorage.getItem('marcocabs_customer_token')
 
-    // Reset form
-    setPartnerForm({ name: "", email: "", mobile: "", message: "" });
+    if (token == null) {
+      toast.error("Please login to partner with us.", { id: 'partner-login-error' });
+      return;
+    }
+    try {
+      const response = await axios.post(API_ENDPOINTS.PARTNER, partnerForm, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (response.data.success) {
+        toast.success(response.data.message || "Application sent successfully!", { id: 'partner-success' });
+        setPartnerForm({ name: "", email: "", mobile: "", message: "" });
+      } else {
+        toast.error(response.data.message || "Failed to send application.", { id: 'partner-failure' });
+      }
+    } catch (error: any) {
+      console.error("Partner form error:", error);
+      toast.error(error.response?.data?.message || "An error occurred. Please try again.", { id: 'partner-error' });
+    }
   };
 
   // Form submission: Booking
   const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Strict Validation
+    if (!bookingForm.pickupLocation) {
+      toast.error("Please enter a Pickup Location", { id: 'pickup-location-error' });
+      return;
+    }
+    if (!bookingForm.destination && bookingForm.tripType !== "Hourly Rental") {
+      toast.error("Please enter a Drop Location", { id: 'drop-location-error' });
+      return;
+    }
+    if (!bookingForm.pickupDate) {
+      toast.error("Please select a Pickup Date & Time", { id: 'pickup-date-error' });
+      return;
+    }
+    if ((bookingForm.tripType === "Round Trip" || (bookingForm.tripType === "One Way" && additionalStops.length > 0)) && !bookingForm.dropDate) {
+      toast.error("Please select a Drop Date & Time", { id: 'drop-date-error' });
+      return;
+    }
+
+
     console.log("Booking form submitted:", bookingForm);
 
     // Prepare basic route data for navigation
@@ -285,8 +407,34 @@ export default function MarcoCabService() {
     navigate('/cabs', { state: routeData });
   };
 
+  // Handle keyboard navigation for suggestions
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    suggestions: string[],
+    onSelect: (val: string) => void,
+    closeSuggestions: () => void
+  ) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+        onSelect(suggestions[activeSuggestionIndex]);
+        setActiveSuggestionIndex(-1);
+      }
+    } else if (e.key === "Escape") {
+      closeSuggestions();
+      setActiveSuggestionIndex(-1);
+    }
+  };
+
   // Function to get location suggestions
   const getLocationSuggestions = async (input: string, setSuggestions: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setActiveSuggestionIndex(-1); // Reset active index when typing
     if (!autocompleteService || !input) {
       setSuggestions([]);
       return;
@@ -295,7 +443,7 @@ export default function MarcoCabService() {
     try {
       const response = await autocompleteService.getPlacePredictions({
         input: input,
-        types: ['(cities)'],
+        // types: ['(cities)'], // Removed restriction
         componentRestrictions: { country: 'in' }
       });
 
@@ -317,6 +465,31 @@ export default function MarcoCabService() {
     } else {
       setShowPickupSuggestions(true);
       await getLocationSuggestions(value, setPickupSuggestions);
+    }
+  };
+
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (geocoder) {
+            geocoder.geocode({ location: { lat: latitude, lng: longitude } })
+              .then((response) => {
+                if (response.results[0]) {
+                  setBookingForm(prev => ({ ...prev, pickupLocation: response.results[0].formatted_address }));
+                  setShowPickupSuggestions(false);
+                }
+              })
+              .catch((e) => console.error("Geocoder failed due to: " + e));
+          }
+        },
+        () => {
+          alert("Error: The Geolocation service failed.");
+        }
+      );
+    } else {
+      alert("Error: Your browser doesn't support geolocation.");
     }
   };
 
@@ -380,7 +553,7 @@ export default function MarcoCabService() {
       try {
         const response = await autocompleteService.getPlacePredictions({
           input: value,
-          types: ['(cities)'],
+          // types: ['(cities)'], // Removed restriction
           componentRestrictions: { country: 'in' }
         });
 
@@ -468,16 +641,26 @@ export default function MarcoCabService() {
           </button> */}
           <div className="hidden md:block">
             <Link to={"/login"} className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
-              Call Us
+              Login
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section with Booking Form */}
-      <section className="bg-[url('/bg/carbg.jpg')] bg-cover bg-center text-white bg-gray-500 bg-blend-multiply">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row gap-8">
+      <section className="relative bg-gray-900 overflow-hidden min-h-[1100px] md:min-h-[700px]">
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gray-900/70 bg-blend-multiply z-10" />
+          <img
+            src="/bg/carbg.jpg"
+            alt="Background"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+
+        <div className="container relative z-10 mx-auto px-4 py-12 text-white">
+          <div className="flex flex-col md:flex-row gap-8 min-h-[620px] items-center">
             <div className="w-full md:w-1/2 flex flex-col justify-center">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Reliable Travel Partner</h1>
               <p className="text-xl mb-8 text-indigo-50">Experience comfortable, safe and affordable cab services throughout India.</p>
@@ -514,6 +697,11 @@ export default function MarcoCabService() {
 
                 <form onSubmit={handleBookingSubmit} className="p-6">
                   <div className="mb-6">
+                    <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mb-6">
+                      <p className="text-sm text-blue-800">
+                        <span className="text-red-500 font-bold mr-1">*</span> Fields marked with red asterisk are required for booking
+                      </p>
+                    </div>
                     <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                       <button
                         type="button"
@@ -547,85 +735,13 @@ export default function MarcoCabService() {
                       </button>
                     </div>
 
-                    <div className="mb-4 relative" ref={pickupRef}>
-                      <div className="absolute left-3 top-3 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <input
-                        type="text"
-                        name="pickupLocation"
-                        value={bookingForm.pickupLocation}
-                        onChange={handlePickupLocationChange}
-                        placeholder="Pickup location"
-                        className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-h-500"
-                      />
-                      {showPickupSuggestions && pickupSuggestions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                          {pickupSuggestions.map((suggestion, index) => (
-                            <div
-                              key={index}
-                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
-                            >
-                              {suggestion}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Additional Stops */}
-                    {additionalStops.map((stop) => (
-                      <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
-                        <div className="absolute left-3 top-3 text-gray-400">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 relative">
-                          <input
-                            type="text"
-                            value={stop.location}
-                            onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-                            placeholder="Stop location"
-                            className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
-                          />
-                          {stop.showSuggestions && stop.suggestions.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
-                              {stop.suggestions.map((suggestion, index) => (
-                                <div
-                                  key={index}
-                                  className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                  onClick={() => {
-                                    setAdditionalStops(prev =>
-                                      prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
-                                    );
-                                  }}
-                                >
-                                  {suggestion}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveStop(stop.id)}
-                          className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-
-                    {bookingForm.tripType !== "Hourly Rental" && (
-                      <div className="mb-4 relative" ref={destinationRef}>
-                        <div className="absolute left-3 top-3 text-gray-400">
+                    <div className="mb-4" ref={pickupRef}>
+                      <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                        Pickup Location <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -633,19 +749,37 @@ export default function MarcoCabService() {
                         </div>
                         <input
                           type="text"
-                          name="destination"
-                          value={bookingForm.destination}
-                          onChange={handleDestinationChange}
-                          placeholder="Destination"
-                          className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                          name="pickupLocation"
+                          value={bookingForm.pickupLocation}
+                          onChange={handlePickupLocationChange}
+                          onFocus={() => {
+                            if (bookingForm.pickupLocation.trim() !== "") setShowPickupSuggestions(true);
+                          }}
+                          placeholder="Pickup location"
+                          onKeyDown={(e) => handleKeyDown(e, pickupSuggestions, (val) => handleSuggestionSelect(val, 'pickup'), () => setShowPickupSuggestions(false))}
+                          className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                         />
-                        {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                            {destinationSuggestions.map((suggestion, index) => (
+                        {/* Show suggestions or Current Location option when input is focused or has text */}
+                        {(showPickupSuggestions || bookingForm.pickupLocation === "") && (
+                          <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg ${!showPickupSuggestions && "invisible"}`}>
+                            {/* Add Current Location option */}
+                            <div
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 flex items-center text-indigo-600"
+                              onClick={handleCurrentLocation}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              Current Location
+                            </div>
+
+                            {pickupSuggestions.map((suggestion, index) => (
                               <div
                                 key={index}
-                                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                                className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50"}`}
+                                onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
+                                onMouseEnter={() => setActiveSuggestionIndex(index)}
                               >
                                 {suggestion}
                               </div>
@@ -653,69 +787,236 @@ export default function MarcoCabService() {
                           </div>
                         )}
                       </div>
+
+                      {/* Additional Stops */}
+                      {additionalStops.map((stop) => (
+                        <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
+                          <div className="flex-1 relative">
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <input
+                              type="text"
+                              value={stop.location}
+                              onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                              placeholder="Stop location"
+                              className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
+                            />
+                            {stop.showSuggestions && stop.suggestions.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
+                                {stop.suggestions.map((suggestion, index) => (
+                                  <div
+                                    key={index}
+                                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                    onClick={() => {
+                                      setAdditionalStops(prev =>
+                                        prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                                      );
+                                    }}
+                                  >
+                                    {suggestion}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStop(stop.id)}
+                            className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+
+                      {bookingForm.tripType !== "Hourly Rental" ? (
+                        <div className="mb-4" ref={destinationRef}>
+                          <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+                            Drop Location <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <input
+                              type="text"
+                              name="destination"
+                              value={bookingForm.destination}
+                              onChange={handleDestinationChange}
+                              placeholder="Drop location"
+                              onKeyDown={(e) => handleKeyDown(e, destinationSuggestions, (val) => handleSuggestionSelect(val, 'destination'), () => setShowDestinationSuggestions(false))}
+                              className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                            />
+                            {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                                {destinationSuggestions.map((suggestion, index) => (
+                                  <div
+                                    key={index}
+                                    className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50"}`}
+                                    onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                                    onMouseEnter={() => setActiveSuggestionIndex(index)}
+                                  >
+                                    {suggestion}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 relative">
+                          <div className="absolute left-3 top-3 text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            disabled
+                            value="Local / Within City Usage"
+                            className="w-full p-3 pl-10 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+                          />
+                        </div>
+                      )}
+
+                    </div>
+
+                    {bookingForm.tripType !== "Hourly Rental" ? (
+                      <button
+                        type="button"
+                        onClick={handleAddStop}
+                        className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Stop
+                      </button>
+                    ) : (
+                      <div className="w-full p-3 rounded-lg border border-dashed border-gray-300 text-gray-400 mb-4 flex items-center justify-center bg-gray-50 cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Standard Package (8 Hr / 80 Km)
+                      </div>
                     )}
 
-                  </div>
-
-                  {bookingForm.tripType !== "Hourly Rental" && (
-                    <button
-                      type="button"
-                      onClick={handleAddStop}
-                      className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add Stop
-                    </button>
-                  )}
-
-                  <div className="mb-4">
-                    <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">Pickup Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      id="pickupDate"
-                      name="pickupDate"
-                      value={bookingForm.pickupDate}
-                      onChange={handleBookingChange}
-                      min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-
-
-                  {(bookingForm.tripType === 'Round Trip' || (bookingForm.tripType === 'One Way' && additionalStops.length > 0)) && (
                     <div className="mb-4">
-                      <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
-                        {bookingForm.tripType === 'Round Trip' ? 'Drop Date & Time' : 'Drop Date & Time'}
+                      <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
+                        Pickup Date & Time <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="datetime-local"
-                        id="dropDate"
-                        name="dropDate"
-                        value={bookingForm.dropDate}
-                        onChange={handleBookingChange}
-                        min={bookingForm.pickupDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                        className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                        required
-                      />
+                      <div className="relative">
+                        <DatePicker
+                          selected={safeDate(bookingForm.pickupDate)}
+                          onChange={(date: Date | null) => handleDateChange(date, 'pickupDate')}
+                          showTimeSelect
+                          timeCaption="Time"
+                          timeIntervals={15}
+                          dateFormat="MMMM d, yyyy h:mm aa"
+                          minDate={new Date()}
+                          filterTime={(time) => {
+                            const now = new Date();
+                            const selectedDate = safeDate(bookingForm.pickupDate) || new Date();
+                            if (selectedDate.toDateString() === now.toDateString()) {
+                              return time.getTime() > now.getTime();
+                            }
+                            return true;
+                          }}
+                          placeholderText="Select Date & Time"
+                          className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                          wrapperClassName="w-full"
+                          required
+                          fixedHeight
+                        />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
-                  )}
 
 
-                  <button
-                    type="submit"
-                    className="w-full p-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
-                  >
-                    Check Price & Book
-                  </button>
+                    {(bookingForm.tripType === 'Round Trip' || (bookingForm.tripType === 'One Way' && additionalStops.length > 0)) ? (
+                      <div className="mb-4">
+                        <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
+                          {bookingForm.tripType === 'Round Trip' ? 'Drop Date & Time' : 'Drop Date & Time'} <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <DatePicker
+                            selected={safeDate(bookingForm.dropDate)}
+                            onChange={(date: Date | null) => handleDateChange(date, 'dropDate')}
+                            showTimeSelect
+                            timeCaption="Time"
+                            timeIntervals={15}
+                            dateFormat="MMMM d, yyyy h:mm aa"
+                            minDate={safeDate(bookingForm.pickupDate) || new Date()}
+                            filterTime={(time) => {
+                              const pickupDate = safeDate(bookingForm.pickupDate) || new Date();
+                              const dropDate = safeDate(bookingForm.dropDate);
 
+                              if (dropDate && pickupDate && dropDate.toDateString() === pickupDate.toDateString()) {
+                                return time.getTime() > pickupDate.getTime();
+                              }
+                              return true;
+                            }}
+                            placeholderText="Select Date & Time"
+                            className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                            wrapperClassName="w-full"
+                            required
+                            fixedHeight
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          {bookingForm.tripType === 'Hourly Rental' ? 'Duration / Drop Time' : 'Return Date & Time'}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            disabled
+                            value={bookingForm.tripType === 'Hourly Rental' ? "As per Selected Package" : "Select Round Trip to add return"}
+                            className="w-full p-3 pr-10 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+
+                    <button
+                      type="submit"
+                      className="w-full p-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
+                    >
+                      Book your Cab
+                    </button>
+
+                  </div>
                 </form>
               </div>
             </div>
           </div>
-        </div >
+        </div>
       </section >
 
       {/* Why Travel with Marco Section */}
@@ -804,14 +1105,17 @@ export default function MarcoCabService() {
             ))}
           </div>
 
-          <div className="flex justify-center mt-12">
-            <button className="flex items-center text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
+          {/* <div className="flex justify-center mt-12">
+            <button
+              className="flex items-center text-indigo-600 font-medium hover:text-indigo-700 transition-colors"
+              onClick={() => toast.success("More reviews coming soon!", { id: 'more-reviews' })}
+            >
               View all reviews
               <svg className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
-          </div>
+          </div> */}
         </div>
       </section >
 
@@ -827,9 +1131,17 @@ export default function MarcoCabService() {
               </div>
 
               <form onSubmit={handleContactSubmit} className="p-6">
+                <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mb-6">
+                  <p className="text-sm text-blue-800">
+                    <span className="text-red-500 font-bold mr-1">*</span> Fields marked with red asterisk are required to contact us
+                  </p>
+                </div>
+
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       name="name"
@@ -842,7 +1154,9 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -855,7 +1169,9 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
                     <div className="flex">
                       <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
                       <input
@@ -871,14 +1187,16 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message <span className="text-red-500">*</span>
+                    </label>
                     <textarea
                       name="message"
                       value={contactForm.message}
                       onChange={handleContactChange}
                       placeholder="Write your message for us"
                       rows={4}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 max-h-32 overflow-y-auto"
                       required
                     ></textarea>
                   </div>
@@ -917,9 +1235,17 @@ export default function MarcoCabService() {
               </div>
 
               <form onSubmit={handlePartnerSubmit} className="p-6">
+                <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mb-6">
+                  <p className="text-sm text-blue-800">
+                    <span className="text-red-500 font-bold mr-1">*</span> Fields marked with red asterisk are required to apply
+                  </p>
+                </div>
+
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       name="name"
@@ -932,7 +1258,9 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -945,7 +1273,9 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
                     <div className="flex">
                       <div className="bg-gray-100 p-3 rounded-l-lg border-y border-l border-gray-300 text-gray-600">+91</div>
                       <input
@@ -961,14 +1291,16 @@ export default function MarcoCabService() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message <span className="text-red-500">*</span>
+                    </label>
                     <textarea
                       name="message"
                       value={partnerForm.message}
                       onChange={handlePartnerChange}
                       placeholder="Tell us about your car and services"
                       rows={4}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 max-h-32 overflow-y-auto"
                       required
                     ></textarea>
                   </div>

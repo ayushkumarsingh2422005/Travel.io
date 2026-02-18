@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    getUserProfile, 
-    updateUserProfile, 
+const contactController = require('../controller/contactController')
+const {
+    getUserProfile,
+    updateUserProfile,
     updateUserPassword,
     setUserPassword,
     deleteUserAccount,
@@ -10,9 +11,9 @@ const {
     getVehicleDetails,
     getVehicleTypes
 } = require('../controller/userController');
-const { 
-    getCabCategories, 
-    getCabCategory 
+const {
+    getCabCategories,
+    getCabCategory
 } = require('../controller/cabCategoryController');
 const { getAddOns } = require('../controller/addOnController');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -31,6 +32,9 @@ router.get('/vehicles/:vehicleId', getVehicleDetails);
 
 // Apply middleware to all routes
 router.use(authMiddleware);
+
+router.post('/contact', contactController.contactUs);
+router.post('/partner', contactController.partnerWithUs);
 
 // User profile routes
 router.get('/profile', getUserProfile);

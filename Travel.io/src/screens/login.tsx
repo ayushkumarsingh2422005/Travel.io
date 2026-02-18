@@ -35,7 +35,7 @@ export default function Login() {
       const res = await axios.post('/auth/login', form);
       console.log(res.data);
       localStorage.setItem('marcocabs_customer_token', res.data.token); // Store token in local storage
-      toast.success('Login successful!');
+      toast.success('Login successful!', { id: 'login-success' });
       // Extract redirect info
       const from = location.state?.from || '/';
       const pageState = location.state?.pageState;
@@ -46,7 +46,7 @@ export default function Login() {
       navigate(from, { state: pageState });
 
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Login failed', { id: 'login-error' });
     }
   };
 
@@ -54,7 +54,7 @@ export default function Login() {
     try {
       const res = await axios.post('/auth/google', { id_token: credentialResponse.credential });
       localStorage.setItem('marcocabs_customer_token', res.data.token);
-      toast.success(`Google login successful!`);
+      toast.success(`Google login successful!`, { id: 'google-login-success' });
       // Extract redirect info
       const from = location.state?.from || '/';
       const pageState = location.state?.pageState;
@@ -64,7 +64,7 @@ export default function Login() {
       // Redirect to original page (with state if any)
       navigate(from, { state: pageState });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Google login failed');
+      toast.error(err.response?.data?.message || 'Google login failed', { id: 'google-login-error' });
     }
   };
 
@@ -125,7 +125,7 @@ export default function Login() {
             <div className="flex justify-center mb-2">
               <GoogleLogin
                 onSuccess={handleGoogle}
-                onError={() => toast.error('Google login failed')}
+                onError={() => toast.error('Google login failed', { id: 'google-login-failure' })}
               />
             </div>
             <div className="text-center text-gray-500 mt-4">

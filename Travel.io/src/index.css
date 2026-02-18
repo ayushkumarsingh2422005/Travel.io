@@ -1,1 +1,142 @@
 @import "tailwindcss";
+@import "react-datepicker/dist/react-datepicker.css";
+
+/* Hide days from other months to avoid confusion */
+.react-datepicker__day--outside-month {
+  visibility: hidden;
+}
+
+/* Compact Size Adjustments */
+.react-datepicker {
+  font-size: 0.8rem !important;
+}
+
+.react-datepicker__current-month {
+  font-size: 0.9rem !important;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  width: 1.7rem !important;
+  line-height: 1.7rem !important;
+  margin: 0.1rem !important;
+}
+
+.react-datepicker__header {
+  padding-top: 6px !important;
+}
+
+.react-datepicker__navigation {
+  top: 8px !important;
+}
+
+.react-datepicker__navigation--previous {
+  left: 5px !important;
+}
+
+
+
+.react-datepicker__navigation--next {
+  right: 95px !important;
+}
+
+.react-datepicker-time__header {
+  font-size: 0.9rem !important;
+}
+
+.react-datepicker__time-container {
+  width: 85px !important;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+  width: 85px !important;
+}
+
+.react-datepicker__time-list-item {
+  padding: 5px !important;
+}
+
+
+/* Custom DatePicker Styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker-wrapper input {
+  padding-right: 2.5rem;
+  /* Space for the calendar icon */
+  cursor: pointer;
+}
+
+/* Header Styles (Indigo-600) */
+.react-datepicker__header {
+  background-color: #4f46e5 !important;
+  border-bottom: 1px solid #4338ca !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker__day-name {
+  color: #ffffff !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: #ffffff !important;
+}
+
+/* Selected Date/Time Styles */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__time-list-item--selected {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+}
+
+.react-datepicker__day:hover:not(.react-datepicker__day--disabled):not(.react-datepicker__day--selected),
+.react-datepicker__time-list-item:hover {
+  background-color: #e0e7ff !important;
+  color: #3730a3 !important;
+}
+
+/* Time List Container */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list {
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+}
+
+.react-datepicker__header--time {
+  padding-bottom: 8px;
+  padding-top: 8px;
+}
+
+.react-datepicker__time-list-item {
+  height: auto !important;
+  padding: 5px 10px !important;
+}
+
+/* Today Button (Removed as per previous request, but keeping styles just in case or clearing if unused) */
+.react-datepicker__today-button {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeIn 0.3s ease-out forwards;
+}

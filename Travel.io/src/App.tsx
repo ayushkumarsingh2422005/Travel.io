@@ -13,12 +13,14 @@ import CancellationPolicy from './screens/CancellationPolicy';
 import TermsOfUse from './screens/TermsOfUse';
 import PrivacyPolicy from './screens/PrivacyPolicy';
 import BookingDetails from './screens/BookingDetails'; // Import the new component
+import ScrollToTop from './utils/ScrollToTop';
 
 import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Toaster
         position="top-right"
         reverseOrder={false}

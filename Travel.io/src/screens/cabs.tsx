@@ -4,6 +4,8 @@ import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
 import toast from 'react-hot-toast';
 import axios from '../api/axios';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 import { checkAuth, getUserDetailsFromToken } from '../utils/verifytoken';
 import { getUserProfile, updateProfile, sendPhoneOtp, verifyPhoneOtp, addPhoneNumber, UserProfile } from '../api/userService';
@@ -108,9 +110,9 @@ export default function Cabs() {
 
   // Auth & Profile State
   const [userToken, setUserToken] = useState<string | null>(null);
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // const [userDetails, setUserDetails] = useState<any>(null); // Unused
+  const [userProfile, setUserProfile] = useState<any>(null);
+  // const [profileLoading, setProfileLoading] = useState(true); // Unused
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [otp, setOtp] = useState('');
@@ -120,23 +122,24 @@ export default function Cabs() {
     age: '',
     current_address: '',
   });
+  const [profileStep, setProfileStep] = useState(1);
 
   // Check Auth on Mount (Strict)
   useEffect(() => {
     const checkAndFetchProfile = async () => {
-      setProfileLoading(true);
+      // setProfileLoading(true); // Unused
       const token = localStorage.getItem('marcocabs_customer_token');
       const type = 'customer';
 
       if (!token) {
-        toast.error('Please login to continue.');
+        toast.error('Please login to continue.', { id: 'cabs-login-required' });
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
 
       const isAuthenticated = await checkAuth(type, token);
       if (!isAuthenticated) {
-        toast.error('Session expired. Please login again.');
+        toast.error('Session expired. Please login again.', { id: 'cabs-session-expired' });
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
@@ -144,7 +147,7 @@ export default function Cabs() {
       setUserToken(token);
       const details = await getUserDetailsFromToken(token);
       if (details) {
-        setUserDetails(details);
+        // setUserDetails(details); // Unused
       } else {
         navigate('/login', { state: { from: location.pathname } });
         return;
@@ -162,15 +165,15 @@ export default function Cabs() {
 
         if (!profileResponse.user.is_profile_completed || !profileResponse.user.is_phone_verified) {
           setShowProfileForm(true);
-          toast.error('Please complete your profile to continue.');
+          toast.error('Please complete your profile to continue.', { id: 'cabs-profile-incomplete' });
         } else {
           setShowProfileForm(false);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile.');
+        toast.error('Failed to load profile.', { id: 'cabs-profile-load-error' });
       } finally {
-        setProfileLoading(false);
+        // setProfileLoading(false); 
       }
     };
 
@@ -192,7 +195,7 @@ export default function Cabs() {
     try {
       if (profileFormData.phone && profileFormData.phone !== userProfile?.phone) {
         await addPhoneNumber(profileFormData.phone);
-        toast('Phone number updated. Please verify it.');
+        toast('Phone number updated. Please verify it.', { id: 'cabs-phone-updated' });
       }
 
       const updatedProfileData = {
@@ -205,17 +208,18 @@ export default function Cabs() {
 
       const response = await updateProfile(updatedProfileData);
       setUserProfile(response.user);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: 'cabs-profile-update-success' });
 
       if (!response.user.is_phone_verified) {
-        toast.error('Please verify your phone number.');
+        toast.error('Please verify your phone number.', { id: 'cabs-verify-phone-req' });
+        setProfileStep(1); // Go back to verification step
         setIsOtpModalOpen(true);
       } else {
         setShowProfileForm(false);
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || 'Failed to update profile', { id: 'cabs-profile-update-error' });
     } finally {
       setLoading(false);
     }
@@ -223,37 +227,74 @@ export default function Cabs() {
 
   // Send OTP
   const handleSendOtp = async () => {
+    if (!profileFormData.phone || profileFormData.phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number.', { id: 'cabs-otp-phone-invalid' });
+      return;
+    }
+
     setLoading(true);
     try {
+      if (profileFormData.phone !== userProfile?.phone) {
+        await addPhoneNumber(profileFormData.phone);
+        // Optimistically update local profile
+        setUserProfile((prev: any) => ({ ...prev, phone: profileFormData.phone }));
+      }
+
       await sendPhoneOtp();
-      toast.success('OTP sent to your phone!');
+      toast.success('OTP sent to your phone!', { id: 'cabs-otp-sent' });
       setIsOtpModalOpen(true);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
+      toast.error(error.response?.data?.message || 'Failed to send OTP', { id: 'cabs-otp-send-error' });
     } finally {
       setLoading(false);
     }
   };
 
   // Verify OTP
-  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
       await verifyPhoneOtp(otp);
-      toast.success('Phone verified successfully!');
-      setIsOtpModalOpen(false);
+      toast.success('Phone verified successfully!', { id: 'cabs-phone-verified' });
+      // setIsOtpModalOpen(false); // No longer needed as separate modal
+
+      // Move to next step
+      setProfileStep(2);
+
+      // Update local profile state
       const profileResponse = await getUserProfile();
       setUserProfile(profileResponse.user);
+
       if (profileResponse.user.is_profile_completed && profileResponse.user.is_phone_verified) {
-        setShowProfileForm(false);
+        // Should not happen immediately if other fields are missing, but just in case
+        if (profileResponse.user.gender && profileResponse.user.age > 0 && profileResponse.user.current_address) {
+          setShowProfileForm(false);
+        }
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Invalid or expired OTP');
+      toast.error(error.response?.data?.message || 'Invalid or expired OTP', { id: 'cabs-otp-invalid' });
     } finally {
       setLoading(false);
     }
   };
+
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Only numbers
+    if (value.length <= 10) {
+      setProfileFormData({ ...profileFormData, phone: value });
+    }
+  };
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const num = parseInt(value);
+    if (value === '' || (!isNaN(num) && num >= 0 && num <= 100)) {
+      setProfileFormData({ ...profileFormData, age: value });
+    }
+  };
+
 
 
   // Form states
@@ -265,6 +306,17 @@ export default function Cabs() {
     pickupDate: "",
     dropDate: ""
   });
+
+  // Date picker handler
+  const handleDateChange = (date: Date | null, field: string) => {
+    if (date) {
+      // Adjust for timezone offset to keep local time
+      const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      setBookingForm(prev => ({ ...prev, [field]: offsetDate.toISOString().slice(0, 16) }));
+    } else {
+      setBookingForm(prev => ({ ...prev, [field]: "" }));
+    }
+  };
 
   // Implicitly using the new fields from backend
   const filterCategories = (categories: any[]) => {
@@ -323,7 +375,9 @@ export default function Cabs() {
   const [destinationSuggestions, setDestinationSuggestions] = useState<string[]>([]);
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
 
   const pickupRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
@@ -352,11 +406,11 @@ export default function Cabs() {
             setSelectedCabCategory(response.data.cab_categories[0].id); // Select first category by default
           }
         } else {
-          toast.error(response.data.message || 'Failed to fetch cab categories');
+          toast.error(response.data.message || 'Failed to fetch cab categories', { id: 'cabs-category-fetch-failed' });
         }
       } catch (error) {
         console.error('Error fetching cab categories:', error);
-        toast.error('An error occurred while fetching cab categories.');
+        toast.error('An error occurred while fetching cab categories.', { id: 'cabs-category-fetch-error' });
       } finally {
         setLoading(false);
       }
@@ -374,36 +428,22 @@ export default function Cabs() {
 
     loader.load().then((google) => {
       setAutocompleteService(new google.maps.places.AutocompleteService());
+      setGeocoder(new google.maps.Geocoder());
     });
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-    formSetter: React.Dispatch<React.SetStateAction<{
-      tripType: string;
-      pickupLocation: string;
-      destination: string;
-      stops: never[];
-      pickupDate: string;
-      dropDate: string;
-    }>>
-  ) => {
-    const { name, value } = e.target;
-    formSetter(prev => ({ ...prev, [name]: value }));
-  };
 
-  // Booking form handler
-  const handleBookingChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    handleInputChange(e, setBookingForm);
-  };
+
+
 
 
 
   // Trip type selector
   const handleTripTypeChange = (type: string) => {
     setBookingForm(prev => ({ ...prev, tripType: type }));
+    if (type === "Hourly Rental") {
+      setAdditionalStops([]); // Clear stops when switching to Hourly Rental
+    }
   };
 
   // Click handler: Book now
@@ -416,6 +456,7 @@ export default function Cabs() {
 
   // Function to get location suggestions
   const getLocationSuggestions = async (input: string, setSuggestions: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setActiveSuggestionIndex(-1);
     if (!autocompleteService || !input) {
       setSuggestions([]);
       return;
@@ -424,7 +465,7 @@ export default function Cabs() {
     try {
       const response = await autocompleteService.getPlacePredictions({
         input: input,
-        types: ['(cities)'],
+        // types: ['(cities)'],
         componentRestrictions: { country: 'in' }
       });
 
@@ -433,7 +474,6 @@ export default function Cabs() {
       }
     } catch (error) {
       console.error('Error fetching location suggestions:', error);
-      toast.error('Error fetching location suggestions');
     }
   };
 
@@ -474,6 +514,56 @@ export default function Cabs() {
     }
   };
 
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (geocoder) {
+            geocoder.geocode({ location: { lat: latitude, lng: longitude } })
+              .then((response) => {
+                if (response.results[0]) {
+                  setBookingForm(prev => ({ ...prev, pickupLocation: response.results[0].formatted_address }));
+                  setShowPickupSuggestions(false);
+                }
+              })
+              .catch((e) => console.error("Geocoder failed due to: " + e));
+          }
+        },
+        () => {
+          toast.error("Error: The Geolocation service failed.", { id: 'cabs-geo-failed' });
+        }
+      );
+    } else {
+      toast.error("Error: Your browser doesn't support geolocation.", { id: 'cabs-geo-unsupported' });
+    }
+  };
+
+  // Handle keyboard navigation for suggestions
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    suggestions: string[],
+    onSelect: (val: string) => void,
+    closeSuggestions: () => void
+  ) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+        onSelect(suggestions[activeSuggestionIndex]);
+        setActiveSuggestionIndex(-1);
+      }
+    } else if (e.key === "Escape") {
+      closeSuggestions();
+      setActiveSuggestionIndex(-1);
+    }
+  };
+
   // Handle adding a new stop
   const handleAddStop = () => {
     setAdditionalStops(prev => [...prev, {
@@ -510,7 +600,7 @@ export default function Cabs() {
       try {
         const response = await autocompleteService.getPlacePredictions({
           input: value,
-          types: ['(cities)'],
+          // types: ['(cities)'],
           componentRestrictions: { country: 'in' }
         });
 
@@ -529,7 +619,7 @@ export default function Cabs() {
         }
       } catch (error) {
         console.error('Error fetching location suggestions:', error);
-        toast.error('Error fetching location suggestions');
+        toast.error('Error fetching location suggestions', { id: 'cabs-suggestion-error' });
       }
     }
   };
@@ -557,13 +647,13 @@ export default function Cabs() {
 
     // Strict Auth Check before proceeding
     if (!userToken) {
-      toast.error('Please login to continue.');
+      toast.error('Please login to continue.', { id: 'cabs-select-login-req' });
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
 
     if (!userProfile?.is_profile_completed || !userProfile?.is_phone_verified) {
-      toast.error('Please complete your profile first.');
+      toast.error('Please complete your profile first.', { id: 'cabs-select-profile-req' });
       setShowProfileForm(true);
       return;
     }
@@ -572,14 +662,14 @@ export default function Cabs() {
     const selectedCategory = cabCategories.find(cat => cat.id === categoryId);
 
     if (!selectedCategory) {
-      toast.error("Selected cab category not found.");
+      toast.error("Selected cab category not found.", { id: 'cabs-category-not-found' });
       return;
     }
 
     // Validate Check before navigating
     // (Re-using validation logic from handleBookingSubmit briefly or simplified)
     if (!bookingForm.pickupLocation || !bookingForm.pickupDate) {
-      toast.error("Please fill in pickup details.");
+      toast.error("Please fill in pickup details.", { id: 'cabs-pickup-missing' });
       return;
     }
 
@@ -663,7 +753,7 @@ export default function Cabs() {
 
     if (errors.length > 0) {
       // Show validation errors
-      errors.forEach(error => toast.error(error));
+      errors.forEach((error, index) => toast.error(error, { id: `cabs-validation-error-${index}` }));
       return;
     }
 
@@ -772,87 +862,12 @@ export default function Cabs() {
               </div>
 
               {/* Pickup Location */}
-              <div className="mb-4 relative" ref={pickupRef}>
-                <div className="absolute left-3 top-3 text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  name="pickupLocation"
-                  value={bookingForm.pickupLocation}
-                  onChange={handlePickupLocationChange}
-                  placeholder="Pickup location"
-                  className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                  required
-                />
-                {showPickupSuggestions && pickupSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                    {pickupSuggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
-                      >
-                        {suggestion}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Stops (Only if NOT Hourly Rental) */}
-              {bookingForm.tripType !== "Hourly Rental" && additionalStops.map((stop) => (
-                <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
-                  <div className="absolute left-3 top-3 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={stop.location}
-                      onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-                      placeholder="Stop location"
-                      className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                    />
-                    {stop.showSuggestions && stop.suggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
-                        {stop.suggestions.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            onClick={() => {
-                              setAdditionalStops(prev =>
-                                prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
-                              );
-                            }}
-                          >
-                            {suggestion}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveStop(stop.id)}
-                    className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-
-              {/* Destination (Only if NOT Hourly Rental) */}
-              {bookingForm.tripType !== "Hourly Rental" && (
-                <div className="mb-4 relative" ref={destinationRef}>
-                  <div className="absolute left-3 top-3 text-gray-400">
+              <div className="mb-4" ref={pickupRef}>
+                <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pickup Location <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -860,21 +875,35 @@ export default function Cabs() {
                   </div>
                   <input
                     type="text"
-                    id="destination"
-                    name="destination"
-                    value={bookingForm.destination}
-                    onChange={handleDestinationChange}
-                    placeholder="Destination"
-                    className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                    name="pickupLocation"
+                    value={bookingForm.pickupLocation}
+                    onChange={handlePickupLocationChange}
+                    onFocus={() => {
+                      if (bookingForm.pickupLocation.trim() !== "") setShowPickupSuggestions(true);
+                    }}
+                    onKeyDown={(e) => handleKeyDown(e, pickupSuggestions, (val) => handleSuggestionSelect(val, 'pickup'), () => setShowPickupSuggestions(false))}
+                    placeholder="Pickup location"
+                    className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                     required
                   />
-                  {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                      {destinationSuggestions.map((suggestion, index) => (
+                  {(showPickupSuggestions || bookingForm.pickupLocation === "") && (
+                    <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg ${!showPickupSuggestions && "invisible"}`}>
+                      <div
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 flex items-center text-indigo-600"
+                        onClick={handleCurrentLocation}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Current Location
+                      </div>
+                      {pickupSuggestions.map((suggestion, index) => (
                         <div
                           key={index}
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                          className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50"}`}
+                          onClick={() => handleSuggestionSelect(suggestion, 'pickup')}
+                          onMouseEnter={() => setActiveSuggestionIndex(index)}
                         >
                           {suggestion}
                         </div>
@@ -882,21 +911,130 @@ export default function Cabs() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Additional Stops */}
+              {additionalStops.map((stop, index) => (
+                <div key={stop.id} className={`mb-4 relative ${index === 0 ? 'mt-6' : ''}`} ref={el => { stopRefs.current[stop.id] = el; }}>
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={stop.location}
+                    onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                    placeholder="Stop location"
+                    className="w-full p-3 pl-12 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStop(stop.id)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  {stop.showSuggestions && stop.suggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
+                      {stop.suggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          onClick={() => {
+                            setAdditionalStops(prev =>
+                              prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                            );
+                          }}
+                        >
+                          {suggestion}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Drop Location (Only if NOT Hourly Rental) or Service Type (if Hourly Rental) */}
+              {bookingForm.tripType !== "Hourly Rental" ? (
+                <div className="mb-4" ref={destinationRef}>
+                  <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
+                    Drop Location <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      id="destination"
+                      name="destination"
+                      value={bookingForm.destination}
+                      onChange={handleDestinationChange}
+                      onKeyDown={(e) => handleKeyDown(e, destinationSuggestions, (val) => handleSuggestionSelect(val, 'destination'), () => setShowDestinationSuggestions(false))}
+                      placeholder="Drop location"
+                      className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                      required
+                    />
+                    {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                        {destinationSuggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50"}`}
+                            onClick={() => handleSuggestionSelect(suggestion, 'destination')}
+                            onMouseEnter={() => setActiveSuggestionIndex(index)}
+                          >
+                            {suggestion}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Service Type
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value="Local / Within City Usage"
+                      className="w-full p-3 pl-12 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
               )}
 
-              {/* Add Stop Button (Only if NOT Hourly Rental) */}
-              {bookingForm.tripType !== "Hourly Rental" && (
-                <button
-                  type="button"
-                  onClick={handleAddStop}
-                  className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add Stop
-                </button>
-              )}
+              {/* Add Stop Button */}
+              <button
+                type="button"
+                onClick={handleAddStop}
+                disabled={bookingForm.tripType === "Hourly Rental"}
+                className={`w-full p-3 rounded-lg border border-dashed mb-4 flex items-center justify-center transition-colors ${bookingForm.tripType === "Hourly Rental"
+                  ? "border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed"
+                  : "border-indigo-500 text-indigo-600 hover:bg-indigo-50"
+                  }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Stop
+              </button>
 
               {/* Date Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -904,33 +1042,92 @@ export default function Cabs() {
                   <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
                     Pickup Date & Time <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="datetime-local"
-                    id="pickupDate"
-                    name="pickupDate"
-                    value={bookingForm.pickupDate}
-                    onChange={handleBookingChange}
-                    min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                    required
-                  />
+                  <div className="relative">
+                    <DatePicker
+                      selected={bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : null}
+                      onChange={(date: Date | null) => handleDateChange(date, 'pickupDate')}
+                      showTimeSelect
+                      timeCaption="Time"
+                      timeIntervals={15}
+                      dateFormat="MMMM d, yyyy h:mm aa"
+                      minDate={new Date()}
+                      filterTime={(time) => {
+                        const now = new Date();
+                        const selectedDate = bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : new Date();
+                        if (selectedDate.toDateString() === now.toDateString()) {
+                          return time.getTime() > now.getTime();
+                        }
+                        return true;
+                      }}
+                      placeholderText="Select Date & Time"
+                      className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                      wrapperClassName="w-full"
+                      required
+                      fixedHeight
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                {(bookingForm.tripType === 'Round Trip' || (bookingForm.tripType === 'One Way' && additionalStops.length > 0)) && (
+                {(bookingForm.tripType === 'Round Trip' || (bookingForm.tripType === 'One Way' && additionalStops.length > 0)) ? (
                   <div>
                     <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
                       {bookingForm.tripType === 'Round Trip' ? 'Return Date & Time' : 'Drop Date & Time'} <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="datetime-local"
-                      id="dropDate"
-                      name="dropDate"
-                      value={bookingForm.dropDate}
-                      onChange={handleBookingChange}
-                      min={bookingForm.pickupDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                      required
-                    />
+                    <div className="relative">
+                      <DatePicker
+                        selected={bookingForm.dropDate ? new Date(bookingForm.dropDate) : null}
+                        onChange={(date: Date | null) => handleDateChange(date, 'dropDate')}
+                        showTimeSelect
+                        timeCaption="Time"
+                        timeIntervals={15}
+                        dateFormat="MMMM d, yyyy h:mm aa"
+                        minDate={bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : new Date()}
+                        filterTime={(time) => {
+                          const pickupDate = bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : new Date();
+                          const dropDate = bookingForm.dropDate ? new Date(bookingForm.dropDate) : null;
+
+                          if (dropDate && pickupDate && dropDate.toDateString() === pickupDate.toDateString()) {
+                            return time.getTime() > pickupDate.getTime();
+                          }
+                          return true;
+                        }}
+                        maxTime={new Date(new Date().setHours(23, 59, 59, 999))}
+                        placeholderText="Select Date & Time"
+                        className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                        wrapperClassName="w-full"
+                        required
+                        fixedHeight
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      {bookingForm.tripType === 'Hourly Rental' ? 'Duration / Drop Time' : 'Return Date & Time'}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        disabled
+                        value={bookingForm.tripType === 'Hourly Rental' ? "As per Selected Package" : "Select Round Trip to add return"}
+                        className="w-full p-3 pr-10 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1050,126 +1247,171 @@ export default function Cabs() {
           })}
         </div>
       </div>
-      {/* Profile Completion Modal */}
+      {/* Profile Completion Modal (2-Step) */}
       {showProfileForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Complete Your Profile</h2>
-            <p className="text-gray-600 text-center mb-6">
-              Please provide your phone number, gender, age, and address to proceed.
-            </p>
-            <form onSubmit={handleProfileFormSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={profileFormData.phone}
-                  onChange={handleProfileFormChange}
-                  placeholder="e.g., 9876543210"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                  required
-                />
-                {!userProfile?.is_phone_verified && profileFormData.phone && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-gray-100">
+
+            {/* Step Indicators */}
+            <div className="flex items-center justify-center mb-6 space-x-2">
+              <div className={`h-2 w-12 rounded-full transition-colors ${profileStep === 1 ? 'bg-indigo-600' : 'bg-indigo-200'}`}></div>
+              <div className={`h-2 w-12 rounded-full transition-colors ${profileStep === 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
+            </div>
+
+            {profileStep === 1 ? (
+              // Step 1: Phone Verification
+              <div className="animate-fade-in">
+                <h2 className="text-2xl font-bold mb-2 text-gray-800 text-center">Verify Your Phone</h2>
+                <p className="text-gray-500 text-center mb-6 text-sm">
+                  We need to verify your phone number to proceed with the booking.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-0 top-0 bottom-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 font-medium border-r border-gray-300 pr-2">+91</span>
+                      </div>
+                      <input
+                        type="text"
+                        name="phone"
+                        value={profileFormData.phone}
+                        onChange={handlePhoneChange}
+                        placeholder="9876543210"
+                        className="w-full p-3 pl-14 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 transition-all font-medium tracking-wide"
+                        required
+                        disabled={isOtpModalOpen} // Disable input if OTP is sent
+                      />
+                    </div>
+                  </div>
+
+                  {!isOtpModalOpen ? (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={loading || profileFormData.phone.length !== 10}
+                      className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                    >
+                      {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
+                    </button>
+                  ) : (
+                    <div className="space-y-4 animate-fade-in-up">
+                      <div>
+                        <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                          Enter OTP <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            if (val.length <= 6) setOtp(val);
+                          }}
+                          placeholder="XXXXXX"
+                          maxLength={6}
+                          className="w-full p-3 border border-indigo-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 text-center tracking-[0.5em] font-bold text-xl bg-indigo-50"
+                          required
+                        />
+                        <div className="flex justify-end mt-1">
+                          <button
+                            type="button"
+                            onClick={() => { setIsOtpModalOpen(false); setOtp(''); }}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                          >
+                            Change Phone Number
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e: any) => handleVerifyOtp(e)}
+                        disabled={loading || otp.length !== 6}
+                        className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      >
+                        {loading ? 'Verifying...' : 'Verify OTP & Continue'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Step 2: Personal Details
+              <div className="animate-fade-in">
+                <h2 className="text-2xl font-bold mb-2 text-gray-800 text-center">Complete Profile</h2>
+                <p className="text-gray-500 text-center mb-6 text-sm">
+                  Please provide a few more details to finish your profile setup.
+                </p>
+
+                <form onSubmit={handleProfileFormSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="gender"
+                      value={profileFormData.gender}
+                      onChange={handleProfileFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                      required
+                    >
+                      <option value="Select Gender">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
+                      Age (18-100) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="age"
+                      value={profileFormData.age}
+                      onChange={handleAgeChange}
+                      placeholder="Your age"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="current_address" className="block text-sm font-medium text-gray-700 mb-1">
+                      Current Address <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="current_address"
+                      value={profileFormData.current_address}
+                      onChange={handleProfileFormChange}
+                      placeholder="Enter your current address (Max 200 chars)"
+                      rows={3}
+                      maxLength={200}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 resize-none"
+                      required
+                    ></textarea>
+                    <div className="text-right text-xs text-gray-400 mt-1">
+                      {profileFormData.current_address.length}/200
+                    </div>
+                  </div>
+
                   <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={loading}
-                    className="mt-2 w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+                    type="submit"
+                    disabled={loading || (profileFormData.gender === 'Select Gender' || !profileFormData.age || !profileFormData.current_address)}
+                    className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 shadow-md hover:shadow-lg mt-2"
                   >
-                    {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
+                    {loading ? 'Saving Profile...' : 'Save Profile & Continue'}
                   </button>
-                )}
+                </form>
               </div>
-              <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select
-                  name="gender"
-                  value={profileFormData.gender}
-                  onChange={handleProfileFormChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                  required
-                >
-                  <option value="Select Gender">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                <input
-                  type="number"
-                  name="age"
-                  value={profileFormData.age}
-                  onChange={handleProfileFormChange}
-                  placeholder="Your age"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="current_address" className="block text-sm font-medium text-gray-700 mb-1">Current Address</label>
-                <textarea
-                  name="current_address"
-                  value={profileFormData.current_address}
-                  onChange={handleProfileFormChange}
-                  placeholder="Your current address"
-                  rows={3}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-                  required
-                ></textarea>
-              </div>
-              <button
-                type="submit"
-                disabled={loading || (profileFormData.gender === 'Select Gender' || !profileFormData.age || !profileFormData.current_address || !profileFormData.phone)}
-                className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
-              >
-                {loading ? 'Saving Profile...' : 'Save Profile and Continue'}
-              </button>
-            </form>
+            )}
           </div>
         </div>
       )}
 
-      {/* OTP Verification Modal */}
-      {isOtpModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 w-full max-w-sm">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">Verify Phone OTP</h3>
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div>
-                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="XXXXXX"
-                  maxLength={6}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 text-center tracking-widest"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsOtpModalOpen(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || otp.length !== 6}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
-                >
-                  {loading ? 'Verifying...' : 'Verify OTP'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <Footer />

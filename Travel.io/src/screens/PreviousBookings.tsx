@@ -25,7 +25,7 @@ const PreviousBookings = () => {
         }
       } catch (error: any) {
         console.error('Error fetching user bookings:', error);
-        toast.error(error.response?.data?.message || 'Failed to fetch bookings');
+        toast.error(error.response?.data?.message || 'Failed to fetch bookings', { id: 'bookings-fetch-error' });
       } finally {
         setLoading(false);
       }
@@ -68,7 +68,7 @@ const PreviousBookings = () => {
       }
     } catch (error: any) {
       console.error('Error fetching user bookings:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch bookings');
+      toast.error(error.response?.data?.message || 'Failed to fetch bookings', { id: 'bookings-fetch-error-manual' });
     } finally {
       setLoading(false);
     }
@@ -96,10 +96,10 @@ const PreviousBookings = () => {
       try {
         const response = await cancelBooking(bookingId);
         if (response.success) {
-          toast.success(response.message || 'Booking cancelled successfully!');
+          toast.success(response.message || 'Booking cancelled successfully!', { id: 'booking-cancel-success' });
           fetchBookings(); // Re-fetch bookings to update the list
         } else {
-          toast.error(response.message || 'Failed to cancel booking');
+          toast.error(response.message || 'Failed to cancel booking', { id: 'booking-cancel-failure' });
         }
       } catch (error: any) {
         console.error('Error cancelling booking:', error);

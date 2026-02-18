@@ -26,15 +26,15 @@ const Dashboard = () => {
       try {
         const response = await cancelBooking(bookingId);
         if (response.success) {
-          toast.success(response.message || 'Booking cancelled successfully!');
+          toast.success(response.message || 'Booking cancelled successfully!', { id: 'booking-cancel-success' });
           // Refresh dashboard data
           window.location.reload();
         } else {
-          toast.error(response.message || 'Failed to cancel booking');
+          toast.error(response.message || 'Failed to cancel booking', { id: 'booking-cancel-failure' });
         }
       } catch (error: any) {
         console.error('Error cancelling booking:', error);
-        toast.error(error.response?.data?.message || 'Failed to cancel booking');
+        toast.error(error.response?.data?.message || 'Failed to cancel booking', { id: 'booking-cancel-error' });
       }
     }
   };
@@ -56,6 +56,7 @@ const Dashboard = () => {
       toast.success(`Booking Confirmed! OTP: ${location.state.booking_otp}`, {
         duration: 8000,
         icon: '🎉',
+        id: 'booking-confirmed-otp'
       });
       // Clear state so it doesn't persist on refresh (though location.state persists on refresh in some routers, but okay for now)
       window.history.replaceState({}, document.title);
@@ -111,7 +112,7 @@ const Dashboard = () => {
 
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
-        toast.error(error.response?.data?.message || 'Failed to fetch dashboard data');
+        toast.error(error.response?.data?.message || 'Failed to fetch dashboard data', { id: 'dashboard-fetch-error' });
       } finally {
         setLoading(false);
       }

@@ -65,16 +65,16 @@ const Profile = () => {
           Authorization: `Bearer ${localStorage.getItem('marcocabs_customer_token')}`,
         },
       });
-      toast.success('OTP sent to your phone!');
+      toast.success('OTP sent to your phone!', { id: 'otp-sent-success' });
       setIsOtpModalOpen(true);
     } catch (error) {
-      toast.error('Failed to send OTP');
+      toast.error('Failed to send OTP', { id: 'otp-send-error' });
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('marcocabs_customer_token');
-    toast.success('Logged out successfully!');
+    toast.success('Logged out successfully!', { id: 'logout-success' });
     navigate('/login');
   };
 
@@ -101,10 +101,10 @@ const Profile = () => {
         },
       });
       setProfile(response.data.user);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: 'profile-update-success' });
       setIsEditModalOpen(false);
     } catch (error) {
-      toast.error('Failed to update profile');
+      toast.error('Failed to update profile', { id: 'profile-update-error' });
     }
   };
 
@@ -120,10 +120,10 @@ const Profile = () => {
         ...prevProfile!,
         is_phone_verified: true,
       }));
-      toast.success('Phone verified successfully!');
+      toast.success('Phone verified successfully!', { id: 'phone-verify-success' });
       setIsOtpModalOpen(false);
     } catch (error) {
-      toast.error('Invalid or expired OTP');
+      toast.error('Invalid or expired OTP', { id: 'phone-verify-error' });
     }
   };
 

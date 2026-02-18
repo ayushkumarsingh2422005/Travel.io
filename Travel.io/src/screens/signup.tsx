@@ -43,9 +43,9 @@ export default function Signup() {
 
       // Redirect to original page (with state if any)
       navigate(from, { state: pageState });
-      toast.success(`Signup successful!`);
+      toast.success(`Signup successful!`, { id: 'signup-success' });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Signup failed');
+      toast.error(err.response?.data?.message || 'Signup failed', { id: 'signup-error' });
     }
   };
 
@@ -62,9 +62,9 @@ export default function Signup() {
 
       // Redirect to original page (with state if any)
       navigate(from, { state: pageState });
-      toast.success('Google signup successful!');
+      toast.success('Google signup successful!', { id: 'google-signup-success' });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Google signup failed');
+      toast.error(err.response?.data?.message || 'Google signup failed', { id: 'google-signup-error' });
     }
   };
 
@@ -173,7 +173,7 @@ export default function Signup() {
             <div className="flex justify-center mb-2">
               <GoogleLogin
                 onSuccess={handleGoogle}
-                onError={() => toast.error('Google signup failed')}
+                onError={() => toast.error('Google signup failed', { id: 'google-signup-failure' })}
               />
             </div>
             <div className="text-center text-gray-500 mt-4">

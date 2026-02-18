@@ -18,20 +18,20 @@ const BookingDetails = () => {
       const type = 'customer';
 
       if (!token) {
-        toast.error('Authentication required to view booking details.');
+        toast.error('Authentication required to view booking details.', { id: 'bd-auth-required' });
         navigate('/login', { state: { from: `/booking-details/${bookingId}` } });
         return;
       }
 
       const authResult = await checkAuth(type, token);
       if (!authResult) {
-        toast.error('Session expired or invalid. Please log in again.');
+        toast.error('Session expired or invalid. Please log in again.', { id: 'bd-session-expired' });
         navigate('/login', { state: { from: `/booking-details/${bookingId}` } });
         return;
       }
 
       if (!bookingId) {
-        toast.error('Booking ID is missing.');
+        toast.error('Booking ID is missing.', { id: 'bd-id-missing' });
         navigate('/previous-bookings');
         return;
       }
@@ -42,12 +42,12 @@ const BookingDetails = () => {
         if (response.success) {
           setBookingDetails(response.data);
         } else {
-          toast.error(response.message || 'Failed to fetch booking details');
+          toast.error(response.message || 'Failed to fetch booking details', { id: 'bd-fetch-error' });
           navigate('/previous-bookings');
         }
       } catch (error: any) {
         console.error('Error fetching booking details:', error);
-        toast.error(error.response?.data?.message || 'Failed to fetch booking details');
+        toast.error(error.response?.data?.message || 'Failed to fetch booking details', { id: 'bd-fetch-exception' });
         navigate('/previous-bookings');
       } finally {
         setLoading(false);
@@ -182,7 +182,7 @@ const BookingDetails = () => {
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(bookingDetails.booking_otp || '');
-                            toast.success('OTP copied to clipboard!');
+                            toast.success('OTP copied to clipboard!', { id: 'bd-otp-copied' });
                           }}
                           className="p-2 hover:bg-yellow-100 rounded-md transition-colors"
                           title="Copy OTP"
@@ -247,7 +247,7 @@ const BookingDetails = () => {
 
       {/* Footer Section */}
       <Footer />
-    </div>
+    </div >
   );
 };
 

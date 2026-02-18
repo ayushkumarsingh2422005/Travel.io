@@ -526,7 +526,7 @@ export default function Prices() {
         });
       } catch (error: any) {
         console.error('Error loading Google Maps:', error);
-        toast.error(`Error loading Google Maps: ${error.message || 'Unknown error'}. Please check your API key and network connection.`);
+        toast.error(`Error loading Google Maps: ${error.message || 'Unknown error'}. Please check your API key and network connection.`, { id: 'maps-load-error' });
         setIsLoading(false);
       }
     };
@@ -661,7 +661,7 @@ export default function Prices() {
     try {
       if (formData.phone && formData.phone !== userProfile?.phone) {
         await addPhoneNumber(formData.phone);
-        toast('Phone number updated. Please verify it.');
+        toast('Phone number updated. Please verify it.', { id: 'phone-update-verify' });
       }
       const updatedProfileData = {
         phone: formData.phone,
@@ -672,9 +672,9 @@ export default function Prices() {
       };
       const response = await updateProfile(updatedProfileData);
       setUserProfile(response.user);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: 'profile-update-success' });
       if (!response.user.is_phone_verified) {
-        toast.error('Please verify your phone number.');
+        toast.error('Please verify your phone number.', { id: 'verify-phone-prompt' });
         setIsOtpModalOpen(true);
       } else {
         setShowProfileForm(false);
@@ -684,7 +684,7 @@ export default function Prices() {
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || 'Failed to update profile', { id: 'profile-update-error' });
     } finally {
       setBookingLoading(false);
     }
@@ -694,11 +694,11 @@ export default function Prices() {
     setBookingLoading(true);
     try {
       await sendPhoneOtp();
-      toast.success('OTP sent to your phone!');
+      toast.success('OTP sent to your phone!', { id: 'otp-sent-success' });
       setIsOtpModalOpen(true);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
+      toast.error(error.response?.data?.message || 'Failed to send OTP', { id: 'otp-send-error' });
     } finally {
       setBookingLoading(false);
     }
@@ -709,7 +709,7 @@ export default function Prices() {
     setBookingLoading(true);
     try {
       await verifyPhoneOtp(otp);
-      toast.success('Phone verified successfully!');
+      toast.success('Phone verified successfully!', { id: 'phone-verify-success' });
       setIsOtpModalOpen(false);
       const profileResponse = await getUserProfile();
       setUserProfile(profileResponse.user);
@@ -719,7 +719,7 @@ export default function Prices() {
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
-      toast.error(error.response?.data?.message || 'Invalid or expired OTP');
+      toast.error(error.response?.data?.message || 'Invalid or expired OTP', { id: 'otp-verify-error' });
     } finally {
       setBookingLoading(false);
     }
@@ -730,14 +730,14 @@ export default function Prices() {
   const handleBookNow = async () => {
     // 1. Check Authentication
     if (!userToken || !userDetails) {
-      toast.error("Please login to book a cab");
+      toast.error("Please login to book a cab", { id: 'login-required' });
       navigate('/login', { state: { from: location.pathname, routeData: routeData } }); // Pass routeData to preserve state
       return;
     }
 
     // 2. Check Profile Completeness
     if (!userProfile?.is_profile_completed || !userProfile?.is_phone_verified) {
-      toast.error('Please complete your profile and verify your phone number to proceed.');
+      toast.error('Please complete your profile and verify your phone number to proceed.', { id: 'complete-profile-prompt' });
       setShowProfileForm(true);
       return;
     }
@@ -775,11 +775,11 @@ export default function Prices() {
       if (orderResponse.success) {
         initializeRazorpay(orderResponse.data);
       } else {
-        toast.error(orderResponse.message || 'Failed to create payment order');
+        toast.error(orderResponse.message || 'Failed to create payment order', { id: 'payment-order-error' });
       }
     } catch (error: any) {
       console.error('Error creating booking:', error);
-      toast.error(error.response?.data?.message || 'Failed to create booking');
+      toast.error(error.response?.data?.message || 'Failed to create booking', { id: 'booking-create-error' });
     } finally {
       setBookingLoading(false);
     }
@@ -805,7 +805,7 @@ export default function Prices() {
         const verificationResponse = await verifyPayment(paymentVerificationRequest, userToken);
 
         if (verificationResponse.success) {
-          toast.success('Booking confirmed! Booking ID: ' + verificationResponse.data.booking.id);
+          toast.success('Booking confirmed! Booking ID: ' + verificationResponse.data.booking.id, { id: 'booking-confirmed' });
           navigate('/dashboard', {
             state: {
               message: 'Your booking has been created successfully. You will receive driver details shortly.',
@@ -813,7 +813,7 @@ export default function Prices() {
             },
           });
         } else {
-          toast.error(verificationResponse.message || 'Payment verification failed. Please try again.');
+          toast.error(verificationResponse.message || 'Payment verification failed. Please try again.', { id: 'payment-verification-error' });
         }
       },
       prefill: {
@@ -826,7 +826,7 @@ export default function Prices() {
       },
       modal: {
         ondismiss: function () {
-          toast.error('Payment cancelled by user');
+          toast.error('Payment cancelled by user', { id: 'payment-cancelled' });
         },
       },
     };

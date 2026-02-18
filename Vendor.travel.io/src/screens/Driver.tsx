@@ -68,7 +68,7 @@ const DriverManagementComponent: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to fetch drivers.');
+        toast.error('You must be logged in to fetch drivers.', { id: 'login-required-fetch-drivers' });
         setLoading(false);
         return;
       }
@@ -85,7 +85,7 @@ const DriverManagementComponent: React.FC = () => {
       console.error('Error fetching drivers:', error);
       setDrivers([]);
       setLoading(false);
-      toast.error('Failed to load drivers.');
+      toast.error('Failed to load drivers.', { id: 'drivers-load-error' });
     }
   };
 
@@ -181,7 +181,7 @@ const DriverManagementComponent: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to update driver details.');
+        toast.error('You must be logged in to update driver details.', { id: 'login-required-update-driver' });
         return;
       }
 
@@ -211,18 +211,18 @@ const DriverManagementComponent: React.FC = () => {
       });
 
       if (response.data.success) {
-        toast.success('Driver updated successfully');
+        toast.success('Driver updated successfully', { id: 'driver-update-success' });
         setDrivers(prevDrivers =>
           prevDrivers.map(driver =>
             driver.id === currentDriverToEdit.id ? response.data.driver : driver
           )
         );
       } else {
-        toast.error(response.data.message || 'Failed to update driver.');
+        toast.error(response.data.message || 'Failed to update driver.', { id: 'driver-update-failure' });
       }
     } catch (error: any) {
       console.error('Error updating driver:', error);
-      toast.error(error.response?.data?.message || 'Failed to update driver.');
+      toast.error(error.response?.data?.message || 'Failed to update driver.', { id: 'driver-update-error' });
     } finally {
       handleCloseEditModal();
       setDriverPhoto(null);
@@ -233,7 +233,7 @@ const DriverManagementComponent: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to delete a driver.');
+        toast.error('You must be logged in to delete a driver.', { id: 'login-required-delete-driver' });
         return;
       }
 
@@ -244,29 +244,29 @@ const DriverManagementComponent: React.FC = () => {
       });
 
       if (response.data.success) {
-        toast.success(response.data.message);
+        toast.success(response.data.message, { id: 'driver-delete-success' });
         setDrivers(prevDrivers => prevDrivers.filter(driver => driver.id !== driverId));
       }
       else {
-        toast.error(response.data.message || 'Failed to delete driver.');
+        toast.error(response.data.message || 'Failed to delete driver.', { id: 'driver-delete-failure' });
       }
 
     } catch (error: any) {
       console.log(error);
-      toast.error(error.response?.data?.message || 'Something Went Wrong while deleting driver.');
+      toast.error(error.response?.data?.message || 'Something Went Wrong while deleting driver.', { id: 'driver-delete-error' });
     }
   };
 
   const handleShowBookingHistory = (driverId: string) => {
     // Implement show booking history functionality
-    toast(`Showing booking history for driver ${driverId}`);
+    toast(`Showing booking history for driver ${driverId}`, { id: `show-history-${driverId}` });
   };
 
   const handleConfirmAddDriver = async () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to add a driver.');
+        toast.error('You must be logged in to add a driver.', { id: 'login-required-add-driver' });
         return;
       }
 
@@ -297,16 +297,16 @@ const DriverManagementComponent: React.FC = () => {
       });
 
       if (response.data.success) {
-        toast.success('Driver Added Successfully');
+        toast.success('Driver Added Successfully', { id: 'driver-add-success' });
         setDrivers((prev) => [...prev, response.data.driver]);
       }
       else {
-        toast.error(response.data.message || 'Please Check Driver Details');
+        toast.error(response.data.message || 'Please Check Driver Details', { id: 'driver-add-failure' });
       }
 
     } catch (error: any) {
       console.log(error);
-      toast.error(error.response?.data?.message || 'Please Check Driver Details');
+      toast.error(error.response?.data?.message || 'Please Check Driver Details', { id: 'driver-add-error' });
     }
     finally {
       handleCloseModal();
@@ -324,7 +324,7 @@ const DriverManagementComponent: React.FC = () => {
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to verify driver license.');
+        toast.error('You must be logged in to verify driver license.', { id: 'login-required-verify-dl' });
         return;
       }
 
@@ -346,7 +346,7 @@ const DriverManagementComponent: React.FC = () => {
 
       if (response.data.success) {
         if (response.data.data.dl_status !== "ACTIVE") {
-          toast.error('The Driving License is not Active');
+          toast.error('The Driving License is not Active', { id: 'dl-not-active' });
           return;
         }
         console.log("setting the data");
@@ -359,14 +359,14 @@ const DriverManagementComponent: React.FC = () => {
           dl_data: JSON.stringify(response.data.data) ?? '',
           dob: response.data.data.dob ?? ''
         });
-        toast.success('Driver License Verified Successfully');
+        toast.success('Driver License Verified Successfully', { id: 'dl-verify-success' });
       }
       else {
-        toast.error(response.data.message || 'Verification Failed');
+        toast.error(response.data.message || 'Verification Failed', { id: 'dl-verify-failure' });
       }
     } catch (error: any) {
       console.log(error);
-      toast.error(error.response?.data?.message || 'Verification Failed');
+      toast.error(error.response?.data?.message || 'Verification Failed', { id: 'dl-verify-error' });
     }
   }
 
@@ -445,7 +445,7 @@ const DriverManagementComponent: React.FC = () => {
             <button
               onClick={() => {
                 fetchDrivers();
-                toast.success('Drivers refreshed!');
+                toast.success('Drivers refreshed!', { id: 'drivers-refreshed' });
               }}
               className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
               title="Refresh driver list"

@@ -123,7 +123,7 @@ const AddCarForm: React.FC = () => {
 
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to add a car.');
+        toast.error('You must be logged in to add a car.', { id: 'login-required-add-car' });
         return;
       }
 
@@ -136,9 +136,9 @@ const AddCarForm: React.FC = () => {
 
       fetchCars();
       handleCloseForm();
-      toast.success('Car added successfully!');
+      toast.success('Car added successfully!', { id: 'car-add-success' });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to add car. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to add car. Please try again.', { id: 'car-add-error' });
     } finally {
       setLoading(false);
     }
@@ -169,7 +169,7 @@ const AddCarForm: React.FC = () => {
       setLoading(true);
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to fetch cars.');
+        toast.error('You must be logged in to fetch cars.', { id: 'login-required-fetch-cars' });
         return;
       }
       const response = await axios.get(API_ENDPOINTS.CARS, {
@@ -193,20 +193,20 @@ const AddCarForm: React.FC = () => {
       setLoading(false);
     } catch (err: any) {
       console.log("Error fetching cars:", err);
-      toast.error(err.response?.data?.message || "Error fetching car data");
+      toast.error(err.response?.data?.message || "Error fetching car data", { id: 'car-fetch-error' });
       setLoading(false);
     }
   };
 
   const handleDeleteCar = async () => {
     if (!selectedCarForDeletion) {
-      toast.error('No car selected for deletion.');
+      toast.error('No car selected for deletion.', { id: 'no-car-delete-selection' });
       return;
     }
     try {
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to delete cars.');
+        toast.error('You must be logged in to delete cars.', { id: 'login-required-delete-car' });
         return;
       }
       await axios.delete(API_ENDPOINTS.DELETE_CAR(selectedCarForDeletion.id),
@@ -217,9 +217,9 @@ const AddCarForm: React.FC = () => {
         });
       fetchCars();
       closeDeleteCarModal();
-      toast.success('Car deleted successfully!');
+      toast.success('Car deleted successfully!', { id: 'car-delete-success' });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to delete car");
+      toast.error(err.response?.data?.message || "Failed to delete car", { id: 'car-delete-error' });
     }
   };
 
@@ -254,7 +254,7 @@ const AddCarForm: React.FC = () => {
       const fullRcNumber = `${rcState}${rtoCode}${issueYear}${rcDigits}`;
       const token = localStorage.getItem("marcocabs_vendor_token");
       if (!token) {
-        toast.error('You must be logged in to verify car details.');
+        toast.error('You must be logged in to verify car details.', { id: 'login-required-verify-car' });
         return;
       }
 
@@ -270,7 +270,7 @@ const AddCarForm: React.FC = () => {
       });
       const ResponseData = response.data.data;
       if (ResponseData.status !== "Success") {
-        toast.error("Failed to fetch car details. Please check the RC number and try again.");
+        toast.error("Failed to fetch car details. Please check the RC number and try again.", { id: 'car-details-fetch-error' });
         setLoading(false);
         setFetchedCarDetails(null);
         return;
@@ -299,9 +299,9 @@ const AddCarForm: React.FC = () => {
       setRcCache(prev => ({ ...prev, [fullRcNumber]: carDetails }));
 
       setLoading(false);
-      toast.success('Car details fetched successfully!');
+      toast.success('Car details fetched successfully!', { id: 'car-details-fetch-success' });
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to fetch car details. Please check the RC number and try again.");
+      toast.error(err.response?.data?.message || "Failed to fetch car details. Please check the RC number and try again.", { id: 'car-details-fetch-failure' });
       setLoading(false);
       setFetchedCarDetails(null);
     }
