@@ -8,15 +8,18 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 import { checkAuth, getUserDetailsFromToken } from '../utils/verifytoken';
-import { getUserProfile, updateProfile, sendPhoneOtp, verifyPhoneOtp, addPhoneNumber, UserProfile } from '../api/userService';
+import {
+  getUserProfile, updateProfile, sendPhoneOtp, verifyPhoneOtp, addPhoneNumber,
+  //  UserProfile 
+} from '../api/userService';
 import Footer from '../components/Footer';
 
-interface UserDetails {
-  id: string;
-  name?: string;
-  email: string;
-  phone?: string;
-}
+// interface UserDetails {
+//   id: string;
+//   name?: string;
+//   email: string;
+//   phone?: string;
+// }
 
 const faqs = [
   {

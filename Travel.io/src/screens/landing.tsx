@@ -219,22 +219,22 @@ export default function MarcoCabService() {
     });
   }, []);
 
-  type FormState = Record<string, string>;
+  // type FormState = Record<string, string>;
 
-  const handleInputChange = <T extends FormState>(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-    formSetter: React.Dispatch<React.SetStateAction<T>>
-  ) => {
-    const { name, value } = e.target;
-    formSetter(prev => ({ ...prev, [name]: value }));
-  };
+  // const handleInputChange = <T extends FormState>(
+  //   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  //   formSetter: React.Dispatch<React.SetStateAction<T>>
+  // ) => {
+  //   const { name, value } = e.target;
+  //   formSetter(prev => ({ ...prev, [name]: value }));
+  // };
 
   // Booking form handler
-  const handleBookingChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    handleInputChange(e, setBookingForm);
-  };
+  // const handleBookingChange = (
+  //   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  // ) => {
+  //   handleInputChange(e, setBookingForm);
+  // };
 
   // Date picker handler
   const handleDateChange = (date: Date | null, field: string) => {
