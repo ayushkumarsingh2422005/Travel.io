@@ -951,7 +951,12 @@ export default function MarcoCabService() {
                         <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
                           {bookingForm.tripType === 'Round Trip' ? 'Drop Date & Time' : 'Drop Date & Time'} <span className="text-red-500">*</span>
                         </label>
-                        <div className="relative">
+                        <div className="relative" onClickCapture={(e) => {
+                          if (!bookingForm.pickupDate) {
+                            e.stopPropagation();
+                            toast.error("Please select Pickup Date & Time first.", { id: 'pickup-first-error' });
+                          }
+                        }}>
                           <DatePicker
                             selected={safeDate(bookingForm.dropDate)}
                             onChange={(date: Date | null) => handleDateChange(date, 'dropDate')}
@@ -961,16 +966,16 @@ export default function MarcoCabService() {
                             dateFormat="MMMM d, yyyy h:mm aa"
                             minDate={safeDate(bookingForm.pickupDate) || new Date()}
                             filterTime={(time) => {
-                              const pickupDate = safeDate(bookingForm.pickupDate) || new Date();
-                              const dropDate = safeDate(bookingForm.dropDate);
-
-                              if (dropDate && pickupDate && dropDate.toDateString() === pickupDate.toDateString()) {
+                              const pickupDate = safeDate(bookingForm.pickupDate);
+                              if (!pickupDate) return true;
+                              if (time.toDateString() === pickupDate.toDateString()) {
                                 return time.getTime() > pickupDate.getTime();
                               }
                               return true;
                             }}
-                            placeholderText="Select Date & Time"
-                            className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                            disabled={!bookingForm.pickupDate}
+                            placeholderText={bookingForm.pickupDate ? "Select Date & Time" : "Select Pickup First"}
+                            className={`w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 ${!bookingForm.pickupDate ? 'cursor-not-allowed bg-gray-50' : 'cursor-pointer'}`}
                             wrapperClassName="w-full"
                             required
                             fixedHeight

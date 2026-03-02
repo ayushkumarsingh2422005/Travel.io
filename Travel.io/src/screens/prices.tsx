@@ -89,6 +89,7 @@ export default function Prices() {
     price: 0,
     path: ''
   });
+  const [actualDropDate, setActualDropDate] = useState<string>(routeData?.dropDate || '');
   const [isLoading, setIsLoading] = useState(true);
   const [platformCharges, setPlatformCharges] = useState<number>(0);
   const [gstAmount, setGstAmount] = useState<number>(0);
@@ -346,12 +347,18 @@ export default function Prices() {
             if (routeData.stops?.length === 0 && routeData.tripType !== 'Round Trip') {
               // If 0 stops (One Way), destination date/time IS strictly pickup + duration
               dropDateTime = minDropTime;
+              setActualDropDate(minDropTime.toISOString());
             } else {
               // If stops > 0 OR Round Trip, destination provided by user MUST be >= minimum duration
               if (dropDateTime.getTime() < minDropTime.getTime()) {
                 dropDateTime = minDropTime; // Auto-correct to minimum valid time
                 console.warn('Drop date adjusted to meet minimum travel duration.');
-                // In a real app, might want to notify user, but auto-adjust works for calculation
+                setActualDropDate(minDropTime.toISOString());
+                const formattedDate = minDropTime.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                const formattedTime = minDropTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                toast(`ℹ️ Drop Date adjusted to ${formattedDate} at ${formattedTime}`, { id: 'prices-drop-date-adjusted' });
+              } else {
+                setActualDropDate(routeData.dropDate);
               }
             }
 
@@ -759,7 +766,7 @@ export default function Prices() {
         pickup_location: routeData.pickup,
         dropoff_location: routeData?.destination || routeData.pickup || 'Hourly Rental Area', // Fallback for hourly
         pickup_date: routeData.pickupDate,
-        drop_date: routeData.dropDate || new Date(new Date(routeData.pickupDate).getTime() + (routeData?.cabCategory.package_hours || 1) * 60 * 60 * 1000).toISOString(), // Fallback drop date
+        drop_date: actualDropDate || routeData.dropDate || new Date(new Date(routeData.pickupDate).getTime() + (routeData?.cabCategory.package_hours || 1) * 60 * 60 * 1000).toISOString(), // Fallback drop date
         path: pathVal,
         distance: distanceVal,
         amount: routeDetails.price + addOnsTotal, // Send Total Booking Amount so backend calculates charges correctly
@@ -1005,6 +1012,32 @@ export default function Prices() {
                         {routeData?.tripType}
                       </span>
                     </div>
+
+                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium text-gray-700">Pickup Date & Time</span>
+                      </div>
+                      <span className="font-semibold text-gray-800 text-right">
+                        {routeData?.pickupDate ? new Date(routeData.pickupDate).toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </span>
+                    </div>
+
+                    {routeData?.tripType !== 'Hourly Rental' && (
+                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="font-medium text-gray-700">Drop Date & Time</span>
+                        </div>
+                        <span className="font-semibold text-gray-800 text-right">
+                          {actualDropDate ? new Date(actualDropDate).toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </span>
+                      </div>
+                    )}
 
 
                     {routeData?.tripType !== 'Hourly Rental' && (

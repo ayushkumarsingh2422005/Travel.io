@@ -136,14 +136,14 @@ export default function Cabs() {
 
       if (!token) {
         toast.error('Please login to continue.', { id: 'cabs-login-required' });
-        navigate('/login', { state: { from: location.pathname } });
+        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
         return;
       }
 
       const isAuthenticated = await checkAuth(type, token);
       if (!isAuthenticated) {
         toast.error('Session expired. Please login again.', { id: 'cabs-session-expired' });
-        navigate('/login', { state: { from: location.pathname } });
+        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
         return;
       }
 
@@ -152,7 +152,7 @@ export default function Cabs() {
       if (details) {
         // setUserDetails(details); // Unused
       } else {
-        navigate('/login', { state: { from: location.pathname } });
+        navigate('/login', { state: { from: location.pathname, pageState: location.state } });
         return;
       }
 
@@ -1081,7 +1081,12 @@ export default function Cabs() {
                     <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-1">
                       {bookingForm.tripType === 'Round Trip' ? 'Return Date & Time' : 'Drop Date & Time'} <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
+                    <div className="relative" onClickCapture={(e) => {
+                      if (!bookingForm.pickupDate) {
+                        e.stopPropagation();
+                        toast.error("Please select Pickup Date & Time first.", { id: 'pickup-first-error-cabs' });
+                      }
+                    }}>
                       <DatePicker
                         selected={bookingForm.dropDate ? new Date(bookingForm.dropDate) : null}
                         onChange={(date: Date | null) => handleDateChange(date, 'dropDate')}
@@ -1091,17 +1096,16 @@ export default function Cabs() {
                         dateFormat="MMMM d, yyyy h:mm aa"
                         minDate={bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : new Date()}
                         filterTime={(time) => {
-                          const pickupDate = bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : new Date();
-                          const dropDate = bookingForm.dropDate ? new Date(bookingForm.dropDate) : null;
-
-                          if (dropDate && pickupDate && dropDate.toDateString() === pickupDate.toDateString()) {
+                          const pickupDate = bookingForm.pickupDate ? new Date(bookingForm.pickupDate) : null;
+                          if (!pickupDate) return true;
+                          if (time.toDateString() === pickupDate.toDateString()) {
                             return time.getTime() > pickupDate.getTime();
                           }
                           return true;
                         }}
-                        maxTime={new Date(new Date().setHours(23, 59, 59, 999))}
-                        placeholderText="Select Date & Time"
-                        className="w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 cursor-pointer"
+                        disabled={!bookingForm.pickupDate}
+                        placeholderText={bookingForm.pickupDate ? "Select Date & Time" : "Select Pickup First"}
+                        className={`w-full p-3 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500 ${!bookingForm.pickupDate ? 'cursor-not-allowed bg-gray-50' : 'cursor-pointer'}`}
                         wrapperClassName="w-full"
                         required
                         fixedHeight
