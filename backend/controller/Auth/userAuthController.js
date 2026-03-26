@@ -42,7 +42,7 @@ const verifytoken=(req,res)=>{
 
 const signup = async (req, res) => {
     try {
-        const { name, email, password, gender, age, current_address } = req.body;
+        const { name, email, phone, password, gender, age, current_address } = req.body;
         
         console.log(`User signup request for: ${email}`);
         
@@ -55,6 +55,14 @@ const signup = async (req, res) => {
             console.log(`Signup failed: Email ${email} already registered`);
             return res.status(409).json({ message: 'Email already registered.' });
         }
+
+        if (phone) {
+            const [existingPhone] = await db.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+            if (existingPhone.length > 0) {
+                console.log(`Signup failed: Phone ${phone} already registered`);
+                return res.status(409).json({ message: 'Mobile number already registered.' });
+            }
+        }
         
         const password_hash = await bcrypt.hash(password, 10);
         const id = crypto.randomBytes(32).toString('hex');
@@ -62,8 +70,8 @@ const signup = async (req, res) => {
         console.log(`Creating new user account with ID: ${id}`);
         
         await db.execute(
-            `INSERT INTO users (id, name, email, password_hash, gender, age, current_address, auth_provider) VALUES (?, ?, ?, ?, ?, ?, ?, 'local')`,
-            [id, name, email, password_hash, gender || 'Select Gender', age || -1, current_address || null]
+            `INSERT INTO users (id, name, email, phone, password_hash, gender, age, current_address, auth_provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
+            [id, name, email, phone || null, password_hash, gender || 'Select Gender', age || -1, current_address || null]
         );
         
         const token = generateToken({ id, email });

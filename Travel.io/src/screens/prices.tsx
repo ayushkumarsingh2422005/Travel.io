@@ -749,6 +749,12 @@ export default function Prices() {
       return;
     }
 
+    // 2.5 Ensure the selected pickup time hasn't elapsed while the user was on this screen
+    if (new Date(routeData.pickupDate) <= new Date()) {
+      toast.error('The selected pickup time has already passed. Please go back and select a new time.', { id: 'pickup-time-expired' });
+      return;
+    }
+
     setBookingLoading(true);
 
     // 3. Prepare Order Request
@@ -880,7 +886,7 @@ export default function Prices() {
             {/* Map Section - 3/5 width on large screens */}
             {/* Map Section - Only show for non-Hourly Rental */}
             {routeData?.tripType !== 'Hourly Rental' && (
-              <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative">
+              <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative flex flex-col">
                 <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -889,7 +895,7 @@ export default function Prices() {
                     Route Map
                   </h2>
                 </div>
-                <div ref={mapRef} className="w-full h-[500px] lg:h-full"></div>
+                <div ref={mapRef} className="w-full h-[500px] lg:h-auto lg:flex-1 lg:min-h-[500px]"></div>
                 {isLoading && (
                   <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>

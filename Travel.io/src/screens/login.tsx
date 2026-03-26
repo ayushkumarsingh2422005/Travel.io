@@ -130,7 +130,7 @@ export default function Login() {
             </div>
             <div className="text-center text-gray-500 mt-4">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-indigo-700 font-medium hover:underline">Sign Up</Link>
+              <Link to="/signup" state={location.state} className="text-indigo-700 font-medium hover:underline">Sign Up</Link>
             </div>
           </div>
         </div>

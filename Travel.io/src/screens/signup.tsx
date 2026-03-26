@@ -178,7 +178,7 @@ export default function Signup() {
             </div>
             <div className="text-center text-gray-500 mt-4">
               Already have an account?{' '}
-              <Link to="/login" className="text-indigo-700 font-medium hover:underline">Log In</Link>
+              <Link to="/login" state={location.state} className="text-indigo-700 font-medium hover:underline">Log In</Link>
             </div>
           </div>
         </div>

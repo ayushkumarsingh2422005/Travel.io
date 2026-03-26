@@ -260,20 +260,25 @@ export default function Cabs() {
     try {
       await verifyPhoneOtp(otp);
       toast.success('Phone verified successfully!', { id: 'cabs-phone-verified' });
-      // setIsOtpModalOpen(false); // No longer needed as separate modal
-
-      // Move to next step
-      setProfileStep(2);
 
       // Update local profile state
       const profileResponse = await getUserProfile();
       setUserProfile(profileResponse.user);
 
-      if (profileResponse.user.is_profile_completed && profileResponse.user.is_phone_verified) {
-        // Should not happen immediately if other fields are missing, but just in case
-        if (profileResponse.user.gender && profileResponse.user.age > 0 && profileResponse.user.current_address) {
-          setShowProfileForm(false);
+      const { is_profile_completed, gender, age, current_address, phone } = profileResponse.user;
+      const hasDetails = gender && gender !== 'Select Gender' && age > 0 && current_address;
+
+      if (is_profile_completed || hasDetails) {
+        if (!is_profile_completed && hasDetails) {
+          // Auto-verify legacy accounts that filled info but never got flagged
+          await updateProfile({
+            phone, gender, age, current_address, is_profile_completed: true
+          });
         }
+        setShowProfileForm(false);
+      } else {
+        // Move to next step if there is actually info to complete
+        setProfileStep(2);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Invalid or expired OTP', { id: 'cabs-otp-invalid' });
@@ -1290,7 +1295,7 @@ export default function Cabs() {
                         placeholder="9876543210"
                         className="w-full p-3 pl-14 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 transition-all font-medium tracking-wide"
                         required
-                        disabled={isOtpModalOpen} // Disable input if OTP is sent
+                        disabled={isOtpModalOpen || !!userProfile?.phone} // Disable input if OTP is sent or if phone is already set from signup
                       />
                     </div>
                   </div>

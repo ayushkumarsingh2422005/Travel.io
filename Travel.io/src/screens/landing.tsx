@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 import Footer from '../components/Footer';
+import UserAvatar from '../components/UserAvatar';
 
 // Initial JSON data that would normally come from API
 const initialData = {
@@ -640,9 +641,13 @@ export default function MarcoCabService() {
             </svg>
           </button> */}
           <div className="hidden md:block">
-            <Link to={"/login"} className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
-              Login
-            </Link>
+            {localStorage.getItem('marcocabs_customer_token') ? (
+              <UserAvatar />
+            ) : (
+              <Link to={"/login"} className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </header>
