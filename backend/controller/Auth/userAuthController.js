@@ -20,64 +20,72 @@ function generateRandomToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-const verifytoken=(req,res)=>{
-    try{
-      const token = req.headers.authorization?.split(' ')[1];
+const verifytoken = (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
         if (!token) {
-            return res.status(401).json({ message: 'No token provided.',success:false });
+            return res.status(401).json({ message: 'No token provided.', success: false });
         }
         jwt.verify(token, JWT_SECRET, (err, decoded) => {
             if (err) {
-                return res.status(401).json({ message: 'Invalid token.',success:false });
+                return res.status(401).json({ message: 'Invalid token.', success: false });
             }
             // Token is valid, you can access decoded data
-            res.status(200).json({ message: 'Token is valid',success:true, customer: decoded });
+            res.status(200).json({ message: 'Token is valid', success: true, customer: decoded });
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
-        res.status(500).json({ message: 'Token verification failed',success:false, error: err.message });
+        res.status(500).json({ message: 'Token verification failed', success: false, error: err.message });
     }
 }
 
 const signup = async (req, res) => {
     try {
         const { name, email, phone, password, gender, age, current_address } = req.body;
-        
+
         console.log(`User signup request for: ${email}`);
-        
+
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Name, email, and password are required.' });
         }
-        
-        const [existing] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-        if (existing.length > 0) {
-            console.log(`Signup failed: Email ${email} already registered`);
-            return res.status(409).json({ message: 'Email already registered.' });
-        }
 
+        console.log(phone);
+
+        const [existing] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        const emailExists = existing.length > 0;
+
+        let phoneExists = false;
         if (phone) {
             const [existingPhone] = await db.execute('SELECT * FROM users WHERE phone = ?', [phone]);
-            if (existingPhone.length > 0) {
-                console.log(`Signup failed: Phone ${phone} already registered`);
-                return res.status(409).json({ message: 'Mobile number already registered.' });
-            }
+            phoneExists = existingPhone.length > 0;
         }
-        
+
+        if (emailExists && phoneExists) {
+            console.log(`Signup failed: Email ${email} and Phone ${phone} already registered`);
+            return res.status(409).json({ message: 'Email and mobile number are already registered.' });
+        } else if (emailExists) {
+            console.log(`Signup failed: Email ${email} already registered`);
+            return res.status(409).json({ message: 'Email already registered.' });
+        } else if (phoneExists) {
+            console.log(`Signup failed: Phone ${phone} already registered`);
+            return res.status(409).json({ message: 'Mobile number already registered.' });
+        }
+
         const password_hash = await bcrypt.hash(password, 10);
         const id = crypto.randomBytes(32).toString('hex');
-        
+
         console.log(`Creating new user account with ID: ${id}`);
-        
+
         await db.execute(
             `INSERT INTO users (id, name, email, phone, password_hash, gender, age, current_address, auth_provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
             [id, name, email, phone || null, password_hash, gender || 'Select Gender', age || -1, current_address || null]
         );
-        
+
         const token = generateToken({ id, email });
         console.log(`User signup successful for: ${email}`);
-        
-        res.status(201).json({ 
+
+        res.status(201).json({
             token,
             message: 'Account created successfully. Please add and verify your phone number to complete your profile.'
         });
@@ -90,24 +98,24 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log(email,password);
+        console.log(email, password);
         if (!email || !password) return res.status(400).json({ message: 'Email and password required.' });
         const [users] = await db.execute('SELECT * FROM users WHERE email = ? AND auth_provider = "local"', [email]);
         console.log(`Found ${users.length} users with email ${email} and auth_provider = "local"`);
-        
+
         if (users.length === 0) {
             // Check if user exists with different auth_provider
             const [allUsers] = await db.execute('SELECT id, email, auth_provider, password_hash FROM users WHERE email = ?', [email]);
             console.log(`All users with email ${email}:`, allUsers);
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
-        
+
         const user = users[0];
         console.log(`User found: ${user.email}, auth_provider: ${user.auth_provider}, has_password: ${!!user.password_hash}`);
-        
+
         const valid = await bcrypt.compare(password, user.password_hash);
         console.log(`Password comparison result: ${valid}`);
-        
+
         if (!valid) return res.status(401).json({ message: 'Invalid credentials.' });
         const token = generateToken(user);
         res.json({ token });
@@ -120,16 +128,16 @@ const google = async (req, res) => {
     try {
         const { id_token } = req.body;
         if (!id_token) return res.status(400).json({ message: 'No Google token provided.' });
-        
+
         const ticket = await googleClient.verifyIdToken({ idToken: id_token, audience: GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         const { sub: google_id, email, name, picture } = payload;
-        
+
         console.log('Google auth for user:', { google_id, email, name, picture });
-        
+
         let [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
         let user;
-        
+
         if (users.length > 0) {
             user = users[0];
             // If user exists but doesn't have profile pic, update it
@@ -137,7 +145,7 @@ const google = async (req, res) => {
                 await db.execute('UPDATE users SET profile_pic = ? WHERE id = ?', [picture, user.id]);
                 user.profile_pic = picture;
             }
-            
+
             // Update Google ID if not set
             if (!user.google_id) {
                 await db.execute('UPDATE users SET google_id = ?, auth_provider = "google" WHERE id = ?', [google_id, user.id]);
@@ -147,21 +155,21 @@ const google = async (req, res) => {
                 // Create new user with Google info
                 const id = crypto.randomBytes(32).toString('hex');
                 console.log('Creating new Google user:', { id, name, email, picture, google_id });
-                
+
                 await db.execute(
                     `INSERT INTO users (id, name, email, profile_pic, google_id, auth_provider) VALUES (?, ?, ?, ?, ?, 'google')`,
                     [id, name, email, picture, google_id]
                 );
-                
+
                 user = { id, email, name, profile_pic: picture };
             } catch (err) {
                 console.error('Error creating Google user:', err);
                 return res.status(500).json({ message: 'Failed to create Google user', error: err.message });
             }
         }
-        
+
         const token = generateToken(user);
-        res.json({ 
+        res.json({
             token,
             message: 'Google sign-in successful. Please add and verify your phone number to complete your profile.'
         });
@@ -175,21 +183,21 @@ const addPhoneNumber = async (req, res) => {
     try {
         const { phone } = req.body;
         const userId = req.user.id; // From auth middleware
-        
+
         if (!phone) {
             return res.status(400).json({ message: 'Phone number is required.' });
         }
-        
+
         // Check if phone number is already registered by another user
         const [existingPhone] = await db.execute('SELECT * FROM users WHERE phone = ? AND id != ?', [phone, userId]);
         if (existingPhone.length > 0) {
             return res.status(409).json({ message: 'Phone number already registered by another user.' });
         }
-        
+
         // Generate OTP
         const otp = generateOTP();
         const otp_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        
+
         // Update user with phone and OTP
         await db.execute(
             'UPDATE users SET phone = ?, phone_otp = ?, phone_otp_expiration = ?, is_phone_verified = 0 WHERE id = ?',
@@ -197,10 +205,10 @@ const addPhoneNumber = async (req, res) => {
         );
 
         console.log(`Sending OTP ${otp} to phone ${phone}`);
-        
+
         // Send OTP via SMS
         const sent = await sendOTP(phone, otp);
-        
+
         if (sent) {
             res.status(200).json({ message: 'OTP sent successfully to your phone.' });
         } else {
@@ -216,24 +224,24 @@ const addPhoneNumber = async (req, res) => {
 const sendPhoneVerificationOTP = async (req, res) => {
     try {
         const userId = req.user.id; // From auth middleware
-        
+
         // Get user's phone number
         const [users] = await db.execute('SELECT phone FROM users WHERE id = ?', [userId]);
-        
+
         if (users.length === 0) {
             return res.status(404).json({ message: 'User not found.' });
         }
-        
+
         const phone = users[0].phone;
-        
+
         if (!phone) {
             return res.status(400).json({ message: 'No phone number found. Please add a phone number first.' });
         }
-        
+
         // Generate OTP
         const otp = generateOTP();
         const otp_expiration = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        
+
         // Update user with OTP
         await db.execute(
             'UPDATE users SET phone_otp = ?, phone_otp_expiration = ? WHERE id = ?',
@@ -241,10 +249,10 @@ const sendPhoneVerificationOTP = async (req, res) => {
         );
 
         console.log(`Sending OTP ${otp} to phone ${phone}`);
-        
+
         // Send OTP via SMS
         const sent = await sendOTP(phone, otp);
-        
+
         if (sent) {
             res.status(200).json({ message: 'OTP sent successfully to your phone.' });
         } else {
@@ -261,27 +269,27 @@ const verifyPhoneOTP = async (req, res) => {
     try {
         const { otp } = req.body;
         const userId = req.user.id; // From auth middleware
-        
+
         if (!otp) {
             return res.status(400).json({ message: 'OTP is required.' });
         }
-        
+
         // Find user with this OTP
         const [users] = await db.execute(
             'SELECT * FROM users WHERE id = ? AND phone_otp = ? AND phone_otp_expiration > NOW()',
             [userId, otp]
         );
-        
+
         if (users.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
-        
+
         // Mark phone as verified and clear OTP
         await db.execute(
             'UPDATE users SET is_phone_verified = 1, phone_otp = NULL, phone_otp_expiration = NULL WHERE id = ?',
             [userId]
         );
-        
+
         console.log(`Phone verified successfully for user: ${userId}`);
         res.status(200).json({ message: 'Phone verified successfully.' });
     } catch (err) {
@@ -296,47 +304,47 @@ const forgotPassword = async (req, res) => {
         const { email } = req.body;
 
         console.log("Password reset request received for:", email);
-        
+
         if (!email) {
             return res.status(400).json({ message: 'Email is required.' });
         }
-        
+
         // Find user with this email
         const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-        
+
         if (users.length === 0) {
             console.log(`No user found with email: ${email}`);
             return res.status(404).json({ message: 'No account found with this email.' });
         }
-        
+
         const user = users[0];
         console.log(`User found: ${user.id}`);
-        
+
         // Generate reset token
         const reset_password_token = generateRandomToken();
         const reset_password_expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-        
+
         // Update user with reset token
         const updateResult = await db.execute(
             'UPDATE users SET reset_password_token = ?, reset_password_expiry = ? WHERE id = ?',
             [reset_password_token, reset_password_expiry, user.id]
         );
-        
+
         console.log(`Reset token generated for user: ${user.id}`);
         console.log(`Update result:`, updateResult);
         console.log(`Reset token: ${reset_password_token}`);
         console.log(`Reset expiry: ${reset_password_expiry}`);
-        
+
         // Verify the token was saved
         const [verifyResult] = await db.execute(
             'SELECT reset_password_token, reset_password_expiry FROM users WHERE id = ?',
             [user.id]
         );
         console.log(`Token verification:`, verifyResult[0]);
-        
+
         // Send password reset email
         const emailResult = await sendPasswordResetEmail(email, reset_password_token, 'user');
-        
+
         if (emailResult) {
             console.log(`Password reset email sent successfully to: ${email}`);
             res.status(200).json({ message: 'Password reset link sent to your email.' });
@@ -354,11 +362,11 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     try {
         const { token, password } = req.body;
-        
+
         if (!token || !password) {
             return res.status(400).json({ message: 'Token and new password are required.' });
         }
-        
+
         // Find user with this token
         const [users] = await db.execute(
             'SELECT * FROM users WHERE reset_password_token = ? AND reset_password_expiry > NOW()',
@@ -367,29 +375,29 @@ const resetPassword = async (req, res) => {
 
         console.log("Resetting password with token:", token);
         console.log("Found users with token:", users.length);
-        
+
         // Also check if token exists without expiry check for debugging
         const [allUsersWithToken] = await db.execute(
             'SELECT id, reset_password_token, reset_password_expiry FROM users WHERE reset_password_token = ?',
             [token]
         );
         console.log("All users with this token (including expired):", allUsersWithToken);
-        
+
         if (users.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired reset token.' });
         }
-        
+
         const user = users[0];
-        
+
         // Hash new password
         const password_hash = await bcrypt.hash(password, 10);
-        
+
         // Update password, clear token, and ensure auth_provider is local
         await db.execute(
             'UPDATE users SET password_hash = ?, reset_password_token = NULL, reset_password_expiry = NULL, auth_provider = "local" WHERE id = ?',
             [password_hash, user.id]
         );
-        
+
         console.log(`Password reset successfully for user: ${user.id}`);
         res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
     } catch (err) {
@@ -398,9 +406,9 @@ const resetPassword = async (req, res) => {
     }
 }
 
-module.exports = { 
-    signup, 
-    login, 
+module.exports = {
+    signup,
+    login,
     google,
     verifytoken,
     addPhoneNumber,

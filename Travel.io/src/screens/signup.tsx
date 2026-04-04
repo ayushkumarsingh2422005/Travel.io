@@ -30,6 +30,20 @@ export default function Signup() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 10) {
+      setForm({ ...form, phone: value });
+    }
+  };
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value === '' || (Number(value) >= 0 && Number(value) <= 199)) {
+      setForm({ ...form, age: value });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -114,15 +128,20 @@ export default function Signup() {
                 required
                 className="p-3 border rounded-lg h-10 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
               />
-              <input
-                name="phone"
-                type="text"
-                placeholder="Phone"
-                value={form.phone}
-                onChange={handleChange}
-                required
-                className="p-3 border rounded-lg h-10 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
-              />
+              <div className="relative">
+                <div className="absolute left-0 top-0 bottom-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 font-medium border-r border-gray-300 pr-2">+91</span>
+                </div>
+                <input
+                  name="phone"
+                  type="text"
+                  placeholder="Phone"
+                  value={form.phone}
+                  onChange={handlePhoneChange}
+                  required
+                  className="w-full p-3 pl-14 border rounded-lg h-10 focus:ring focus:ring-indigo-200 focus:border-indigo-500 placeholder-gray-400"
+                />
+              </div>
               <input
                 name="password"
                 type="password"
@@ -146,10 +165,10 @@ export default function Signup() {
               </select>
               <input
                 name="age"
-                type="number"
+                type="text"
                 placeholder="Age"
                 value={form.age}
-                onChange={handleChange}
+                onChange={handleAgeChange}
                 required
                 className="p-3 border rounded-lg h-10 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
               />

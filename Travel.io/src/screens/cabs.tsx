@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import UserAvatar from '../components/UserAvatar';
@@ -274,6 +274,9 @@ export default function Cabs() {
           await updateProfile({
             phone, gender, age, current_address, is_profile_completed: true
           });
+          setUserProfile((prev: any) => ({ ...prev, is_profile_completed: true, is_phone_verified: 1 }));
+        } else {
+          setUserProfile((prev: any) => ({ ...prev, is_phone_verified: 1 }));
         }
         setShowProfileForm(false);
       } else {
@@ -384,12 +387,137 @@ export default function Cabs() {
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
 
   const pickupRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
   const stopRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Map Picker State
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [mapTargetField, setMapTargetField] = useState<"pickup" | "destination" | number | null>(null);
+  const [mapAddress, setMapAddress] = useState("");
+  const [mapMarkerPos, setMapMarkerPos] = useState({ lat: 20.5937, lng: 78.9629 });
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | undefined>(undefined);
+  const markerInstanceRef = useRef<google.maps.Marker | undefined>(undefined);
+  const mapSearchInputRef = useRef<HTMLInputElement>(null);
+
+  const geocodePosition = useCallback(async (pos: { lat: number, lng: number }) => {
+    if (!geocoder) return;
+    try {
+      const response = await geocoder.geocode({ location: pos });
+      if (response.results[0]) {
+        setMapAddress(response.results[0].formatted_address);
+      } else {
+        setMapAddress("Unknown location");
+      }
+    } catch (e) {
+      setMapAddress("Error resolving location");
+    }
+  }, [geocoder]);
+
+  const openMapPicker = (target: "pickup" | "destination" | number) => {
+    setMapTargetField(target);
+    setIsMapModalOpen(true);
+    setMapAddress("Locating...");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setMapMarkerPos(newPos);
+        if (mapInstanceRef.current) mapInstanceRef.current.setCenter(newPos);
+        if (markerInstanceRef.current && typeof markerInstanceRef.current.setPosition === 'function') {
+           markerInstanceRef.current.setPosition(newPos);
+        }
+        geocodePosition(newPos);
+      }, () => {
+        // Fallback geocode center
+        geocodePosition(mapMarkerPos);
+      });
+    } else {
+      geocodePosition(mapMarkerPos);
+    }
+  };
+
+  const confirmMapLocation = () => {
+    if (!mapAddress || mapAddress === "Locating...") return;
+    if (mapTargetField === "pickup") {
+      setBookingForm(prev => ({ ...prev, pickupLocation: mapAddress }));
+      setShowPickupSuggestions(false);
+    } else if (mapTargetField === "destination") {
+      setBookingForm(prev => ({ ...prev, destination: mapAddress }));
+      setShowDestinationSuggestions(false);
+    } else if (typeof mapTargetField === "number") {
+      setAdditionalStops(prev =>
+        prev.map(s => s.id === mapTargetField ? { ...s, location: mapAddress, showSuggestions: false } : s)
+      );
+    }
+    setIsMapModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (isMapModalOpen && mapContainerRef.current && window.google) {
+      if (!mapInstanceRef.current) {
+        const map = new window.google.maps.Map(mapContainerRef.current, {
+          center: mapMarkerPos,
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+        mapInstanceRef.current = map;
+
+        const marker = new window.google.maps.Marker({
+          position: mapMarkerPos,
+          map: map,
+          draggable: true,
+          animation: window.google.maps.Animation.DROP,
+        });
+        markerInstanceRef.current = marker;
+
+        window.google.maps.event.addListener(marker, 'dragend', () => {
+          const pos = marker.getPosition();
+          if (pos) {
+            const newPos = { lat: pos.lat(), lng: pos.lng() };
+            setMapMarkerPos(newPos);
+            geocodePosition(newPos);
+          }
+        });
+
+        window.google.maps.event.addListener(map, 'click', (e: any) => {
+          const pos = e.latLng;
+          const newPos = { lat: pos.lat(), lng: pos.lng() };
+          marker.setPosition(newPos);
+          setMapMarkerPos(newPos);
+          geocodePosition(newPos);
+        });
+
+        if (mapSearchInputRef.current) {
+          const autocomplete = new window.google.maps.places.Autocomplete(mapSearchInputRef.current, {
+            componentRestrictions: { country: "in" },
+            fields: ["geometry", "name"],
+          });
+          autocomplete.addListener("place_changed", () => {
+             const place = autocomplete.getPlace();
+             if (!place.geometry || !place.geometry.location) return;
+             const pos = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+             map.setCenter(pos);
+             map.setZoom(15);
+             if (markerInstanceRef.current && typeof markerInstanceRef.current.setPosition === 'function') {
+                markerInstanceRef.current.setPosition(pos);
+             }
+             setMapMarkerPos(pos);
+             geocodePosition(pos);
+          });
+        }
+      }
+    } else if (!isMapModalOpen) {
+      mapInstanceRef.current = undefined;
+      markerInstanceRef.current = undefined;
+    }
+  }, [isMapModalOpen, mapMarkerPos, geocodePosition]);
 
   // Add state for additional stops and their suggestions
   const [additionalStops, setAdditionalStops] = useState<Array<{
@@ -650,7 +778,20 @@ export default function Cabs() {
 
   // issue here : on selecting cab, state not updated in time for form submit
 
-  const handleSelectCab = (categoryId: string | null) => {
+  const isValidLocation = async (address: string) => {
+    if (!autocompleteService || !address.trim()) return true; // Fallback if API not loaded
+    try {
+      const response = await autocompleteService.getPlacePredictions({ 
+        input: address, 
+        componentRestrictions: { country: 'in' } 
+      });
+      return response && response.predictions && response.predictions.length > 0;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleSelectCab = async (categoryId: string | null) => {
     if (!categoryId) return;
 
     // Strict Auth Check before proceeding
@@ -674,15 +815,46 @@ export default function Cabs() {
       return;
     }
 
-    // Validate Check before navigating
-    // (Re-using validation logic from handleBookingSubmit briefly or simplified)
+    // Basic Form Check
     if (!bookingForm.pickupLocation || !bookingForm.pickupDate) {
-      toast.error("Please fill in pickup details.", { id: 'cabs-pickup-missing' });
+      toast.error("Please fill in pickup details properly.", { id: 'cabs-location-invalid' });
+      return;
+    }
+    
+    if (bookingForm.tripType !== 'Hourly Rental' && !bookingForm.destination.trim()) {
+      toast.error("Please fill in drop location properly.", { id: 'cabs-location-invalid' });
       return;
     }
 
-    // Construct stops
+    toast.loading('Validating locations...', { id: 'cabs-location-invalid' });
+
+    // Validate Pickup Location
+    const isPickupValid = await isValidLocation(bookingForm.pickupLocation);
+    if (!isPickupValid) {
+      toast.error("Please correctly fill a valid Pickup Location.", { id: 'cabs-location-invalid' });
+      return;
+    }
+
+    // Validate Drop Location
+    if (bookingForm.tripType !== 'Hourly Rental') {
+      const isDropValid = await isValidLocation(bookingForm.destination);
+      if (!isDropValid) {
+        toast.error("Please correctly fill a valid Drop Location.", { id: 'cabs-location-invalid' });
+        return;
+      }
+    }
+
+    // Construct and Validate stops
     const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+    for (const stop of currentStops) {
+      const isStopValid = await isValidLocation(stop);
+      if (!isStopValid) {
+        toast.error(`Please correctly fill a valid Stop Location instead of "${stop}".`, { id: 'cabs-location-invalid' });
+        return;
+      }
+    }
+    
+    toast.success('Locations verified!', { id: 'cabs-location-invalid' });
 
     // Direct Navigation
     navigate('/prices', {
@@ -702,7 +874,7 @@ export default function Cabs() {
 
 
   // Form submission: Booking
-  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleBookingSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Validate required fields
@@ -756,7 +928,7 @@ export default function Cabs() {
     }
 
     if (!selectedCabCategory) {
-      errors.push('Please select a cab category');
+      errors.push('Please select a cab category first.');
     }
 
     if (errors.length > 0) {
@@ -764,6 +936,34 @@ export default function Cabs() {
       errors.forEach((error, index) => toast.error(error, { id: `cabs-validation-error-${index}` }));
       return;
     }
+
+    toast.loading('Validating locations...', { id: 'cabs-location-invalid' });
+
+    // Additional deep location validation
+    const isPickupValid = await isValidLocation(bookingForm.pickupLocation);
+    if (!isPickupValid) {
+      toast.error("Please correctly fill a valid Pickup Location.", { id: 'cabs-location-invalid' });
+      return;
+    }
+
+    if (bookingForm.tripType !== 'Hourly Rental') {
+      const isDropValid = await isValidLocation(bookingForm.destination);
+      if (!isDropValid) {
+        toast.error("Please correctly fill a valid Drop Location.", { id: 'cabs-location-invalid' });
+        return;
+      }
+    }
+
+    const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+    for (const stop of currentStops) {
+      const isStopValid = await isValidLocation(stop);
+      if (!isStopValid) {
+        toast.error(`Please correctly fill a valid Stop Location instead of "${stop}".`, { id: 'cabs-location-invalid' });
+        return;
+      }
+    }
+
+    toast.success('Locations verified!', { id: 'cabs-location-invalid' });
 
     // If all validations pass, proceed to prices page
     handleBook();
@@ -824,6 +1024,58 @@ export default function Cabs() {
           <UserAvatar />
         </div>
       </header>
+
+      {/* Map Picker Modal */}
+      {isMapModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-2xl h-[80vh] flex flex-col relative overflow-hidden">
+            <div className="flex justify-between items-center mb-4 px-2">
+              <h3 className="text-xl font-bold text-gray-800">Select Location on Map</h3>
+              <button onClick={() => setIsMapModalOpen(false)} className="text-gray-500 hover:text-gray-800 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-500 px-2 mb-3">Drag the map marker or click anywhere on the map to select a point.</p>
+
+            <div className="px-2 mb-3 z-10 w-full relative">
+              <div className="relative bg-white border border-gray-300 rounded-lg shadow-sm">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  ref={mapSearchInputRef}
+                  type="text"
+                  placeholder="Search for a place to reposition map..."
+                  className="w-full p-2.5 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 placeholder-gray-400"
+                />
+              </div>
+            </div>
+            
+            <div ref={mapContainerRef} className="w-full flex-grow rounded-xl bg-gray-200 border border-gray-300 relative overflow-hidden" />
+            
+            <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex flex-col sm:flex-row items-center gap-4">
+               <div className="flex-1 min-w-0">
+                 <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Selected Address</p>
+                 <p className="text-sm font-medium text-gray-800 truncate" title={mapAddress}>{mapAddress}</p>
+               </div>
+               <button
+                 type="button"
+                 onClick={confirmMapLocation}
+                 disabled={!mapAddress || mapAddress === "Locating..."}
+                 className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed shadow-md"
+               >
+                 Confirm Location
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Booking Form Section */}
       {/* Booking Section */}
       <div className="container mx-auto px-4 pt-6">
@@ -916,6 +1168,12 @@ export default function Cabs() {
                           {suggestion}
                         </div>
                       ))}
+                      <div
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                        onMouseDown={(e) => { e.preventDefault(); openMapPicker('pickup'); }}
+                      >
+                        <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                      </div>
                     </div>
                   )}
                 </div>
@@ -934,8 +1192,27 @@ export default function Cabs() {
                     type="text"
                     value={stop.location}
                     onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                    onFocus={() => {
+                      setAdditionalStops(prev =>
+                        prev.map(s => s.id === stop.id ? { ...s, showSuggestions: true } : s)
+                      );
+                    }}
+                    onKeyDown={(e) => handleKeyDown(
+                      e, 
+                      stop.suggestions, 
+                      (val) => {
+                        setAdditionalStops(prev =>
+                          prev.map(s => s.id === stop.id ? { ...s, location: val, showSuggestions: false } : s)
+                        );
+                      }, 
+                      () => {
+                        setAdditionalStops(prev =>
+                          prev.map(s => s.id === stop.id ? { ...s, showSuggestions: false } : s)
+                        );
+                      }
+                    )}
                     placeholder="Stop location"
-                    className="w-full p-3 pl-12 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
+                    className="w-full p-3 pl-12 pr-10 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                   />
                   <button
                     type="button"
@@ -946,21 +1223,28 @@ export default function Cabs() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                  {stop.showSuggestions && stop.suggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
+                  {(stop.showSuggestions || stop.location === "") && (
+                    <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full ${!stop.showSuggestions && "invisible"}`}>
                       {stop.suggestions.map((suggestion, index) => (
                         <div
                           key={index}
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          className={`p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : ""}`}
                           onClick={() => {
                             setAdditionalStops(prev =>
                               prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
                             );
                           }}
+                          onMouseEnter={() => setActiveSuggestionIndex(index)}
                         >
                           {suggestion}
                         </div>
                       ))}
+                      <div
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                        onMouseDown={(e) => { e.preventDefault(); openMapPicker(stop.id); }}
+                      >
+                        <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                      </div>
                     </div>
                   )}
                 </div>
@@ -985,13 +1269,14 @@ export default function Cabs() {
                       name="destination"
                       value={bookingForm.destination}
                       onChange={handleDestinationChange}
+                      onFocus={() => setShowDestinationSuggestions(true)}
                       onKeyDown={(e) => handleKeyDown(e, destinationSuggestions, (val) => handleSuggestionSelect(val, 'destination'), () => setShowDestinationSuggestions(false))}
                       placeholder="Drop location"
                       className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                       required
                     />
-                    {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                    {(showDestinationSuggestions || bookingForm.destination === "") && (
+                      <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg ${!showDestinationSuggestions && "invisible"}`}>
                         {destinationSuggestions.map((suggestion, index) => (
                           <div
                             key={index}
@@ -1002,6 +1287,12 @@ export default function Cabs() {
                             {suggestion}
                           </div>
                         ))}
+                        <div
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                          onMouseDown={(e) => { e.preventDefault(); openMapPicker('destination'); }}
+                        >
+                          <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1032,8 +1323,8 @@ export default function Cabs() {
               <button
                 type="button"
                 onClick={handleAddStop}
-                disabled={bookingForm.tripType === "Hourly Rental"}
-                className={`w-full p-3 rounded-lg border border-dashed mb-4 flex items-center justify-center transition-colors ${bookingForm.tripType === "Hourly Rental"
+                disabled={bookingForm.tripType === "Hourly Rental" || additionalStops.some(stop => stop.location.trim() === "")}
+                className={`w-full p-3 rounded-lg border border-dashed mb-4 flex items-center justify-center transition-colors ${bookingForm.tripType === "Hourly Rental" || additionalStops.some(stop => stop.location.trim() === "")
                   ? "border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed"
                   : "border-indigo-500 text-indigo-600 hover:bg-indigo-50"
                   }`}
@@ -1264,12 +1555,6 @@ export default function Cabs() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-gray-100">
 
-            {/* Step Indicators */}
-            <div className="flex items-center justify-center mb-6 space-x-2">
-              <div className={`h-2 w-12 rounded-full transition-colors ${profileStep === 1 ? 'bg-indigo-600' : 'bg-indigo-200'}`}></div>
-              <div className={`h-2 w-12 rounded-full transition-colors ${profileStep === 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
-            </div>
-
             {profileStep === 1 ? (
               // Step 1: Phone Verification
               <div className="animate-fade-in">
@@ -1295,20 +1580,34 @@ export default function Cabs() {
                         placeholder="9876543210"
                         className="w-full p-3 pl-14 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 transition-all font-medium tracking-wide"
                         required
-                        disabled={isOtpModalOpen || !!userProfile?.phone} // Disable input if OTP is sent or if phone is already set from signup
+                        disabled={isOtpModalOpen || (!isEditingPhone && !!userProfile?.phone)} // Disable input if OTP is sent or if phone is already set from signup and not editing
                       />
                     </div>
                   </div>
 
                   {!isOtpModalOpen ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={loading || profileFormData.phone.length !== 10}
-                      className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-                    >
-                      {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={loading || profileFormData.phone.length !== 10}
+                        className="w-full py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      >
+                        {loading ? 'Sending OTP...' : 'Send OTP for Verification'}
+                      </button>
+                      
+                      {!isEditingPhone && !!userProfile?.phone && (
+                         <div className="flex justify-center flex-grow mt-2">
+                           <button
+                             type="button"
+                             onClick={() => setIsEditingPhone(true)}
+                             className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                           >
+                             Change Phone Number
+                           </button>
+                         </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="space-y-4 animate-fade-in-up">
                       <div>
@@ -1327,10 +1626,18 @@ export default function Cabs() {
                           className="w-full p-3 border border-indigo-300 rounded-lg focus:ring focus:ring-indigo-200 focus:border-indigo-500 text-center tracking-[0.5em] font-bold text-xl bg-indigo-50"
                           required
                         />
-                        <div className="flex justify-end mt-1">
+                        <div className="flex justify-between items-center mt-2 px-1">
                           <button
                             type="button"
-                            onClick={() => { setIsOtpModalOpen(false); setOtp(''); }}
+                            onClick={handleSendOtp}
+                            disabled={loading}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 underline disabled:text-gray-400"
+                          >
+                            Resend OTP
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setIsOtpModalOpen(false); setOtp(''); setIsEditingPhone(true); }}
                             className="text-xs text-indigo-600 hover:text-indigo-800 underline"
                           >
                             Change Phone Number
