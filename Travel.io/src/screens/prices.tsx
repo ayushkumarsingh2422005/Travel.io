@@ -1001,11 +1001,11 @@ export default function Prices() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-stretch">
 
                     {/* LEFT COLUMN: Trip Info */}
-                    <div className="flex flex-col h-full space-y-3">
+                    <div className="flex flex-col h-full gap-3">
                       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Trip Info</h3>
 
                       {/* Trip Type */}
-                      <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                         <div className="flex items-center gap-2">
                           {routeData?.tripType === 'Round Trip' ? (
                             <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1023,7 +1023,7 @@ export default function Prices() {
                       </div>
 
                       {/* Pickup Date */}
-                      <div className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1037,7 +1037,7 @@ export default function Prices() {
 
                       {/* Drop Date */}
                       {routeData?.tripType !== 'Hourly Rental' && (
-                        <div className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1052,7 +1052,7 @@ export default function Prices() {
 
                       {/* Distance */}
                       {routeData?.tripType !== 'Hourly Rental' && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -1065,7 +1065,7 @@ export default function Prices() {
 
                       {/* One-Way Distance (Round Trip only) */}
                       {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -1078,7 +1078,7 @@ export default function Prices() {
 
                       {/* Duration */}
                       {routeData?.tripType !== 'Hourly Rental' && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1091,7 +1091,7 @@ export default function Prices() {
 
                       {/* One-Way Duration (Round Trip only) */}
                       {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1104,7 +1104,7 @@ export default function Prices() {
 
                       {/* Hourly Package */}
                       {routeData?.tripType === 'Hourly Rental' && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg flex-1">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1119,39 +1119,43 @@ export default function Prices() {
                     </div>
 
                     {/* RIGHT COLUMN: Pricing */}
-                    <div className="flex flex-col h-full space-y-3">
+                    <div className="flex flex-col h-full gap-3">
                       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Pricing Breakdown</h3>
 
                       {/* Selected Cab sub-card */}
-                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex-1">
                         <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">
                           {routeData?.cabCategory.segment || routeData?.cabCategory.category}
                         </p>
-                        <div className="space-y-1.5 text-sm text-gray-700">
+                        <div className="space-y-1.5 text-sm text-gray-700 flex-1">
+                          {routeData?.tripType !== 'Hourly Rental' && <div className="flex justify-between">
+                            <span className="text-gray-500">Per Km</span>
+                            <span className="font-medium">₹{routeData?.cabCategory.price_per_km}</span>
+                          </div>}
                           <div className="flex justify-between">
                             <span className="text-gray-500">{routeData?.tripType === 'Hourly Rental' ? 'Base Package Price' : 'Base Fare'}</span>
                             <span className="font-medium">₹{calculatedBaseFare}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between flex-1">
                             <span className="text-gray-500">Seats</span>
                             <span className="font-medium">
                               {routeData?.cabCategory.min_seats || routeData?.cabCategory.min_no_of_seats || 4}–{routeData?.cabCategory.max_seats || routeData?.cabCategory.max_no_of_seats || 4}
                             </span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between flex-1">
                             <span className="text-gray-500">Fuel Charges</span>
                             <span className="font-medium">{routeData?.cabCategory.fuel_charges > 0 ? `₹${routeData?.cabCategory.fuel_charges}` : 'Included'}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between flex-1">
                             <span className="text-gray-500">Driver Charges</span>
                             <span className="font-medium">{routeData?.cabCategory.driver_charges > 0 ? `₹${routeData?.cabCategory.driver_charges}` : 'Included'}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between flex-1">
                             <span className="text-gray-500">Night Charges</span>
                             <span className="font-medium">{calculatedNightCharges > 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
                           </div>
                           {routeData?.cabCategory.base_discount > 0 && (
-                            <div className="flex justify-between text-green-600 font-semibold border-t border-indigo-100 pt-1 mt-1">
+                            <div className="flex justify-between text-green-600 font-semibold border-t border-indigo-100 pt-1 mt-1 flex-1">
                               <span>Discount ({routeData?.cabCategory.base_discount}% OFF)</span>
                               <span>-₹{calculatedDiscountAmount.toLocaleString()}</span>
                             </div>
