@@ -122,7 +122,6 @@ export default function Prices() {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   const [addOnsTotal, setAddOnsTotal] = useState<number>(0);
-  const [isAddOnsExpanded, setIsAddOnsExpanded] = useState(false); // Collapsible state
   const [isPartnerReferralExpanded, setIsPartnerReferralExpanded] = useState(false); // Collapsible state for Partner Referral
 
   // Fetch Add-ons
@@ -882,34 +881,32 @@ export default function Prices() {
             <p className="text-gray-600 mt-2">Review your route details and estimated costs</p>
           </div>
 
-          <div className={`grid grid-cols-1 ${routeData?.tripType === 'Hourly Rental' ? 'justify-center' : 'lg:grid-cols-5'} gap-8`}>
-            {/* Map Section - 3/5 width on large screens */}
-            {/* Map Section - Only show for non-Hourly Rental */}
-            {routeData?.tripType !== 'Hourly Rental' && (
-              <div className="lg:col-span-3 bg-white rounded-xl overflow-hidden shadow-lg relative flex flex-col">
-                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
-                  <h2 className="text-xl font-bold flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Route Map
-                  </h2>
-                </div>
-                <div ref={mapRef} className="w-full h-[500px] lg:h-auto lg:flex-1 lg:min-h-[500px]"></div>
-                {isLoading && (
-                  <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          <div className="flex flex-col gap-8 w-full">
+            {/* Top row: Map and Route Details side-by-side */}
+            <div className={`grid grid-cols-1 ${routeData?.tripType === 'Hourly Rental' ? 'justify-center' : 'lg:grid-cols-2 lg:h-[600px]'} gap-8`}>
+              {/* Map Section - Only show for non-Hourly Rental */}
+              {routeData?.tripType !== 'Hourly Rental' && (
+                <div className="bg-white rounded-xl overflow-hidden shadow-lg relative flex flex-col h-[500px] lg:h-full">
+                  <div className="flex-shrink-0 p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
+                    <h2 className="text-xl font-bold flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      Route Map
+                    </h2>
                   </div>
-                )}
-              </div>
-            )}
+                  <div ref={mapRef} className="w-full flex-1"></div>
+                  {isLoading && (
+                    <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Trip Details Section - 2/5 width on large screens */}
-            {/* Trip Details Section */}
-            <div className={`${routeData?.tripType === 'Hourly Rental' ? 'w-full max-w-2xl mx-auto' : 'lg:col-span-2'} space-y-6`}>
-              {/* Route Details Card (Swapped: Now Above Trip Summary) */}
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
+              {/* Route Details Card */}
+              <div className={`${routeData?.tripType === 'Hourly Rental' ? 'w-full max-w-2xl mx-auto' : 'h-[500px] lg:h-full'} bg-white rounded-xl shadow-lg overflow-hidden flex flex-col`}>
+                <div className="flex-shrink-0 p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -918,7 +915,7 @@ export default function Prices() {
                   </h2>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1">
                   <div className="space-y-6">
                     <div className="relative pl-8 pb-6">
                       <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-indigo-200"></div>
@@ -985,9 +982,11 @@ export default function Prices() {
                   </div>
                 </div>
               </div>
+            </div>
 
-
-              {/* Trip Summary Card (Swapped: Now Below Route Details) */}
+            {/* Bottom Row / Full width container */}
+            <div className={`${routeData?.tripType === 'Hourly Rental' ? 'w-full max-w-2xl mx-auto' : 'w-full'} space-y-6`}>
+              {/* Trip Summary Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white">
                   <h2 className="text-xl font-bold flex items-center">
@@ -999,232 +998,214 @@ export default function Prices() {
                 </div>
 
                 <div className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-indigo-100 rounded-lg border border-indigo-200">
-                      <div className="flex items-center">
-                        {routeData?.tripType === 'Round Trip' ? (
-                          <svg className="w-6 h-6 text-indigo-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
-                          </svg>
-                        ) : (
-                          <svg className="w-6 h-6 text-indigo-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        )}
-                        <span className="font-bold text-indigo-800 text-lg">Trip Type</span>
-                      </div>
-                      <span className="text-indigo-900 text-lg font-semibold">
-                        {routeData?.tripType}
-                      </span>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-stretch">
 
-                    <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                      <div className="flex items-center">
-                        <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="font-medium text-gray-700">Pickup Date & Time</span>
-                      </div>
-                      <span className="font-semibold text-gray-800 text-right">
-                        {routeData?.pickupDate ? new Date(routeData.pickupDate).toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                      </span>
-                    </div>
+                    {/* LEFT COLUMN: Trip Info */}
+                    <div className="flex flex-col h-full space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Trip Info</h3>
 
-                    {routeData?.tripType !== 'Hourly Rental' && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {/* Trip Type */}
+                      <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                        <div className="flex items-center gap-2">
+                          {routeData?.tripType === 'Round Trip' ? (
+                            <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m0 0H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          )}
+                          <span className="text-sm font-medium text-gray-600">Trip Type</span>
+                        </div>
+                        <span className="text-sm font-bold text-indigo-800">{routeData?.tripType}</span>
+                      </div>
+
+                      {/* Pickup Date */}
+                      <div className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span className="font-medium text-gray-700">Drop Date & Time</span>
+                          <span className="text-sm font-medium text-gray-600">Pickup</span>
                         </div>
-                        <span className="font-semibold text-gray-800 text-right">
-                          {actualDropDate ? new Date(actualDropDate).toLocaleString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        <span className="text-sm font-semibold text-gray-800 text-right ml-2">
+                          {routeData?.pickupDate ? new Date(routeData.pickupDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                         </span>
                       </div>
-                    )}
 
-
-                    {routeData?.tripType !== 'Hourly Rental' && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Total Distance</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.distance}</span>
-                      </div>
-                    )}
-
-                    {routeData?.tripType === 'Hourly Rental' && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Package</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">
-                          {routeData?.cabCategory.package_hours ? `${routeData?.cabCategory.package_hours} Hr / ${routeData?.cabCategory.package_km} Km` : 'Hourly Package'}
-                        </span>
-                      </div>
-                    )}
-
-                    {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                          </svg>
-                          <span className="font-medium text-gray-700">One-Way Distance</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.oneWayDistance}</span>
-                      </div>
-                    )}
-
-                    {routeData?.tripType !== 'Hourly Rental' && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">Total Duration</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.duration}</span>
-                      </div>
-                    )}
-
-                    {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
-                      <div className="flex justify-between items-center p-4 bg-indigo-50 rounded-lg">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-700">One-Way Duration</span>
-                        </div>
-                        <span className="font-semibold text-gray-800">{routeDetails.oneWayDuration}</span>
-                      </div>
-                    )}
-
-
-                    {/* New card for Cab Category Details */}
-                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                      <div className="p-4 bg-indigo-100 border-b border-gray-100">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          Selected Cab: {routeData?.cabCategory.segment || routeData?.cabCategory.category}
-                        </h3>
-                      </div>
-                      <div className="p-4 text-sm text-gray-700 space-y-2">
-                        <div className="flex justify-between">
-                          <span>{routeData?.tripType === 'Hourly Rental' ? 'Base Package Price:' : 'Price (dist*perkm):'}</span>
-                          <span className="font-medium">₹{calculatedBaseFare}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Seats:</span>
-                          <span className="font-medium">
-                            {routeData?.cabCategory.min_seats || routeData?.cabCategory.min_no_of_seats || 4}-{routeData?.cabCategory.max_seats || routeData?.cabCategory.max_no_of_seats || 4}
+                      {/* Drop Date */}
+                      {routeData?.tripType !== 'Hourly Rental' && (
+                        <div className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">Drop</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800 text-right ml-2">
+                            {actualDropDate ? new Date(actualDropDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Fuel Charges:</span>
-                          <span className="font-medium">{routeData?.cabCategory.fuel_charges > 0 ? `₹${routeData?.cabCategory.fuel_charges}` : 'Included'}</span>
+                      )}
+
+                      {/* Distance */}
+                      {routeData?.tripType !== 'Hourly Rental' && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">Distance</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">{routeDetails.distance}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Driver Charges:</span>
-                          <span className="font-medium">{routeData?.cabCategory.driver_charges > 0 ? `₹${routeData?.cabCategory.driver_charges}` : 'Included'}</span>
+                      )}
+
+                      {/* One-Way Distance (Round Trip only) */}
+                      {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDistance && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">One-Way Dist.</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">{routeDetails.oneWayDistance}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Night Charges:</span>
-                          <span className="font-medium">{calculatedNightCharges > 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
+                      )}
+
+                      {/* Duration */}
+                      {routeData?.tripType !== 'Hourly Rental' && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">Duration</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">{routeDetails.duration}</span>
                         </div>
-                        <div className="flex justify-between items-center cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => setIsAddOnsExpanded(!isAddOnsExpanded)}>
-                          <div className="flex items-center">
-                            <span>Add-Ons:</span>
-                            <span className="ml-2 text-indigo-600 bg-indigo-100 p-1 rounded-full flex items-center justify-center hover:bg-indigo-200 transition-colors">
-                              <svg className={`w-4 h-4 transform transition-transform duration-200 ${isAddOnsExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
+                      )}
+
+                      {/* One-Way Duration (Round Trip only) */}
+                      {routeData?.tripType === 'Round Trip' && routeDetails.oneWayDuration && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">One-Way Dur.</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">{routeDetails.oneWayDuration}</span>
+                        </div>
+                      )}
+
+                      {/* Hourly Package */}
+                      {routeData?.tripType === 'Hourly Rental' && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-600">Package</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">
+                            {routeData?.cabCategory.package_hours ? `${routeData?.cabCategory.package_hours} Hr / ${routeData?.cabCategory.package_km} Km` : 'Hourly Package'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Pricing */}
+                    <div className="flex flex-col h-full space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Pricing Breakdown</h3>
+
+                      {/* Selected Cab sub-card */}
+                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">
+                          {routeData?.cabCategory.segment || routeData?.cabCategory.category}
+                        </p>
+                        <div className="space-y-1.5 text-sm text-gray-700">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">{routeData?.tripType === 'Hourly Rental' ? 'Base Package Price' : 'Base Fare'}</span>
+                            <span className="font-medium">₹{calculatedBaseFare}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Seats</span>
+                            <span className="font-medium">
+                              {routeData?.cabCategory.min_seats || routeData?.cabCategory.min_no_of_seats || 4}–{routeData?.cabCategory.max_seats || routeData?.cabCategory.max_no_of_seats || 4}
                             </span>
                           </div>
-                          {/* Show total in header ONLY when collapsed */}
-                          {!isAddOnsExpanded && (
-                            <span className="font-medium text-gray-800">{addOnsTotal > 0 ? `₹${addOnsTotal}` : '₹0'}</span>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Fuel Charges</span>
+                            <span className="font-medium">{routeData?.cabCategory.fuel_charges > 0 ? `₹${routeData?.cabCategory.fuel_charges}` : 'Included'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Driver Charges</span>
+                            <span className="font-medium">{routeData?.cabCategory.driver_charges > 0 ? `₹${routeData?.cabCategory.driver_charges}` : 'Included'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Night Charges</span>
+                            <span className="font-medium">{calculatedNightCharges > 0 ? `₹${calculatedNightCharges}` : 'Included'}</span>
+                          </div>
+                          {routeData?.cabCategory.base_discount > 0 && (
+                            <div className="flex justify-between text-green-600 font-semibold border-t border-indigo-100 pt-1 mt-1">
+                              <span>Discount ({routeData?.cabCategory.base_discount}% OFF)</span>
+                              <span>-₹{calculatedDiscountAmount.toLocaleString()}</span>
+                            </div>
                           )}
                         </div>
+                      </div>
 
-                        {/* Collapsible Add-ons List */}
-                        {isAddOnsExpanded && (
-                          <div className="py-2 space-y-2 border-t border-b border-gray-100 my-2 bg-gray-50 rounded px-2">
-                            {availableAddOns.length === 0 ? (
-                              <p className="text-gray-500 text-sm">No add-ons available.</p>
-                            ) : (
-                              availableAddOns.map(addon => {
-                                // Calculate display price
-                                let displayPrice = 0;
-                                if (addon.price_type === 'fixed') {
-                                  displayPrice = addon.price;
-                                } else {
-                                  // Percentage
-                                  const pct = addon.percentage_value || 0;
-                                  displayPrice = Math.round((calculatedBaseFare * pct) / 100);
-                                }
-
-                                return (
-                                  <div key={addon.id} className="flex items-center justify-between p-2 rounded hover:bg-white cursor-pointer" onClick={() => toggleAddOn(addon.id)}>
-                                    <div className="flex items-center">
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedAddOns.includes(addon.id)}
-                                        onChange={() => toggleAddOn(addon.id)}
-                                        className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                      <div className="ml-3">
-                                        <div className="text-sm font-medium text-gray-900">{addon.name}</div>
-                                        {addon.price_type === 'percentage' && (
-                                          <div className="text-xs text-gray-500">{addon.percentage_value}% of base fare</div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="text-sm font-semibold text-gray-700">
-                                      ₹{displayPrice}
+                      {/* Add-ons — always visible inline */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Add-Ons</p>
+                        {availableAddOns.length === 0 ? (
+                          <p className="text-sm text-gray-400">No add-ons available.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {availableAddOns.map(addon => {
+                              const displayPrice = addon.price_type === 'fixed'
+                                ? addon.price
+                                : Math.round((calculatedBaseFare * (addon.percentage_value || 0)) / 100);
+                              return (
+                                <div
+                                  key={addon.id}
+                                  className="flex items-center justify-between cursor-pointer hover:bg-white rounded p-1 transition-colors"
+                                  onClick={() => toggleAddOn(addon.id)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedAddOns.includes(addon.id)}
+                                      onChange={() => toggleAddOn(addon.id)}
+                                      className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 flex-shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-800">{addon.name}</div>
+                                      {addon.price_type === 'percentage' && (
+                                        <div className="text-xs text-gray-400">{addon.percentage_value}% of base fare</div>
+                                      )}
                                     </div>
                                   </div>
-                                );
-                              })
-                            )}
-                            <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
-                              <span className="font-semibold text-gray-800">Add-Ons Total:</span>
-                              <span className="font-bold text-indigo-700">₹{addOnsTotal}</span>
+                                  <span className="text-sm font-semibold text-gray-700 ml-2">₹{displayPrice}</span>
+                                </div>
+                              );
+                            })}
+                            <div className="flex justify-between items-center pt-1.5 mt-1.5 border-t border-gray-200">
+                              <span className="text-sm font-semibold text-gray-700">Add-Ons Total</span>
+                              <span className="text-sm font-bold text-indigo-600">₹{addOnsTotal}</span>
                             </div>
                           </div>
                         )}
-                        {routeData?.cabCategory.base_discount > 0 && (
-                          <div className="flex justify-between text-red-600 font-semibold">
-                            <span>Discount:</span>
-                            <span>{routeData?.cabCategory.base_discount}% OFF</span>
-                            <span className="font-medium">-₹{calculatedDiscountAmount.toLocaleString()}</span>
-                          </div>
-                        )}
-                        <div className="border-t pt-2 mt-2">
-                          {/* Platform Charges and GST hidden as per user request */}
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-300">
-                            <span className="text-lg font-bold text-indigo-700">Total Upfront Payment</span>
-                            <span className="text-xl font-bold text-indigo-700">₹{totalUpfrontPayment.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-gray-500 font-medium text-sm">Remaining Amount (to Driver)</span>
-                            <span className="font-semibold text-gray-700">₹{remainingAmount.toLocaleString()}</span>
-                          </div>
-                        </div>
                       </div>
-                      {/* Estimated Price hidden as per user request */}
                     </div>
                   </div>
 
-                  {/* Partner ID Input (Collapsible and Styled like Selected Cab) */}
+                  {/* Partner ID Input (Collapsible) */}
                   <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 mt-4">
                     <div
                       className="p-4 bg-indigo-100 border-b border-gray-100 flex justify-between items-center cursor-pointer hover:bg-indigo-200 transition-colors"
@@ -1250,10 +1231,22 @@ export default function Prices() {
                       </div>
                     )}
                   </div>
+
+                  {/* Payment Summary — full width, below Partner Referral */}
+                  <div className="mt-4 bg-indigo-700 rounded-xl overflow-hidden text-white">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-600">
+                      <span className="text-indigo-200 text-sm font-medium">Total Upfront Payment</span>
+                      <span className="text-2xl font-bold">₹{totalUpfrontPayment.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-6 py-4">
+                      <span className="text-indigo-200 text-sm font-medium">Remaining Amount (to Driver)</span>
+                      <span className="text-lg font-semibold">₹{remainingAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <div className="flex flex-col sm:flex-row gap-4 mt-6 px-6 pb-6">
                   <button
                     onClick={() => navigate('/cabs', { state: routeData })}
                     className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg flex items-center justify-center transition-all"
@@ -1265,7 +1258,7 @@ export default function Prices() {
                   </button>
                   <button
                     onClick={handleBookNow}
-                    disabled={isLoading || bookingLoading} // Disable if map loading or booking in progress
+                    disabled={isLoading || bookingLoading}
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg flex items-center justify-center transition-all shadow-md"
                   >
                     {bookingLoading ? (

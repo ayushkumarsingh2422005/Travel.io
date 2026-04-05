@@ -70,22 +70,22 @@ const createAddOnsTable = async () => {
             }
         ];
 
-        for (const addon of defaultAddOns) {
-            await db.execute(`
-                INSERT IGNORE INTO add_ons 
-                (id, name, description, price, pricing_type, percentage_value, category, display_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                addon.id,
-                addon.name,
-                addon.description,
-                addon.price,
-                addon.pricing_type,
-                addon.percentage_value,
-                addon.category,
-                addon.display_order
-            ]);
-        }
+        // for (const addon of defaultAddOns) {
+        //     await db.execute(`
+        //         INSERT IGNORE INTO add_ons 
+        //         (id, name, description, price, pricing_type, percentage_value, category, display_order)
+        //         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        //     `, [
+        //         addon.id,
+        //         addon.name,
+        //         addon.description,
+        //         addon.price,
+        //         addon.pricing_type,
+        //         addon.percentage_value,
+        //         addon.category,
+        //         addon.display_order
+        //     ]);
+        // }
 
         console.log('✅ Default add-ons inserted');
     } catch (e) {
