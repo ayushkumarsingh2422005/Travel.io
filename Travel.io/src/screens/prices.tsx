@@ -915,31 +915,40 @@ export default function Prices() {
                   </h2>
                 </div>
 
-                <div className="p-6 overflow-y-auto flex-1">
-                  <div className="space-y-6">
-                    <div className="relative pl-8 pb-6">
-                      <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-indigo-200"></div>
+                <div className="p-6 overflow-y-auto flex-1 relative min-h-0">
+                  {/* Single Continuous Vertical line */}
+                  {routeData?.tripType !== 'Hourly Rental' && (
+                    <div className="absolute left-[35px] top-10 bottom-10 w-0.5 bg-indigo-200"></div>
+                  )}
+                  
+                  <div className={`relative z-10 flex flex-col h-full ${routeData?.tripType === 'Hourly Rental' ? 'space-y-6' : 'justify-between pb-4'}`}>
+                    {/* Starting Point */}
+                    <div className="relative pl-8">
                       <div className="flex items-center mb-2">
-                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-md">
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                          </svg>
+                        <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-[#34D399] rounded-full flex items-center justify-center shadow-md border-2 border-white text-white font-bold text-xs">
+                          A
                         </div>
-                        <span className="ml-10 font-medium text-gray-800">Starting Point</span>
+                        <span className="ml-10 font-medium text-gray-800">Point A (Starting Point)</span>
                       </div>
                       <p className="ml-10 text-gray-600 break-words">{routeData?.pickup}</p>
                     </div>
 
+                    {/* Direct Route Info */}
+                    {routeData?.tripType !== 'Hourly Rental' && routeData?.stops?.length === 0 && (
+                      <div className="relative pl-10 flex items-center">
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-indigo-400 bg-indigo-50/50 px-3 py-1 rounded-full border border-indigo-100/50 italic">
+                          Direct route — no stops
+                        </span>
+                      </div>
+                    )}
+
                     {routeData?.tripType !== 'Hourly Rental' && routeData?.stops?.map((stop, index) => (
-                      <div key={index} className="relative pl-8 pb-6">
-                        <div className="absolute top-0 left-3 -ml-px h-full w-0.5 bg-indigo-200"></div>
+                      <div key={index} className="relative pl-8">
                         <div className="flex items-center mb-2">
-                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                            </svg>
+                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-[#FBBF24] rounded-full flex items-center justify-center shadow-md border-2 border-white text-white font-bold text-xs">
+                            {String.fromCharCode(66 + index)}
                           </div>
-                          <span className="ml-10 font-medium text-gray-800">Stop {index + 1}</span>
+                          <span className="ml-10 font-medium text-gray-800">Point {String.fromCharCode(66 + index)} (Stop {index + 1})</span>
                         </div>
                         <p className="ml-10 text-gray-600 break-words">{stop}</p>
                       </div>
@@ -947,8 +956,7 @@ export default function Prices() {
 
                     {/* Pickup Date & Time Display (Especially for Hourly Rental) */}
                     {routeData?.tripType === 'Hourly Rental' && (
-                      <div className="relative pl-8 pb-6">
-                        <div className={`absolute top-0 left-3 -ml-px ${routeData?.tripType === 'Hourly Rental' ? 'h-0' : 'h-full'} w-0.5 bg-indigo-200`}></div>
+                      <div className="relative pl-8">
                         <div className="flex items-center mb-2">
                           <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-md">
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -967,14 +975,11 @@ export default function Prices() {
 
                     {routeData?.tripType !== 'Hourly Rental' && (
                       <div className="relative pl-8">
-                        <div className="absolute top-0 left-3 -ml-px h-1/2 w-0.5 bg-indigo-200"></div>
                         <div className="flex items-center mb-2">
-                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                            </svg>
+                          <div className="absolute -left-1 mt-0.5 w-8 h-8 bg-[#EF4444] rounded-full flex items-center justify-center shadow-md border-2 border-white text-white font-bold text-xs">
+                            {String.fromCharCode(65 + 1 + (routeData?.stops?.length || 0))}
                           </div>
-                          <span className="ml-10 font-medium text-gray-800">Destination</span>
+                          <span className="ml-10 font-medium text-gray-800">Point {String.fromCharCode(65 + 1 + (routeData?.stops?.length || 0))} (Destination)</span>
                         </div>
                         <p className="ml-10 text-gray-600 break-words">{routeData?.destination}</p>
                       </div>

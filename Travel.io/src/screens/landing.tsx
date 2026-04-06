@@ -174,6 +174,16 @@ export default function MarcoCabService() {
   const [autocompleteService, setAutocompleteService] = useState<AutocompleteService | null>(null);
   const [geocoder, setGeocoder] = useState<Geocoder | null>(null);
 
+  // New states for Map Picker modal
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [mapTargetField, setMapTargetField] = useState<"pickup" | "destination" | number | null>(null);
+  const [mapAddress, setMapAddress] = useState("");
+  const [mapMarkerPos, setMapMarkerPos] = useState({ lat: 20.5937, lng: 78.9629 });
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | undefined>(undefined);
+  const markerInstanceRef = useRef<google.maps.Marker | undefined>(undefined);
+  const mapSearchInputRef = useRef<HTMLInputElement>(null);
+
   const pickupRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
   const stopRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -281,7 +291,137 @@ export default function MarcoCabService() {
   // Trip type selector
   const handleTripTypeChange = (type: string) => {
     setBookingForm(prev => ({ ...prev, tripType: type }));
+    if (type === "Hourly Rental") {
+      setAdditionalStops([]);
+    }
   };
+
+  // Helper for strict location validation
+  const isValidLocation = async (address: string) => {
+    if (!autocompleteService || !address.trim()) return true;
+    try {
+      const response = await autocompleteService.getPlacePredictions({
+        input: address,
+        componentRestrictions: { country: 'in' }
+      });
+      return response && response.predictions && response.predictions.length > 0;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const geocodePosition = React.useCallback(async (pos: { lat: number, lng: number }) => {
+    if (!geocoder) return;
+    try {
+      const response = await geocoder.geocode({ location: pos });
+      if (response.results[0]) {
+        setMapAddress(response.results[0].formatted_address);
+      } else {
+        setMapAddress("Unknown location");
+      }
+    } catch (e) {
+      setMapAddress("Error resolving location");
+    }
+  }, [geocoder]);
+
+  const openMapPicker = (target: "pickup" | "destination" | number) => {
+    setMapTargetField(target);
+    setIsMapModalOpen(true);
+    setMapAddress("Locating...");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setMapMarkerPos(newPos);
+        if (mapInstanceRef.current) mapInstanceRef.current.setCenter(newPos);
+        if (markerInstanceRef.current && typeof markerInstanceRef.current.setPosition === 'function') {
+          markerInstanceRef.current.setPosition(newPos);
+        }
+        geocodePosition(newPos);
+      }, () => {
+        geocodePosition(mapMarkerPos);
+      });
+    } else {
+      geocodePosition(mapMarkerPos);
+    }
+  };
+
+  const confirmMapLocation = () => {
+    if (!mapAddress || mapAddress === "Locating...") return;
+    if (mapTargetField === "pickup") {
+      setBookingForm(prev => ({ ...prev, pickupLocation: mapAddress }));
+      setShowPickupSuggestions(false);
+    } else if (mapTargetField === "destination") {
+      setBookingForm(prev => ({ ...prev, destination: mapAddress }));
+      setShowDestinationSuggestions(false);
+    } else if (typeof mapTargetField === "number") {
+      setAdditionalStops(prev =>
+        prev.map(s => s.id === mapTargetField ? { ...s, location: mapAddress, showSuggestions: false } : s)
+      );
+    }
+    setIsMapModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (isMapModalOpen && mapContainerRef.current && window.google) {
+      if (!mapInstanceRef.current) {
+        const map = new window.google.maps.Map(mapContainerRef.current, {
+          center: mapMarkerPos,
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+        mapInstanceRef.current = map;
+
+        const marker = new window.google.maps.Marker({
+          position: mapMarkerPos,
+          map: map,
+          draggable: true,
+          animation: window.google.maps.Animation.DROP,
+        });
+        markerInstanceRef.current = marker;
+
+        window.google.maps.event.addListener(marker, 'dragend', () => {
+          const pos = marker.getPosition();
+          if (pos) {
+            const newPos = { lat: pos.lat(), lng: pos.lng() };
+            setMapMarkerPos(newPos);
+            geocodePosition(newPos);
+          }
+        });
+
+        window.google.maps.event.addListener(map, 'click', (e: any) => {
+          const pos = e.latLng;
+          const newPos = { lat: pos.lat(), lng: pos.lng() };
+          marker.setPosition(newPos);
+          setMapMarkerPos(newPos);
+          geocodePosition(newPos);
+        });
+
+        if (mapSearchInputRef.current) {
+          const autocomplete = new window.google.maps.places.Autocomplete(mapSearchInputRef.current, {
+            componentRestrictions: { country: "in" },
+            fields: ["geometry", "name"],
+          });
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) return;
+            const pos = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+            map.setCenter(pos);
+            map.setZoom(15);
+            if (markerInstanceRef.current && typeof markerInstanceRef.current.setPosition === 'function') {
+              markerInstanceRef.current.setPosition(pos);
+            }
+            setMapMarkerPos(pos);
+            geocodePosition(pos);
+          });
+        }
+      }
+    } else if (!isMapModalOpen) {
+      mapInstanceRef.current = undefined;
+      markerInstanceRef.current = undefined;
+    }
+  }, [isMapModalOpen, mapMarkerPos, geocodePosition]);
 
   // Click handler: Book now
   const handleBookNow = () => {
@@ -367,42 +507,64 @@ export default function MarcoCabService() {
   };
 
   // Form submission: Booking
-  const handleBookingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleBookingSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Strict Validation
     if (!bookingForm.pickupLocation) {
-      toast.error("Please enter a Pickup Location", { id: 'pickup-location-error' });
+      toast.error("Please enter a Pickup Location", { id: 'landing-location-invalid' });
       return;
     }
     if (!bookingForm.destination && bookingForm.tripType !== "Hourly Rental") {
-      toast.error("Please enter a Drop Location", { id: 'drop-location-error' });
+      toast.error("Please enter a Drop Location", { id: 'landing-location-invalid' });
       return;
     }
     if (!bookingForm.pickupDate) {
-      toast.error("Please select a Pickup Date & Time", { id: 'pickup-date-error' });
+      toast.error("Please select a Pickup Date & Time", { id: 'landing-location-invalid' });
       return;
     }
     if ((bookingForm.tripType === "Round Trip" || (bookingForm.tripType === "One Way" && additionalStops.length > 0)) && !bookingForm.dropDate) {
-      toast.error("Please select a Drop Date & Time", { id: 'drop-date-error' });
+      toast.error("Please select a Drop Date & Time", { id: 'landing-location-invalid' });
       return;
     }
 
+    toast.loading('Validating locations...', { id: 'landing-location-invalid' });
 
-    console.log("Booking form submitted:", bookingForm);
+    // Strict Map Verification
+    const isPickupValid = await isValidLocation(bookingForm.pickupLocation);
+    if (!isPickupValid) {
+      toast.error("Please correctly fill a valid Pickup Location.", { id: 'landing-location-invalid' });
+      return;
+    }
 
-    // Prepare basic route data for navigation
+    if (bookingForm.tripType !== "Hourly Rental") {
+      const isDropValid = await isValidLocation(bookingForm.destination);
+      if (!isDropValid) {
+        toast.error("Please correctly fill a valid Drop Location.", { id: 'landing-location-invalid' });
+        return;
+      }
+    }
+
+    const currentStops = additionalStops.map(stop => stop.location).filter(Boolean);
+    for (const stop of currentStops) {
+      const isStopValid = await isValidLocation(stop);
+      if (!isStopValid) {
+        toast.error(`Please correctly fill a valid Stop Location instead of "${stop}".`, { id: 'landing-location-invalid' });
+        return;
+      }
+    }
+
+    toast.success('Locations verified!', { id: 'landing-location-invalid' });
+
+    // Prepare route data for navigation
     const routeData = {
       pickup: bookingForm.pickupLocation,
       destination: bookingForm.destination,
-      stops: additionalStops.map(stop => stop.location),
+      stops: currentStops,
       tripType: bookingForm.tripType,
       pickupDate: bookingForm.pickupDate,
       dropDate: bookingForm.dropDate
     };
-
-    console.log(routeData);
-
 
     // Navigate to cabs page with route data
     navigate('/cabs', { state: routeData });
@@ -741,7 +903,7 @@ export default function MarcoCabService() {
                     </div>
 
 
-                    <div className="mb-4" ref={pickupRef}>
+                    <div className="mb-6" ref={pickupRef}>
                       <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
                         Pickup Location <span className="text-red-500">*</span>
                       </label>
@@ -757,17 +919,13 @@ export default function MarcoCabService() {
                           name="pickupLocation"
                           value={bookingForm.pickupLocation}
                           onChange={handlePickupLocationChange}
-                          onFocus={() => {
-                            if (bookingForm.pickupLocation.trim() !== "") setShowPickupSuggestions(true);
-                          }}
+                          onFocus={() => setShowPickupSuggestions(true)}
                           placeholder="Pickup location"
                           onKeyDown={(e) => handleKeyDown(e, pickupSuggestions, (val) => handleSuggestionSelect(val, 'pickup'), () => setShowPickupSuggestions(false))}
                           className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                         />
-                        {/* Show suggestions or Current Location option when input is focused or has text */}
-                        {(showPickupSuggestions || bookingForm.pickupLocation === "") && (
-                          <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg ${!showPickupSuggestions && "invisible"}`}>
-                            {/* Add Current Location option */}
+                        {showPickupSuggestions && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
                             <div
                               className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 flex items-center text-indigo-600"
                               onClick={handleCurrentLocation}
@@ -778,7 +936,6 @@ export default function MarcoCabService() {
                               </svg>
                               Current Location
                             </div>
-
                             {pickupSuggestions.map((suggestion, index) => (
                               <div
                                 key={index}
@@ -789,55 +946,88 @@ export default function MarcoCabService() {
                                 {suggestion}
                               </div>
                             ))}
+                            <div
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                              onMouseDown={(e) => { e.preventDefault(); openMapPicker('pickup'); }}
+                            >
+                              <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                            </div>
                           </div>
                         )}
                       </div>
+                    </div>
 
-                      {/* Additional Stops */}
-                      {additionalStops.map((stop) => (
-                        <div key={stop.id} className="mb-4 relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
-                          <div className="flex-1 relative">
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <input
-                              type="text"
-                              value={stop.location}
-                              onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
-                              placeholder="Stop location"
-                              className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
-                            />
-                            {stop.showSuggestions && stop.suggestions.length > 0 && (
-                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full">
-                                {stop.suggestions.map((suggestion, index) => (
-                                  <div
-                                    key={index}
-                                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                    onClick={() => {
-                                      setAdditionalStops(prev =>
-                                        prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
-                                      );
-                                    }}
-                                  >
-                                    {suggestion}
+                    {/* Additional Stops */}
+                    {additionalStops.length > 0 && (
+                      <div className="mb-6 space-y-4">
+                          {additionalStops.map((stop) => (
+                            <div key={stop.id} className="relative flex items-center" ref={el => { stopRefs.current[stop.id] = el; }}>
+                              <div className="flex-1 relative">
+                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={stop.location}
+                                  onChange={(e) => handleStopLocationChange(stop.id, e.target.value)}
+                                  onFocus={() => {
+                                    setAdditionalStops(prev => prev.map(s => s.id === stop.id ? { ...s, showSuggestions: true } : s));
+                                  }}
+                                  onKeyDown={(e) => handleKeyDown(
+                                    e,
+                                    stop.suggestions,
+                                    (val) => {
+                                      setAdditionalStops(prev => prev.map(s => s.id === stop.id ? { ...s, location: val, showSuggestions: false } : s));
+                                    },
+                                    () => {
+                                      setAdditionalStops(prev => prev.map(s => s.id === stop.id ? { ...s, showSuggestions: false } : s));
+                                    }
+                                  )}
+                                  placeholder="Stop location"
+                                  className="w-full p-3 pl-12 rounded-lg border border-gray-300 focus:ring focus:ring-indigo-200 focus:focus:border-indigo-500"
+                                />
+                                {(stop.showSuggestions || stop.location === "") && (
+                                  <div className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg top-full ${!stop.showSuggestions && "invisible"}`}>
+                                    {stop.suggestions.map((suggestion, index) => (
+                                      <div
+                                        key={index}
+                                        className={`p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === activeSuggestionIndex ? "bg-indigo-50 text-indigo-700" : ""}`}
+                                        onClick={() => {
+                                          setAdditionalStops(prev =>
+                                            prev.map(s => s.id === stop.id ? { ...s, location: suggestion, showSuggestions: false } : s)
+                                          );
+                                        }}
+                                        onMouseEnter={() => setActiveSuggestionIndex(index)}
+                                      >
+                                        {suggestion}
+                                      </div>
+                                    ))}
+                                    {/* Select on Map Option */}
+                                    <div
+                                      className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                                      onMouseDown={(e) => { e.preventDefault(); openMapPicker(stop.id); }}
+                                    >
+                                      <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                                    </div>
                                   </div>
-                                ))}
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveStop(stop.id)}
-                            className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveStop(stop.id)}
+                                className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
 
                       {bookingForm.tripType !== "Hourly Rental" ? (
                         <div className="mb-4" ref={destinationRef}>
@@ -872,6 +1062,13 @@ export default function MarcoCabService() {
                                     {suggestion}
                                   </div>
                                 ))}
+                                {/* Select on Map Option */}
+                                <div
+                                  className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100 flex items-center text-indigo-600 font-medium bg-indigo-50/50 transition-colors"
+                                  onMouseDown={(e) => { e.preventDefault(); openMapPicker('destination'); }}
+                                >
+                                  <span className="mr-2 text-xl drop-shadow-sm">📍</span> Select location on Map
+                                </div>
                               </div>
                             )}
                           </div>
@@ -898,13 +1095,12 @@ export default function MarcoCabService() {
                         </div>
                       )}
 
-                    </div>
-
                     {bookingForm.tripType !== "Hourly Rental" ? (
                       <button
                         type="button"
                         onClick={handleAddStop}
-                        className="w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-4 flex items-center justify-center hover:bg-indigo-50 transition-colors"
+                        disabled={additionalStops.length > 0 && additionalStops.some(s => !s.location.trim())}
+                        className={`w-full p-3 rounded-lg border border-dashed border-indigo-500 text-indigo-600 mb-6 flex items-center justify-center transition-colors ${additionalStops.length > 0 && additionalStops.some(s => !s.location.trim()) ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-300 text-gray-400' : 'hover:bg-indigo-50'}`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -912,7 +1108,7 @@ export default function MarcoCabService() {
                         Add Stop
                       </button>
                     ) : (
-                      <div className="w-full p-3 rounded-lg border border-dashed border-gray-300 text-gray-400 mb-4 flex items-center justify-center bg-gray-50 cursor-not-allowed">
+                      <div className="w-full p-3 rounded-lg border border-dashed border-gray-300 text-gray-400 mb-6 flex items-center justify-center bg-gray-50 cursor-not-allowed">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -920,7 +1116,7 @@ export default function MarcoCabService() {
                       </div>
                     )}
 
-                    <div className="mb-4">
+                    <div className="mb-6">
                       <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-1">
                         Pickup Date & Time <span className="text-red-500">*</span>
                       </label>
@@ -1032,10 +1228,10 @@ export default function MarcoCabService() {
             </div>
           </div>
         </div>
-      </section >
+      </section>
 
       {/* Why Travel with Marco Section */}
-      < section id="services" className="py-16 bg-white" >
+      <section id="services" className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Why Travel with Marco?</h2>
@@ -1351,6 +1547,74 @@ export default function MarcoCabService() {
 
       {/* Footer Section */}
       <Footer />
-    </div >
+
+      {/* Map Picker Modal */}
+      {isMapModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-white font-bold text-lg flex items-center">
+                <span className="mr-2">📍</span> Select {mapTargetField === 'pickup' ? 'Pickup' : mapTargetField === 'destination' ? 'Drop' : 'Stop'} Location
+              </h3>
+              <button
+                onClick={() => setIsMapModalOpen(false)}
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full p-1 transition-colors"
+                aria-label="Close modal"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="relative mb-4 group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 group-focus-within:scale-110 transition-transform">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  ref={mapSearchInputRef}
+                  type="text"
+                  placeholder="Search for a building, street, or landmark..."
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 transition-all text-gray-700 bg-gray-50/50"
+                  autoFocus
+                />
+              </div>
+
+              <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+                <div ref={mapContainerRef} className="w-full h-[400px] bg-gray-100" />
+                {/* Drag info overlay */}
+                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg border border-indigo-100 text-xs text-indigo-800 flex items-center justify-center font-medium shadow-sm">
+                  <span className="mr-2 text-base">💡</span>
+                  Tip: Drag the marker or click anywhere on the map to fine-tune your location
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-indigo-500 font-bold block mb-1">Current Selection</span>
+                  <p className="text-gray-800 font-medium truncate flex items-center">
+                    <span className="mr-2 text-indigo-600 flex-shrink-0 font-bold">»</span>
+                    {mapAddress || "Locating your position..."}
+                  </p>
+                </div>
+                <button
+                  onClick={confirmMapLocation}
+                  disabled={!mapAddress || mapAddress === "Locating..."}
+                  className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 transition-all flex items-center justify-center group"
+                >
+                  Confirm Address
+                  <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
